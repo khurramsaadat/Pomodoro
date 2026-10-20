@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-clear-alarm"
+description = "Enables the clear_alarm command without any pre-configured scope."
+commands.allow = ["clear_alarm"]
+
+[[permission]]
+identifier = "deny-clear-alarm"
+description = "Denies the clear_alarm command without any pre-configured scope."
+commands.deny = ["clear_alarm"]

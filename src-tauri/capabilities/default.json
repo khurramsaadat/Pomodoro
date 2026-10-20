@@ -1,0 +1,19 @@
+{
+  "$schema": "../gen/schemas/desktop-schema.json",
+  "identifier": "default",
+  "description": "enables the default permissions",
+  "windows": [
+    "main"
+  ],
+  "permissions": [
+    "core:default",
+    "notification:default",
+    "global-shortcut:default",
+    "allow-platform-info",
+    "allow-set-alarm",
+    "allow-clear-alarm",
+    "allow-set-tray-state",
+    "allow-set-keep-alive",
+    "allow-hide-window"
+  ]
+}

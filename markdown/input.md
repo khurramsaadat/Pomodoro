@@ -96,3 +96,37 @@ snapshot written by the earlier build has no `completedFocusMs` field, and
 without a repair the summary rendered `NaN min` for every existing user. The
 screenshot is what showed that one; no test would have.
 
+---
+
+## 9. Building the native tier
+
+> "proceed to Phase 5 - the Tauri native tier"
+
+The Tauri v2 desktop app was built from the same source tree, with the web
+build left working exactly as it was.
+
+**The decision:** the two tiers meet at one seam, `src/platform`, and the
+`@tauri-apps/api` runtime is imported *dynamically* and only there. The
+build proves the web tier is untouched: the Tauri code lands in its own
+chunk and the web page never asks for it.
+
+**What the native tier added.** A system tray that shows the live timer, a
+window that hides to the tray rather than quitting, a global shortcut that
+starts and pauses the timer from any application, and a notification that
+fires *on time* when a phase ends while the window is hidden.
+
+**The alarm is the interesting part.** It is scheduled against the timer's
+own deadline - the same `endsAt` the countdown is drawn from - and it runs
+on its own thread, so the notification does not depend on the webview being
+painted. That is the thing the web tier simply cannot do: a browser gives a
+backgrounded tab no timer it can trust.
+
+**Three bugs that only a real run found.** The tray update panicked the app
+because the icon is created in the setup hook and a lookup by managed state
+finds nothing. The alarm was never sent, because the native bridge loads
+asynchronously and the request was dropped. The service worker cached the
+native app's shell, which would have kept serving old code after an
+upgrade. None of them were visible in the tests, and the tests could not
+have found them: the bug was in the relationship between a Rust object and
+a browser page, not in any one of them.
+

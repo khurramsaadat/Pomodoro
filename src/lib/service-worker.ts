@@ -6,6 +6,12 @@
  * it would serve a stale shell over the dev server, which is a
  * particularly confusing way to lose an afternoon.
  *
+ * It is *not* registered in the native tier. The desktop app serves its
+ * own assets from the bundle, and a service worker there would cache the
+ * shell and keep serving it after a new version has been installed — so
+ * the app would run old code against a new backend, which is a much worse
+ * fault than being unable to work offline.
+ *
  * Registration never throws and never blocks. A browser that does not
  * support service workers, a page served over `file://`, and a browser
  * that refuses the registration for policy reasons are all ordinary
@@ -21,6 +27,16 @@ function isProduction(): boolean {
 }
 
 /**
+ * Whether the app is running inside the native tier.
+ *
+ * The native tier is identified by the Tauri runtime being present, which
+ * is a property of the page rather than of the bundle.
+ */
+function isNative(): boolean {
+  return typeof window !== 'undefined' && '__TAURI_INTERNALS__' in window;
+}
+
+/**
  * Registers the service worker.
  *
  * Returns a promise that resolves once the registration has been attempted,
@@ -28,6 +44,12 @@ function isProduction(): boolean {
  */
 export async function registerServiceWorker(): Promise<void> {
   if (!isProduction() || typeof navigator === 'undefined') {
+    return;
+  }
+
+  if (isNative()) {
+    // The native app has no offline story to serve — it is already
+    // installed — and a cached shell would outlive an upgrade.
     return;
   }
 

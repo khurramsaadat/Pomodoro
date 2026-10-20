@@ -6,6 +6,7 @@ import {
   type TimerEngineState,
 } from '@/components/timer/timer-engine';
 import { useKeyboardShortcuts } from '@/hooks/use-keyboard-shortcuts';
+import { usePlatform } from '@/hooks/use-platform';
 import { usePomodoroTimer } from '@/hooks/use-pomodoro-timer';
 import { unlockAudio } from '@/lib/audio';
 import type { TimerPhase } from '@/domain/types';
@@ -25,6 +26,11 @@ export function TimerEngineProvider({ children, onPhaseComplete }: TimerEnginePr
   // the panel is unmounted whenever the user is on another tab — and a
   // shortcut that only worked on one tab would be worse than none.
   useKeyboardShortcuts({ toggle, skip, reset });
+
+  // The native tier's alarm, tray and global shortcut live here too, for
+  // the same reason: they are all about the timer, and the engine is the
+  // one thing that never goes away.
+  usePlatform();
 
   // Browsers only allow audio after a user gesture, so the context is
   // unlocked on the first interaction. This lives with the engine rather

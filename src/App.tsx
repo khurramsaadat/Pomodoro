@@ -4,6 +4,7 @@ import { BarChart3, ListTodo, Settings2, Timer } from 'lucide-react';
 
 import { AppShell } from '@/components/layout/app-shell';
 import { Dashboard } from '@/components/layout/dashboard';
+import { NativeActions } from '@/components/layout/native-actions';
 import { ShortcutsDialog } from '@/components/layout/shortcuts-dialog';
 import { MiniModeToggle } from '@/components/mini/mini-mode-toggle';
 import { MiniTimer } from '@/components/mini/mini-timer';
@@ -90,6 +91,7 @@ export default function App() {
       actions={
         <>
           <ShortcutsDialog />
+          <NativeActions />
           <MiniModeToggle />
         </>
       }

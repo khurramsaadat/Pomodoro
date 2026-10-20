@@ -13,15 +13,21 @@ standalone static web app from the same source tree.
    exhaustively unit-tested.
 3. **The web build contains no Tauri code.** `@tauri-apps/api` may only be
    imported *dynamically* inside `src/platform/tauri.ts`. A static import
-   anywhere else breaks the standalone web deploy.
-4. **Never mutate state in place.** Use immutable updates so React and zustand
+   anywhere else breaks the standalone web deploy. The build proves it:
+   the Tauri code is code-split into its own chunk, and the web page never
+   requests it. Check with `npm run build` and inspect `dist/assets`.
+4. **Nothing above the platform seam asks which tier it is on.** The
+   `PlatformBridge` is the whole interface between the app and its host. A
+   `if (isTauri())` anywhere else is a seam that has leaked, and it is how
+   the two tiers drift apart.
+5. **Never mutate state in place.** Use immutable updates so React and zustand
    can diff correctly.
-5. **Timers are deadline-based, never tick-based.** Store `endsAt` (epoch ms);
+6. **Timers are deadline-based, never tick-based.** Store `endsAt` (epoch ms);
    derive `remaining = endsAt - Date.now()`. Never decrement a counter — browser
    throttling in background tabs would silently lose time.
-6. **Every user preference is persisted** and schema-validated on read, so a
+7. **Every user preference is persisted** and schema-validated on read, so a
    corrupt or outdated payload can never crash the app.
-7. **The project records in `markdown/` are maintained, not written once.**
+8. **The project records in `markdown/` are maintained, not written once.**
    Every feature updates all four, in `markdown/`:
 
    | File | Holds | Updated |
@@ -41,7 +47,7 @@ standalone static web app from the same source tree.
 ```
 src/
   domain/    pure logic, zero platform imports   (unit-tested)
-  platform/  the web/desktop seam (PlatformBridge)          [Phase 5]
+  platform/  the web/desktop seam (PlatformBridge)
   storage/   versioned, validated localStorage repositories
   store/     zustand stores
   hooks/     custom hooks
@@ -53,8 +59,28 @@ src/
   components/tasks/     task queue UI
   components/stats/     statistics UI
   components/settings/  preferences UI
-src-tauri/  Rust backend: commands, tray, window events    [Phase 5]
+src-tauri/  Rust backend: commands, tray, alarm, window events
 ```
+
+## The platform seam
+
+`src/platform` is the only place that knows whether the app is in a browser
+or a desktop window. Everything above it calls the `PlatformBridge` and
+never asks which tier it is on.
+
+- `types.ts` — the interface, and the web tier's capabilities.
+- `web.ts` — the browser implementation. Every method is a no-op.
+- `tauri.ts` — the native implementation. **The only module allowed to
+  import `@tauri-apps/api`, and only dynamically.**
+- `index.ts` — the facade that picks one, buffering handlers registered
+  before the native bridge has loaded.
+
+The native tier's alarm is scheduled against the timer's **deadline**, the
+same `endsAt` the countdown is drawn from, and runs on its own thread. It
+is not a second opinion about when a phase ends - it is the same fact, read
+by a thread that does not care whether the webview is being painted. That
+is the one thing the web tier genuinely cannot do, and the reason the
+native tier is worth having.
 
 ## Dashboard layout
 
@@ -140,6 +166,7 @@ npm run typecheck        # tsc -b --noEmit
 npm run lint             # eslint
 npm test                 # vitest
 cargo check --manifest-path src-tauri/Cargo.toml
+cargo test --manifest-path src-tauri/Cargo.toml
 ```
 
 **Do not run `npm run dev` and `npm run tauri dev` at the same time** — the dev

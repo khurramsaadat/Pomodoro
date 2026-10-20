@@ -62,6 +62,20 @@ than no timer at all.
 | FR-15 | The mini timer's corner and offset survive a reload and a resize | Must |
 | FR-16 | The footer is a single line and carries `© 2006 Khurram` | Must |
 
+### 4.1a The native tier
+
+| ID | Requirement | Priority |
+|----|-------------|----------|
+| FR-40 | The app runs natively as a Tauri v2 desktop app from the same source tree | Must |
+| FR-41 | The web build contains no Tauri code; the runtime is loaded only when it is present | Must |
+| FR-42 | A system-tray icon shows the live timer and offers start/pause, show, and quit | Must |
+| FR-43 | Closing the window hides it to the tray instead of quitting | Must |
+| FR-44 | A global shortcut starts and pauses the timer from any application | Must |
+| FR-45 | A phase that ends while the window is hidden still notifies **on time** | Must |
+| FR-46 | The native alarm is scheduled against the timer's own deadline, never a duration | Must |
+| FR-47 | A second launch focuses the running app rather than starting a second timer | Must |
+| FR-48 | The web tier offers no affordance the browser cannot honour | Must |
+
 ### 4.2 Tasks
 
 | ID | Requirement | Priority |
@@ -115,16 +129,16 @@ than no timer at all.
 ```
 src/
   domain/     pure logic - no React, no DOM, no Tauri    (unit-tested)
-  platform/   the web/desktop seam (PlatformBridge)      [Phase 5]
+  platform/   the web/desktop seam (PlatformBridge)
   storage/    versioned, validated localStorage repositories
   store/      zustand stores
   hooks/      custom hooks
   lib/        time formatting, Web Audio chime, persistence
   components/ layout . ui . mini . timer . tasks . stats . settings
-src-tauri/    Rust backend: commands, tray, window events [Phase 5]
+src-tauri/    Rust backend: commands, tray, alarm, window events
 ```
 
-**Three separations carry the design:**
+**Four separations carry the design:**
 
 1. **The engine is deadline-based.** `endsAt` is the single source of truth;
    `remaining` is always derived. A throttled tab cannot lose time.
@@ -132,17 +146,22 @@ src-tauri/    Rust backend: commands, tray, window events [Phase 5]
    so no tab can stop the countdown.
 3. **The history is append-only.** Every statistic is recomputed from the log,
    so the numbers can always be audited.
+4. **The tiers meet at one seam.** `src/platform` is the only place that
+   knows whether the app is in a browser or a desktop window. Everything
+   above it calls the `PlatformBridge` and never asks which tier it is on.
 
 ## 7. Success metrics
 
 | Metric | Target | Status |
 |--------|--------|--------|
-| Test coverage | Every acceptance criterion has a test | **Met** - 256 tests / 19 files |
+| Test coverage | Every acceptance criterion has a test | **Met** - 283 tests / 24 files, plus 6 Rust tests |
 | Tests, typecheck, lint, build | All green | **Met** |
 | Console errors in the browser | 0 | **Met** - light and dark mode |
 | The clock is ever unmounted | 0 occurrences | **Met** - verified in-browser |
 | The mini timer disagrees with the main panel | 0 disagreements | **Met** - by construction and by test |
 | A corrupt payload crashes the app | 0 occurrences | **Met** - validated on read |
+| The web build loads Tauri code | 0 chunks | **Met** - code-split, verified in the bundle |
+| A native affordance appears in the browser | 0 | **Met** - the web tier reports no native capability |
 
 ## 8. Out of scope
 
@@ -152,9 +171,38 @@ src-tauri/    Rust backend: commands, tray, window events [Phase 5]
   skip rules are the user's to configure, not the app's to reinterpret.
 - Accounts, sync, or a server. The app is local-first; the history lives on
   the device.
-- Phase 5 - the Tauri native tier - is designed for but not yet built.
+- A mobile build. The Tauri scaffold can target Android and iOS, but the
+  native tier here is desktop-only: a tray and a global shortcut have no
+  meaning on a phone.
 
 ## 9. Release notes
+
+**The native tier (`Phase 5`)**
+
+- The app now runs as a **native Tauri v2 desktop app** from the same source
+  tree, and the web build is untouched by it.
+- A **system tray** shows the live timer. Its tooltip is the countdown, its
+  menu offers *Show*, *Start / pause* and *Quit*, and a double click brings
+  the window forward.
+- **Closing the window hides it to the tray** instead of quitting. A timer
+  that stopped when its window closed could not be trusted to be there when
+  the break was due.
+- A **global shortcut** (`Ctrl+Shift+Space`) starts and pauses the timer from
+  any application, so the app can be driven without being on screen.
+- A phase that ends while the window is hidden now **notifies on time**. The
+  native alarm is scheduled against the timer's own deadline — the same
+  `endsAt` the countdown is drawn from — so it is not a second opinion about
+  when the phase ends, it is the same fact.
+- A **second launch focuses the running app** rather than starting a second
+  timer, which would have doubled every statistic.
+- The **web tier is honest about itself**: the tray button and the global
+  shortcut are simply absent in a browser, and the Tauri runtime is loaded
+  only when it is actually there.
+- The app **installs as a desktop application** — an NSIS installer and an
+  MSI — and a second launch focuses the running app rather than starting a
+  second timer.
+- On Windows the app **registers itself with the notification system**, so
+  a toast carries the app's name and icon rather than an anonymous one.
 
 **The four defects, repaired (`1a1cbe0`)**
 

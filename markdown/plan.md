@@ -178,6 +178,77 @@ bar now uses it, which is what the package was there for.
 
 ---
 
+## Stage 9 - The native tier
+
+**Commit:** *(see the history)*
+
+The Tauri v2 desktop app: the Rust backend, the `PlatformBridge` seam, and
+the native affordances built on top of them.
+
+**The decision: one seam, and the web build must not notice it.** The whole
+native tier is reached through `src/platform`, which exposes a single
+`PlatformBridge` interface. The web implementation does nothing; the Tauri
+implementation talks to the backend. Nothing above the seam asks which tier
+it is running on, so the app has exactly one code path and the browser and
+the desktop cannot drift apart.
+
+`@tauri-apps/api` is imported **dynamically** and only in
+`src/platform/tauri.ts`. The build proves it: the Tauri code is split into
+its own chunk, and the web page never requests it. A static import would
+have put the Tauri runtime into the web bundle, where
+`window.__TAURI_INTERNALS__` does not exist.
+
+**The decision: the native alarm is scheduled against the deadline, not a
+duration.** The web tier can only fire a chime while the tab is alive,
+because a browser gives a backgrounded tab no timer it can trust. The
+native tier has no such limitation, so the alarm sleeps until the *same*
+`endsAt` the countdown is drawn from and fires a notification there. It is
+not a second opinion about when the phase ends - it is the same fact, read
+by a thread that does not care whether the webview is being painted.
+
+**The alarm is a thread, not a `tokio` timer,** precisely because the point
+is that the notification does not depend on the webview's event loop being
+alive. A request interrupts the sleep, so pausing or restarting the timer
+takes effect immediately rather than at the next deadline.
+
+**The decision: the window hides, it does not quit.** A Pomodoro timer that
+stops when its window is closed cannot be trusted to be there when the
+break is due, so the close button hides the window and the process stays
+alive. The tray is the way back, and a second launch focuses the existing
+app rather than starting a second timer that would double every statistic.
+
+**The web tier is honest about itself.** The tray button and the global
+shortcut are simply absent in a browser, because the browser cannot honour
+them. A button that does nothing is worse than no button.
+
+**Three bugs that only a real run found.** None of them were visible in
+the tests, and all three would have shipped:
+
+- **The tray update panicked the app.** The tray icon is created in the
+  setup hook, so a lookup by managed state found nothing — and
+  `state()` panics when it is called before `manage()`. A panic in a
+  command handler takes the whole process down, so the app died on its
+  first tray update. The icon is now found by its id, and the flags the
+  tray and the runtime both need are shared by clone rather than looked
+  up on demand.
+- **The alarm was never sent.** The alarm is scheduled on mount, and the
+  native bridge is loaded asynchronously, so the request was dropped on
+  the floor. A deadline that is never sent is a phase that ends in
+  silence. The request is now held and sent as soon as the bridge is
+  ready.
+- **The service worker cached the native app's shell.** The desktop app
+  serves its own assets, and a worker caching the shell would keep
+  serving it after an upgrade — old code against a new backend. The
+  worker is now registered only on the web tier.
+
+**The verification was the interesting part.** Driving the real app
+through UI Automation — finding the "Hide to the system tray" button by
+its accessible name, invoking it, and checking that the window was hidden
+and the process was still alive — is what proved the flow. The unit
+tests could not have caught any of it.
+
+---
+
 ## Verification
 
 | Stage | Tests | Typecheck | Lint | Build | Browser |
@@ -190,6 +261,8 @@ bar now uses it, which is what the package was there for.
 | 6 | 236 / 18 files | green | green | green | defects reproduced in a fixed time zone |
 | 7 | 236 / 18 files | green | green | green | 4 assertions fail against the old code |
 | 8 | 256 / 19 files | green | green | green | two columns, dialog, task editing, shortcuts, 0 console errors |
+| 9 | 283 / 24 files + 6 Rust | green | green | green | web tier loads no Tauri chunk, 0 console errors; native app drives hide-to-tray, the global shortcut, and the tray countdown |
 
-**Current state:** 256 tests across 19 files, typecheck, lint, and the
-production build all clean.
+**Current state:** 283 tests across 24 files and 6 Rust tests, typecheck,
+lint, the production build, the native release build, and the installers
+(NSIS + MSI) all clean.

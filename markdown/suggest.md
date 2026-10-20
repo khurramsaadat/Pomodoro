@@ -1,4 +1,4 @@
-﻿# Suggest - recommended improvements
+# Suggest - recommended improvements
 
 > Overall improvements to this app, refreshed after every completed task.
 > Companions: [`input.md`](./input.md) (prompts), [`prd.md`](./prd.md) (requirements),
@@ -29,6 +29,9 @@ re-propose them.
 | 16 | Prune the unused dependencies | **Done** - four Radix packages dropped, two put to use |
 | 17 | Expose the history in the UI | **Built** - the "Recent sessions" list |
 | 18 | Show which task a session is spent on | **Built** - the active-task strip |
+| 19 | The native tier - the Tauri desktop app | **Built** - the tray, the global shortcut, hide-to-tray |
+| 20 | Notifications when the window is hidden | **Built** - the native alarm, scheduled against the deadline |
+| 21 | An installable desktop app | **Built** - an NSIS installer and an MSI |
 
 ---
 
@@ -129,38 +132,84 @@ what the user expects from a timer they put down and came back to.
 
 ### 24. Notifications when the window is hidden
 
-The chime only plays if the tab is alive and unmuted. On the web tier that
-is a browser limitation, and the Web Notifications API would need a
-permission the app has no business asking for by default. On the native
-tier it is a tray notification, and the app would then be usable for someone
-who keeps it in the background - which is the whole point of a Pomodoro
-timer.
+**Now built, in the native tier.** The chime still only plays if the tab is
+alive and unmuted on the web, and that is a browser limitation the app
+should not fight: the Web Notifications API would need a permission the app
+has no business asking for by default.
+
+The native tier does not have the limitation. The alarm is scheduled against
+the timer's own deadline and runs on its own thread, so a phase that ends
+while the window is hidden still notifies *on time* rather than whenever the
+user brings the window forward.
+
+What is still missing on the web tier is a first-class answer rather than a
+workaround: the browser cannot promise a notification, and the app should
+not pretend otherwise.
 
 ### 25. Begin Phase 5 - the Tauri native tier
 
-The `PlatformBridge` seam is designed for and not yet built. It is what makes
-the desktop tier real: a system tray, a global shortcut, a window that hides
-to the tray, and a native notification at phase completion.
+**Now built.** The `PlatformBridge` seam exists in `src/platform`, the Rust
+backend is in `src-tauri`, and the desktop tier has the system tray, the
+global shortcut, the window that hides to the tray, and the native
+notification.
+
+The seam is the part worth keeping. The web build loads no Tauri code at
+all - the runtime is imported dynamically and only when it is actually
+present - so the two tiers share a source tree without sharing a runtime.
 
 ### 26. Let the timer be paused by the operating system
 
 When the laptop sleeps, the deadline passes in real time and the session is
 recorded as complete. A user who closed the lid for two minutes loses a focus
-session to a sleep that was never a choice. The native tier can observe the
-suspend and resume events and tell the engine to bank the time as paused.
+session to a sleep that was never a choice.
+
+**The native tier is now in a position to solve this.** It can observe the
+suspend and resume events and tell the engine to bank the time as paused -
+the engine already has the machinery for it, because `elapsedMs` banks the
+time a phase has already served.
+
+What is missing is the *meaning* of a suspend. Two readings are possible and
+they are not the same decision: the user closed the lid on purpose and the
+session should stop, or the machine slept under them and the session should
+have continued to run. The second reading is the honest one for a timer
+whose whole claim is that it keeps time, but it means a session can complete
+while the user never saw it happen. The banked time and the completed
+session are both facts, and the history would need to say which it was.
+
+### 27. A notification the user can act on
+
+The native toast says that the phase is over, and nothing else. It has no
+button, so the user has to find the window to start the next session - which
+defeats the point of a notification that fires while the window is hidden.
+
+The plugin supports action types, and the tray's *Start / pause* item
+already drives the timer from outside the window. A toast with a "Start
+break" button would close that loop: the notification would not merely
+report the phase ending, it would be the way through it.
+
+The work is on both sides. The Rust side has to register an action type
+and listen for it; the frontend has to answer the action with the same
+toggle the tray uses. It is the same seam the tray already proved.
+
+### 28. A tray tooltip that reads better
+
+The tooltip is the countdown and the running state, which is right and
+terse. It is also the only place the user can see the timer without
+opening the window, so it is worth a little more: the phase's name, and
+perhaps the task the session is being spent on.
 
 ---
 
 ## Longer-term
 
-### 27. A shift-shaped view of the day
+### 29. A shift-shaped view of the day
 
 The statistics answer "how much did I do" but not "when". A user who wants to
 know whether their focus time lands in the morning or the evening has no way
 to find out, even though the log has the timestamps. A day split into hours
 would answer it.
 
-### 28. A "what changed" note in the history
+### 30. A "what changed" note in the history
 
 The log is append-only and correct, but a user reading it sees a flat list.
 Marking the sessions that were interrupted, that ran long, or that happened
@@ -176,6 +225,16 @@ schedule.
   was testable without a DOM.
 - **Keep the engine above the UI.** The tab-unmount bug and the permanent
   clock are the same lesson twice.
+- **Run the real app.** The three native-tier bugs were all in the seam
+  between a Rust object and a browser page, and none of them was visible
+  from either side. Driving the installed app - finding a button by its
+  accessible name, invoking it, and checking that the window was hidden
+  and the process was still alive - is what found them. A test that only
+  ever exercises one side of a seam has not tested the seam.
+- **A panic in a command handler takes the app down.** `state()` panics
+  when it is called before `manage()`, and a panic on the main thread is
+  not recoverable. Anything that reaches for managed state has to use
+  `try_state` when the ordering is not guaranteed.
 - **Keep verifying in the browser.** The pointer-capture bug and the
   setPointerCapture throw were both invisible to jsdom and to the test suite.
   The `NaN min` in the session summary was invisible to every test too, and
