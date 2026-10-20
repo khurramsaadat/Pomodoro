@@ -41,6 +41,13 @@ export interface TaskStore {
   setActiveTask: (id: string | null) => void;
   /** Records a completed focus session against the active task. */
   recordFocusSession: () => void;
+  /**
+   * Moves the active task on to the next open one.
+   *
+   * Used when the active task has used up its estimate and the user has
+   * asked for the queue to advance by itself.
+   */
+  advanceToNextTask: () => void;
   /** Removes every task from the queue. */
   clearTasks: () => void;
   /** Restores the queue from storage. */
@@ -112,6 +119,18 @@ export const useTaskStore = create<TaskStore>()((set, get) => ({
     set({
       tasks: tasks.map((task) => (task.id === activeTaskId ? applyFocusSession(task) : task)),
     });
+  },
+
+  advanceToNextTask: () => {
+    const { tasks, activeTaskId } = get();
+
+    // The next task is the first open one that is not the current one, in
+    // display order. When the current task is the only open one, the active
+    // task is cleared rather than pointing at itself.
+    const candidates = sortTasks(tasks).filter((task) => !task.done && task.id !== activeTaskId);
+    const next = candidates[0];
+
+    set({ activeTaskId: next ? next.id : null });
   },
 
   clearTasks: () => {

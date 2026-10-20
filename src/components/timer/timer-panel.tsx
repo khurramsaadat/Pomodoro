@@ -1,59 +1,32 @@
-import { useEffect } from 'react';
-
 import { CycleIndicator } from '@/components/timer/cycle-indicator';
 import { CountdownRing } from '@/components/timer/countdown-ring';
 import { TimerControls } from '@/components/timer/timer-controls';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
 import { cycleProgress, durationForPhase, phaseLabel, statusLabel } from '@/domain/timer';
-import type { TimerPhase } from '@/domain/types';
-import { usePomodoroTimer } from '@/hooks/use-pomodoro-timer';
-import { unlockAudio } from '@/lib/audio';
+import { useRemaining, useTimerEngine } from '@/components/timer/timer-engine';
+import { phaseColor } from '@/lib/phase';
 import { formatDuration } from '@/lib/time';
 import { useTimerStore } from '@/store/timer-store';
-
-/** The accent colour for each phase, matching the CSS tokens. */
-const PHASE_COLORS: Record<TimerPhase, string> = {
-  work: 'var(--color-phase-work)',
-  shortBreak: 'var(--color-phase-short)',
-  longBreak: 'var(--color-phase-long)',
-};
-
-export interface TimerPanelProps {
-  /** Called when a phase completes. */
-  readonly onPhaseComplete?: ((phase: TimerPhase) => void) | undefined;
-}
 
 /**
  * The main timer surface: the countdown ring, the controls and the cycle
  * indicator.
  *
- * All of the state lives in the store; this component is responsible for
- * rendering it and for wiring up the user actions.
+ * The engine itself lives in `TimerEngineProvider`, above the tabs, so that
+ * the countdown keeps running while the user is on another tab. This
+ * component is only the *view* of it.
  */
-export function TimerPanel({ onPhaseComplete }: TimerPanelProps) {
+export function TimerPanel() {
   const state = useTimerStore((store) => store.state);
   const config = useTimerStore((store) => store.config);
 
-  const { remaining, toggle, reset, skip } = usePomodoroTimer({ onPhaseComplete });
-
-  // Browsers only allow audio after a user gesture, so the context is
-  // unlocked on the first interaction with the timer.
-  useEffect(() => {
-    const unlock = (): void => {
-      void unlockAudio();
-    };
-    window.addEventListener('pointerdown', unlock, { once: true });
-    window.addEventListener('keydown', unlock, { once: true });
-    return () => {
-      window.removeEventListener('pointerdown', unlock);
-      window.removeEventListener('keydown', unlock);
-    };
-  }, []);
+  const remaining = useRemaining();
+  const { toggle, reset, skip } = useTimerEngine();
 
   const duration = durationForPhase(state.phase, config);
   const progress = duration > 0 ? 1 - remaining / duration : 0;
-  const color = PHASE_COLORS[state.phase];
+  const color = phaseColor(state.phase);
   const cycle = cycleProgress(state, config);
 
   return (

@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 
 import { defaultConfig } from '@/domain/presets';
+import { isOverEstimate } from '@/domain/tasks';
 import {
   completePhase,
   createInitialState,
@@ -14,6 +15,7 @@ import {
 } from '@/domain/timer';
 import type { TimerConfig, TimerState } from '@/domain/types';
 import { useHistoryStore } from './history-store';
+import { usePreferencesStore } from './preferences-store';
 import { selectActiveTask, useTaskStore } from './task-store';
 
 export interface TimerStore {
@@ -105,6 +107,19 @@ export const useTimerStore = create<TimerStore>()((set, get) => ({
 
     if (completion.phase === 'work') {
       useTaskStore.getState().recordFocusSession();
+
+      // When the active task has used up its estimate, the queue can move
+      // on by itself — but only if the user asked for that behaviour.
+      //
+      // The task is re-read after the session was recorded, because the
+      // check is against the *updated* count: a task estimated at one
+      // session is only over budget once that session has been banked.
+      const preferences = usePreferencesStore.getState().preferences;
+      const updated = selectActiveTask(useTaskStore.getState());
+
+      if (preferences.autoAdvanceTask && updated !== null && isOverEstimate(updated)) {
+        useTaskStore.getState().advanceToNextTask();
+      }
     }
   },
 

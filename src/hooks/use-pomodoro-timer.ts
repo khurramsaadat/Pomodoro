@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 
 import { chimeForPhase, playChime } from '@/lib/audio';
 import type { TimerPhase } from '@/domain/types';
+import { usePreferencesStore } from '@/store/preferences-store';
 import { useTimerStore } from '@/store/timer-store';
 
 /** How often the countdown is re-rendered, in milliseconds. */
@@ -56,6 +57,7 @@ export function usePomodoroTimer(
   const storeSkip = useTimerStore((store) => store.skip);
   const storeInterrupt = useTimerStore((store) => store.interrupt);
   const storeComplete = useTimerStore((store) => store.complete);
+  const soundEnabled = usePreferencesStore((store) => store.preferences.soundEnabled);
 
   const { onPhaseComplete } = options;
 
@@ -95,14 +97,21 @@ export function usePomodoroTimer(
 
     const completedPhase = current.state.phase;
     storeComplete();
-    playChime({ volume: CHIME_VOLUME, sound: chimeForPhase(completedPhase) });
+
+    // The chime is a preference, not a fact about the timer: a user who has
+    // turned the sound off should not hear it, even though the phase still
+    // completes.
+    if (soundEnabled) {
+      playChime({ volume: CHIME_VOLUME, sound: chimeForPhase(completedPhase) });
+    }
+
     onPhaseCompleteRef.current?.(completedPhase);
 
     // Release the guard on the next tick so the following phase can complete.
     window.setTimeout(() => {
       completingRef.current = false;
     }, 0);
-  }, [storeComplete]);
+  }, [storeComplete, soundEnabled]);
 
   // Keep the derived timestamp fresh while the timer runs.
   useEffect(() => {
