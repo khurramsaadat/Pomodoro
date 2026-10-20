@@ -80,7 +80,7 @@ it, so capture and release are best-effort.
 
 ## Stage 5 - The dashboard layout
 
-**Commit:** the current one
+**Commit:** `3ad8301`
 
 The two-column dashboard, the permanent clock column, and the one-line footer.
 
@@ -96,6 +96,37 @@ disappear. "Permanent" had to mean a lifetime guarantee, not just a position.
 **Two consequences:** the "Focus" tab became "Session", because the timer left
 it and only the session settings remained; and `TimerPanel` dropped its
 `max-w-xl` centring, which would have stranded it in a wider column.
+
+---
+
+## Stage 6 - Reviewing the suggestions
+
+**Commit:** the current one
+
+Every item in `suggest.md` was checked against the source rather than carried
+forward on trust. The review found four defects the record had not mentioned,
+and showed that two of the standing suggestions had already been built.
+
+**The decision:** a suggestion that is wrong is worse than no suggestion, so
+each one was traced to the line that implements it before it was kept. The
+record now separates *correctness first* - things a user can see today - from
+the enhancements.
+
+**What the review found:**
+
+- The streak is computed by subtracting a fixed 86 400 000 ms per day, which
+  breaks on the day the clocks go back. Reproduced in a fixed time zone: a
+  user who worked on 30 Oct and 1 Nov, having missed 31 Oct, is reported as
+  being on a two-day streak.
+- The "Interruptions" metric can never be non-zero. The domain function, the
+  store action, and the engine context all exist, but no control calls them.
+- "Reset session" preserves the two counters the session summary displays, so
+  the button appears to do nothing.
+- The session summary's "Focus time" is a session count multiplied by the
+  *current* focus length, so it drifts from the real total in the statistics.
+- Two standing suggestions were already implemented: the reduced-motion
+  preference is honoured in `src/index.css`, and the `autoAdvanceTask`
+  behaviour is live in the timer store.
 
 ---
 

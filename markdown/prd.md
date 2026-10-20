@@ -77,7 +77,8 @@ than no timer at all.
 |----|-------------|----------|
 | FR-21 | Completed phases are appended to an immutable log | Must |
 | FR-22 | The daily goal, streak, per-day totals, and per-task breakdown are derived from that log | Must |
-| FR-23 | Interruptions are recorded and reported | Must |
+| FR-29 | The streak counts consecutive *calendar* days, across daylight-saving changes | Must — **not yet met** |
+| FR-23 | Interruptions are recorded and reported | Must — **not yet met** |
 
 ### 4.4 Preferences
 
@@ -148,6 +149,19 @@ src-tauri/    Rust backend: commands, tray, window events [Phase 5]
 - Phase 5 - the Tauri native tier - is designed for but not yet built.
 
 ## 9. Release notes
+
+**Suggestion review**
+
+- Audited every entry in `suggest.md` against the source. Two standing
+  suggestions had already been implemented — the reduced-motion preference is
+  honoured in `src/index.css`, and `autoAdvanceTask` is live in the timer
+  store — and were replaced with fresh ones.
+- The record now separates *correctness first* from the enhancements, and
+  lists four defects that were previously unrecorded: the daylight-saving
+  streak bug, the always-zero "Interruptions" metric, the ineffective
+  "Reset session" button, and the estimated "Focus time" in the session
+  summary.
+- No application behaviour changed. The defects are recorded, not yet fixed.
 
 **Dashboard layout**
 

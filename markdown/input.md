@@ -63,3 +63,14 @@ And, in the same request:
 > "please commit the changes after you complete a task."
 
 Every completed task is committed.
+
+---
+
+## 7. Reviewing the suggestions
+
+> "choose your suggestions from suggest.md that are worth implementing in this
+> app. provide fresh suggestions for improvements as well"
+
+The suggestions were checked against the source before being kept or dropped.
+Four defects were found that the record did not mention, and two suggestions
+that had already been implemented were replaced with fresh ones.
