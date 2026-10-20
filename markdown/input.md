@@ -74,3 +74,25 @@ Every completed task is committed.
 The suggestions were checked against the source before being kept or dropped.
 Four defects were found that the record did not mention, and two suggestions
 that had already been implemented were replaced with fresh ones.
+
+---
+
+## 8. Fixing the defects, then improving the app
+
+> "implement the four correctness fixes. then improve the overall app"
+
+The four defects were fixed first, in their own commit, and the improvements
+were built on top in a second.
+
+**The decision:** the fixes and the improvements were kept apart, because a
+correctness fix and a new feature are different kinds of change and the
+review of the first should not have to carry the second. The fixes are
+`1a1cbe0`; the improvements are `f3ce6f9`.
+
+**What the fixes turned out to need.** The streak was not the only place a
+fixed 86 400 000 ms step was used - the chart's window was built the same
+way, and had the same bug. And the measured focus time needed a migration: a
+snapshot written by the earlier build has no `completedFocusMs` field, and
+without a repair the summary rendered `NaN min` for every existing user. The
+screenshot is what showed that one; no test would have.
+

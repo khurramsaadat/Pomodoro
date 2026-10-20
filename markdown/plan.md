@@ -130,6 +130,54 @@ the enhancements.
 
 ---
 
+## Stage 7 - Repairing the four defects
+
+**Commit:** `1a1cbe0`
+
+The four defects the Stage 6 review found, repaired one at a time.
+
+**The decision:** the streak walks back by *calendar* day rather than by a
+fixed 86 400 000 ms. The `shiftLocalDay` helper in `src/lib/time.ts` does it,
+and the same bug was latent in `focusMsByDay`, which built the chart's window
+the same way - so both were fixed together.
+
+**The test had to be honest.** A daylight-saving test in UTC passes against
+the bug, because UTC has no daylight saving. The test file pins the time
+zone to `America/New_York`, and it was checked by reverting the fix and
+confirming that four of its assertions failed. A regression test that passes
+against the bug it is meant to catch is worse than no test at all.
+
+**What the other three fixes required.** An abandoned focus session is now a
+*voided* history entry: it is excluded from every count of completed
+sessions, so the skip still counts towards nothing, but it is counted as an
+interruption, so the metric can finally be non-zero. "Reset session" clears
+the counters the summary displays, and the summary's "Focus time" is the
+measured duration rather than a count multiplied by the current focus length.
+
+---
+
+## Stage 8 - The improvements
+
+**Commit:** `f3ce6f9`
+
+The active task and the daily goal in the clock column, the
+`autoAdvanceTask` toggle, inline task editing, the visible session log, the
+keyboard shortcuts, the service worker, and the dependency pruning.
+
+**The decision:** the clock column was the right home for the active task and
+the goal, because it is the one surface that is never unmounted. The
+shortcuts live with the engine rather than with the panel, for the same
+reason - a shortcut that only worked on one tab would be worse than none.
+
+**Two things the browser caught that the tests did not.** The measured focus
+time needed a repair on read: a snapshot written by the earlier build has no
+`completedFocusMs` field, and the summary rendered `NaN min` for every
+existing user. Only the screenshot showed it. And `@radix-ui/react-progress`
+had been declared but never used - rather than dropping it, the daily-goal
+bar now uses it, which is what the package was there for.
+
+---
+
 ## Verification
 
 | Stage | Tests | Typecheck | Lint | Build | Browser |
@@ -139,6 +187,9 @@ the enhancements.
 | 3 | green | green | green | green | queue, stats, persistence verified |
 | 4 | green | green | green | green | drag, snapping, reload, dark mode |
 | 5 | 220 / 17 files | green | green | green | two columns, tab switch, mobile, dark mode, 0 console errors |
+| 6 | 236 / 18 files | green | green | green | defects reproduced in a fixed time zone |
+| 7 | 236 / 18 files | green | green | green | 4 assertions fail against the old code |
+| 8 | 256 / 19 files | green | green | green | two columns, dialog, task editing, shortcuts, 0 console errors |
 
-**Current state:** 220 tests across 17 files, typecheck, lint, and the
+**Current state:** 256 tests across 19 files, typecheck, lint, and the
 production build all clean.

@@ -77,8 +77,8 @@ than no timer at all.
 |----|-------------|----------|
 | FR-21 | Completed phases are appended to an immutable log | Must |
 | FR-22 | The daily goal, streak, per-day totals, and per-task breakdown are derived from that log | Must |
-| FR-29 | The streak counts consecutive *calendar* days, across daylight-saving changes | Must — **not yet met** |
-| FR-23 | Interruptions are recorded and reported | Must — **not yet met** |
+| FR-29 | The streak counts consecutive *calendar* days, across daylight-saving changes | Must — **met** |
+| FR-23 | Interruptions are recorded and reported | Must — **met** |
 
 ### 4.4 Preferences
 
@@ -88,7 +88,13 @@ than no timer at all.
 | FR-25 | `soundEnabled` gates the completion chime | Must |
 | FR-26 | `showCompletedTasks` controls queue visibility | Must |
 | FR-27 | `confirmBeforeClearing` guards the destructive actions | Must |
-| FR-28 | `autoAdvanceTask` has a settings toggle | Should |
+| FR-28 | `autoAdvanceTask` has a settings toggle | Should — **met** |
+| FR-30 | The clock column shows the active task and the daily goal | Must — **met** |
+| FR-31 | A task's title and estimate can be edited after it is added | Should — **met** |
+| FR-32 | The session log is visible in the UI | Should — **met** |
+| FR-33 | The timer has keyboard shortcuts | Should — **met** |
+| FR-34 | The web build installs and works offline | Should — **met** |
+
 ## 5. Non-functional requirements
 
 | ID | Requirement | How it is met |
@@ -131,7 +137,7 @@ src-tauri/    Rust backend: commands, tray, window events [Phase 5]
 
 | Metric | Target | Status |
 |--------|--------|--------|
-| Test coverage | Every acceptance criterion has a test | **Met** - 220 tests / 17 files |
+| Test coverage | Every acceptance criterion has a test | **Met** - 256 tests / 19 files |
 | Tests, typecheck, lint, build | All green | **Met** |
 | Console errors in the browser | 0 | **Met** - light and dark mode |
 | The clock is ever unmounted | 0 occurrences | **Met** - verified in-browser |
@@ -150,6 +156,44 @@ src-tauri/    Rust backend: commands, tray, window events [Phase 5]
 
 ## 9. Release notes
 
+**The four defects, repaired (`1a1cbe0`)**
+
+- **The streak counts calendar days.** It walked back by a fixed
+  86 400 000 ms per day, which visited one day twice and skipped another
+  across a daylight-saving boundary. The chart's seven-day window had the
+  same bug and was fixed with it. A regression test pins the time zone to
+  `America/New_York`, because the bug is invisible in UTC.
+- **"Interruptions" can now be non-zero.** Skipping a focus session that
+  had begun voids it: the session is written to the history as a voided
+  entry, which is excluded from every count of completed sessions but
+  counted as an interruption. A phase that never started is not voided.
+- **"Reset session" now resets something visible.** The session count, the
+  focus time and the interruption count are all cleared with the cycle. The
+  history is untouched — the log is append-only.
+- **"Focus time" is a measurement, not an estimate.** The measured duration
+  of each focus phase is banked as it completes, so the summary no longer
+  changes when the focus length does. A snapshot written by an earlier
+  build is repaired on read.
+
+**The improvements (`f3ce6f9`)**
+
+- The clock column now shows the **active task** — its title, its progress
+  against the estimate — and the **daily goal** as a bar, both without a tab
+  switch.
+- The `autoAdvanceTask` preference has the settings toggle its behaviour
+  always deserved.
+- A task's **title and estimate can be edited** in place, so a rough guess
+  can be corrected without losing the task's history.
+- The **session log is visible**, with an abandoned session marked as
+  abandoned.
+- **Keyboard shortcuts**: space or K to start and pause, the arrow keys or
+  J and L to skip and reset, documented in a dialog rather than left to be
+  guessed. They are ignored while a text field has the focus.
+- The web build is **installable and works offline** through a service
+  worker.
+- Four unused Radix packages are dropped, and the two that were only
+  declared — progress and dialog — are now genuinely used.
+
 **Suggestion review**
 
 - Audited every entry in `suggest.md` against the source. Two standing
@@ -161,7 +205,6 @@ src-tauri/    Rust backend: commands, tray, window events [Phase 5]
   streak bug, the always-zero "Interruptions" metric, the ineffective
   "Reset session" button, and the estimated "Focus time" in the session
   summary.
-- No application behaviour changed. The defects are recorded, not yet fixed.
 
 **Dashboard layout**
 
