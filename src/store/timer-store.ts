@@ -13,6 +13,8 @@ import {
   start,
 } from '@/domain/timer';
 import type { TimerConfig, TimerState } from '@/domain/types';
+import { useHistoryStore } from './history-store';
+import { selectActiveTask, useTaskStore } from './task-store';
 
 export interface TimerStore {
   readonly state: TimerState;
@@ -45,7 +47,7 @@ function now(): number {
 
 const initialConfig = defaultConfig();
 
-export const useTimerStore = create<TimerStore>()((set) => ({
+export const useTimerStore = create<TimerStore>()((set, get) => ({
   state: createInitialState(initialConfig),
   config: initialConfig,
 
@@ -83,10 +85,27 @@ export const useTimerStore = create<TimerStore>()((set) => ({
   },
 
   complete: () => {
-    set((store) => {
-      const { state } = completePhase(store.state, store.config, now());
-      return { state };
-    });
+    const current = get();
+
+    // Only a running phase can complete. Completing an idle or paused
+    // timer would record a session that never happened.
+    if (current.state.status !== 'running') {
+      return;
+    }
+
+    // The completion is computed before the state changes so that the
+    // history and the task queue can be updated with it. Both are separate
+    // stores, and both writes are synchronous, so no update can be lost.
+    const { state, completion } = completePhase(current.state, current.config, now());
+
+    set({ state });
+
+    const activeTask = selectActiveTask(useTaskStore.getState());
+    useHistoryStore.getState().record(completion, activeTask);
+
+    if (completion.phase === 'work') {
+      useTaskStore.getState().recordFocusSession();
+    }
   },
 
   setConfig: (config) => {

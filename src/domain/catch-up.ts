@@ -1,5 +1,5 @@
-import { advance } from './timer';
-import type { TimerConfig, TimerPhase, TimerState } from './types';
+import { advance, durationForPhase } from './timer';
+import type { PhaseCompletion, TimerConfig, TimerPhase, TimerState } from './types';
 
 /** The maximum number of phases to replay when catching up. */
 const MAX_CATCH_UP_PHASES = 512;
@@ -9,6 +9,13 @@ export interface CatchUpResult {
   readonly state: TimerState;
   /** The phases that completed while the app was closed, in order. */
   readonly completedPhases: TimerPhase[];
+  /**
+   * The full record of each phase that completed while the app was closed.
+   *
+   * The statistics need these: a focus session that ran while the tab was
+   * closed is real work and must be recorded, not silently dropped.
+   */
+  readonly completions: PhaseCompletion[];
 }
 
 /**
@@ -29,6 +36,7 @@ export function catchUp(
   now: number,
 ): CatchUpResult {
   const completedPhases: TimerPhase[] = [];
+  const completions: PhaseCompletion[] = [];
   let current = state;
   let guard = 0;
 
@@ -41,6 +49,17 @@ export function catchUp(
     const completedPhase = current.phase;
     completedPhases.push(completedPhase);
 
+    // The phase ran on its original schedule, uninterrupted, so it occupied
+    // exactly its configured duration.
+    const durationMs = durationForPhase(completedPhase, config);
+    completions.push({
+      phase: completedPhase,
+      startedAt: current.endsAt - durationMs,
+      endedAt: current.endsAt,
+      durationMs,
+      interruptions: current.interruptions,
+    });
+
     const advanced = advance(current, config);
     const shouldAutoStart =
       completedPhase === 'work' ? config.autoStartBreaks : config.autoStartWork;
@@ -52,15 +71,18 @@ export function catchUp(
     }
 
     // Continue the original schedule: the next phase's deadline is derived
-    // from the previous phase's deadline, not from `now`.
+    // from the previous phase's deadline, not from `now`. The phase is
+    // treated as having started when the previous one ended, so the time it
+    // occupied is measured correctly when it eventually completes.
     current = {
       ...advanced,
       status: 'running',
       endsAt: current.endsAt + advanced.remaining,
+      startedAt: current.endsAt,
     };
 
     guard += 1;
   }
 
-  return { state: current, completedPhases };
+  return { state: current, completedPhases, completions };
 }

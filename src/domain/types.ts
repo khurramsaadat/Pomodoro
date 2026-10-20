@@ -45,6 +45,19 @@ export interface TimerState {
   readonly endsAt: number | null;
   /** Milliseconds left in the phase. Authoritative while paused or idle. */
   readonly remaining: number;
+  /**
+   * Time already banked in the current phase, excluding the segment that is
+   * currently running.
+   *
+   * This is what makes the recorded time exact. A phase that was paused at
+   * ten minutes and then resumed banked ten minutes before the pause; the
+   * remaining fifteen minutes are still in `remaining`. Adding the two at
+   * completion gives the phase's true elapsed time, which a simple
+   * `endsAt - startedAt` would under-report across a pause.
+   */
+  readonly elapsedMs: number;
+  /** Epoch ms at which the current running segment began. `null` while paused. */
+  readonly startedAt: number | null;
   /** Focus sessions completed within the current cycle (resets after a long break). */
   readonly completedWorkSessions: number;
   /** Focus sessions completed since the timer was created. */
@@ -53,4 +66,26 @@ export interface TimerState {
   readonly interruptions: number;
   /** Interruptions recorded across the whole session. */
   readonly totalInterruptions: number;
+}
+
+/**
+ * A phase that reached its deadline, together with the time it actually ran.
+ *
+ * This is the bridge between the timer and the session history. The duration
+ * is the phase's *configured* length rather than `endedAt - startedAt`,
+ * because a phase that was paused and resumed still occupies its full
+ * duration: the resumed deadline is `resumeTime + remaining`, so the total
+ * time the phase consumed is exactly the configured duration either way.
+ */
+export interface PhaseCompletion {
+  /** The phase that finished. */
+  readonly phase: TimerPhase;
+  /** When the phase started, in epoch ms. */
+  readonly startedAt: number;
+  /** When the phase reached its deadline, in epoch ms. */
+  readonly endedAt: number;
+  /** The time the phase occupied, in milliseconds. */
+  readonly durationMs: number;
+  /** Interruptions recorded during the phase. */
+  readonly interruptions: number;
 }

@@ -127,3 +127,52 @@ describe('catchUp', () => {
     expect(result.state.totalWorkSessions).toBe(4);
   });
 });
+
+describe('catchUp completions', () => {
+  it('records the full duration of each phase that elapsed', () => {
+    const config = makeConfig();
+    const state = start(createInitialState(config), T0);
+
+    const result = catchUp(state, config, T0 + 26 * MINUTE);
+
+    expect(result.completions).toHaveLength(1);
+    expect(result.completions[0]?.phase).toBe('work');
+    expect(result.completions[0]?.durationMs).toBe(25 * MINUTE);
+    expect(result.completions[0]?.endedAt).toBe(T0 + 25 * MINUTE);
+  });
+
+  it('records the sessions that ran while the app was closed', () => {
+    const config = makeConfig({ autoStartWork: true });
+    const state = start(createInitialState(config), T0);
+
+    // 25 min work + 5 min short break + 25 min work = 55 minutes.
+    const result = catchUp(state, config, T0 + 56 * MINUTE);
+
+    expect(result.completions.map((entry) => entry.phase)).toEqual([
+      'work',
+      'shortBreak',
+      'work',
+    ]);
+    expect(result.completions[2]?.durationMs).toBe(25 * MINUTE);
+  });
+
+  it('uses the scheduled end times rather than the current time', () => {
+    const config = makeConfig();
+    const state = start(createInitialState(config), T0);
+
+    const result = catchUp(state, config, T0 + 30 * MINUTE);
+
+    // The phase ended on its own schedule, not when the user came back.
+    expect(result.completions[0]?.endedAt).toBe(T0 + 25 * MINUTE);
+    expect(result.completions[0]?.startedAt).toBe(T0);
+  });
+
+  it('records nothing when no phase elapsed', () => {
+    const config = makeConfig();
+    const state = start(createInitialState(config), T0);
+
+    const result = catchUp(state, config, T0 + 10 * MINUTE);
+
+    expect(result.completions).toEqual([]);
+  });
+});

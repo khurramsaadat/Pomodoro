@@ -64,6 +64,7 @@ export function TimerPanel({ onPhaseComplete }: TimerPanelProps) {
             variant="secondary"
             className="px-2.5 py-1 text-xs font-medium"
             style={{ color }}
+            data-testid="timer-phase"
           >
             {phaseLabel(state.phase)}
           </Badge>

@@ -28,15 +28,15 @@ standalone static web app from the same source tree.
 src/
   domain/    pure logic, zero platform imports   (unit-tested)
   platform/  the web/desktop seam (PlatformBridge)          [Phase 5]
-  storage/   versioned, validated localStorage repositories [Phase 4]
+  storage/   versioned, validated localStorage repositories
   store/     zustand stores
   hooks/     custom hooks
   lib/       time formatting, Web Audio chime, persistence
   components/ui/      shadcn/ui primitives
   components/timer/   timer UI
-  components/tasks/   task queue UI                        [Phase 4]
-  components/stats/   statistics UI                        [Phase 4]
-  components/settings/ preferences UI                      [Phase 4]
+  components/tasks/   task queue UI
+  components/stats/   statistics UI
+  components/settings/ preferences UI
 src-tauri/  Rust backend: commands, tray, window events    [Phase 5]
 ```
 
@@ -54,6 +54,43 @@ The engine is deadline-based end to end:
   matches what would have happened had the tab stayed open.
 - A skipped focus session is void: it counts neither towards the session
   total nor towards the current cycle, and it never earns a long break.
+- `TimerState.elapsedMs` banks the time a phase has already served. A phase
+  that is paused and resumed still occupies its full configured duration, so
+  `phaseCompletion` sums the banked time with the final segment. A naive
+  `endsAt - startedAt` would under-report every paused session.
+
+## Workspace: tasks, history, statistics
+
+Phase 4 added the "what am I working on" half of the app.
+
+- `src/domain/tasks.ts` — the queue. A task has a title, an estimate in
+  focus sessions, and a count of sessions completed against it. One task is
+  *active* at a time; a completed focus session is credited to it.
+- `src/domain/history.ts` — the append-only log of completed phases, plus
+  the statistics derived from it (daily goal, streak, per-day totals, and
+  the breakdown by task). Entries are never mutated, so the numbers can
+  always be recomputed from the log.
+- `src/domain/preferences.ts` — behaviour that is *not* part of the timer
+  configuration. Keeping the two apart means changing the daily goal never
+  rewrites the user's session lengths.
+- `src/storage/repository.ts` — a small versioned repository over
+  `localStorage`. Every payload carries a schema version so a future shape
+  change can migrate or discard it. Nothing in the storage layer throws:
+  a full quota or a disabled storage must not break the app.
+
+### Persistence rules
+
+- **Stores are subscribed to, not watched through render state.** A
+  render-driven effect writes the value captured during the render that
+  preceded the restore, which overwrites the stored data with the empty
+  initial state. Subscribe instead.
+- **Subscribe before restoring.** The subscription is what persists the
+  caught-up timer state. If it is registered after the restore, the stored
+  snapshot keeps pointing at the expired phase and the catch-up runs again
+  on the next load, recording the same session twice.
+- **`useWorkspacePersistence` must run before `useTimerPersistence`.** The
+  history has to be restored before the timer's catch-up records the phases
+  that elapsed while the app was closed.
 
 
 ## Commands

@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
-import { configFromPreset, TIMER_PRESETS } from '@/domain/presets';
+import { configFromPreset, MAX_LONG_BREAK_INTERVAL, TIMER_PRESETS } from '@/domain/presets';
 import { minutesToMs } from '@/lib/time';
 import { useTimerStore } from '@/store/timer-store';
 
@@ -138,6 +138,29 @@ export function TimerSettings() {
               onCheckedChange={(checked) => update({ autoStartWork: checked })}
             />
           </div>
+        </div>
+
+        <div className="flex items-center justify-between gap-4">
+          <div className="flex flex-col gap-0.5">
+            <Label htmlFor={`${id}-interval`}>Long break after</Label>
+            <span className="text-muted-foreground text-xs">
+              How many focus sessions make up a full set.
+            </span>
+          </div>
+          <input
+            id={`${id}-interval`}
+            type="number"
+            min={1}
+            max={MAX_LONG_BREAK_INTERVAL}
+            value={config.longBreakInterval}
+            onChange={(event) => {
+              const value = Number(event.target.value);
+              if (Number.isInteger(value) && value > 0 && value <= MAX_LONG_BREAK_INTERVAL) {
+                update({ longBreakInterval: value });
+              }
+            }}
+            className="border-input bg-background h-9 w-20 rounded-md border px-3 text-sm"
+          />
         </div>
       </CardContent>
     </Card>

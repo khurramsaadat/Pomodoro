@@ -60,7 +60,7 @@ describe('Timer panel', () => {
   it('shows the focus phase and the full duration', () => {
     renderApp();
 
-    expect(screen.getByText('Focus')).toBeInTheDocument();
+    expect(screen.getByTestId('timer-phase')).toHaveTextContent('Focus');
     expect(screen.getByTestId('timer-countdown')).toHaveTextContent('25:00');
   });
 

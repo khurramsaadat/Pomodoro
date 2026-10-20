@@ -1,3 +1,4 @@
+import { MAX_LONG_BREAK_INTERVAL } from '@/domain/presets';
 import type { TimerConfig, TimerPhase, TimerState, TimerStatus } from '@/domain/types';
 
 /**
@@ -27,6 +28,21 @@ function isNumber(value: unknown): value is number {
   return typeof value === 'number' && Number.isFinite(value);
 }
 
+/**
+ * Whether a value is a usable duration.
+ *
+ * A duration of zero or less would produce a timer that is over before it
+ * starts, so such a value is rejected rather than stored.
+ */
+function isPositiveNumber(value: unknown): value is number {
+  return typeof value === 'number' && Number.isFinite(value) && value > 0;
+}
+
+/** Whether a value is a usable whole-number setting such as an interval. */
+function isPositiveInteger(value: unknown): value is number {
+  return typeof value === 'number' && Number.isInteger(value) && value > 0;
+}
+
 function isPhase(value: unknown): value is TimerPhase {
   return typeof value === 'string' && (PHASES as readonly string[]).includes(value);
 }
@@ -45,6 +61,8 @@ export function isTimerState(value: unknown): value is TimerState {
     isPhase(value.phase) &&
     (value.endsAt === null || isNumber(value.endsAt)) &&
     isNumber(value.remaining) &&
+    isNumber(value.elapsedMs) &&
+    (value.startedAt === null || isNumber(value.startedAt)) &&
     isNumber(value.completedWorkSessions) &&
     isNumber(value.totalWorkSessions) &&
     isNumber(value.interruptions) &&
@@ -58,10 +76,11 @@ export function isTimerConfig(value: unknown): value is TimerConfig {
     return false;
   }
   return (
-    isNumber(value.workMs) &&
-    isNumber(value.shortBreakMs) &&
-    isNumber(value.longBreakMs) &&
-    isNumber(value.longBreakInterval) &&
+    isPositiveNumber(value.workMs) &&
+    isPositiveNumber(value.shortBreakMs) &&
+    isPositiveNumber(value.longBreakMs) &&
+    isPositiveInteger(value.longBreakInterval) &&
+    value.longBreakInterval <= MAX_LONG_BREAK_INTERVAL &&
     typeof value.autoStartBreaks === 'boolean' &&
     typeof value.autoStartWork === 'boolean'
   );

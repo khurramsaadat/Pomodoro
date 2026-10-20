@@ -11,6 +11,7 @@ import {
   isLongBreakDue,
   nextPhase,
   pause,
+  phaseCompletion,
   phaseLabel,
   recordInterruption,
   remainingAt,
@@ -246,6 +247,98 @@ describe('completePhase', () => {
 
     expect(state.phase).toBe('work');
     expect(state.status).toBe('running');
+  });
+});
+
+describe('phaseCompletion', () => {
+  it('records the full duration of an uninterrupted phase', () => {
+    const config = makeConfig();
+    const state = start(createInitialState(config), T0);
+
+    const completion = phaseCompletion(state, config, T0 + 25 * MINUTE);
+
+    expect(completion.phase).toBe('work');
+    expect(completion.durationMs).toBe(25 * MINUTE);
+    expect(completion.endedAt).toBe(T0 + 25 * MINUTE);
+  });
+
+  it('records the full duration across a pause and resume', () => {
+    const config = makeConfig();
+    const running = start(createInitialState(config), T0);
+
+    // Ten minutes in, the user pauses for an hour.
+    const paused = pause(running, T0 + 10 * MINUTE);
+    expect(paused.elapsedMs).toBe(10 * MINUTE);
+    expect(paused.remaining).toBe(15 * MINUTE);
+
+    // An hour later the user resumes and runs the phase to its deadline.
+    const resumed = start(paused, T0 + 70 * MINUTE);
+    expect(resumed.endsAt).toBe(T0 + 70 * MINUTE + 15 * MINUTE);
+
+    const completion = phaseCompletion(resumed, config, T0 + 85 * MINUTE);
+
+    // The phase still occupied its full 25 minutes of focus time, even
+    // though the wall-clock span was over an hour.
+    expect(completion.durationMs).toBe(25 * MINUTE);
+  });
+
+  it('records the interruptions of the phase', () => {
+    const config = makeConfig();
+    const state = recordInterruption(recordInterruption(start(createInitialState(config), T0)));
+
+    const completion = phaseCompletion(state, config, T0 + 25 * MINUTE);
+
+    expect(completion.interruptions).toBe(2);
+  });
+
+  it('never reports more than the configured duration', () => {
+    const config = makeConfig();
+    const state = start(createInitialState(config), T0);
+
+    // A deadline that is somehow far in the future must not inflate the
+    // recorded time beyond the phase's configured length.
+    const completion = phaseCompletion(state, config, T0 + 10 * 60 * MINUTE);
+
+    expect(completion.durationMs).toBe(25 * MINUTE);
+  });
+});
+
+describe('elapsed time banking', () => {
+  it('banks nothing while the timer has not started', () => {
+    const state = createInitialState(makeConfig());
+
+    expect(state.elapsedMs).toBe(0);
+  });
+
+  it('banks the time served before a pause', () => {
+    const config = makeConfig();
+    const running = start(createInitialState(config), T0);
+
+    const paused = pause(running, T0 + 10 * MINUTE);
+
+    expect(paused.elapsedMs).toBe(10 * MINUTE);
+  });
+
+  it('accumulates the banked time across several pauses', () => {
+    const config = makeConfig();
+    let state = start(createInitialState(config), T0);
+
+    state = pause(state, T0 + 10 * MINUTE);
+    state = start(state, T0 + 20 * MINUTE);
+    state = pause(state, T0 + 25 * MINUTE);
+
+    expect(state.elapsedMs).toBe(15 * MINUTE);
+    expect(state.remaining).toBe(10 * MINUTE);
+  });
+
+  it('clears the banked time when the phase is reset', () => {
+    const config = makeConfig();
+    const paused = pause(start(createInitialState(config), T0), T0 + 10 * MINUTE);
+
+    const reset = resetPhase(paused, config);
+
+    expect(reset.elapsedMs).toBe(0);
+    expect(reset.remaining).toBe(25 * MINUTE);
   });
 });
 

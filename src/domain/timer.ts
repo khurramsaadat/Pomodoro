@@ -1,4 +1,4 @@
-import type { TimerConfig, TimerPhase, TimerState, TimerStatus } from './types';
+import type { PhaseCompletion, TimerConfig, TimerPhase, TimerState, TimerStatus } from './types';
 
 /**
  * The pure timer engine.
@@ -20,6 +20,8 @@ export function createInitialState(config: TimerConfig): TimerState {
     phase: 'work',
     endsAt: null,
     remaining: config.workMs,
+    elapsedMs: 0,
+    startedAt: null,
     completedWorkSessions: 0,
     totalWorkSessions: 0,
     interruptions: 0,
@@ -88,19 +90,30 @@ export function start(state: TimerState, now: number): TimerState {
     ...state,
     status: 'running',
     endsAt: now + state.remaining,
+    startedAt: now,
   };
 }
 
-/** Pauses a running timer, freezing the remaining time. */
+/**
+ * Pauses a running timer, freezing the remaining time.
+ *
+ * The time served since the current segment started is banked into
+ * `elapsedMs`, so a phase that is paused and later resumed still adds up to
+ * its full duration.
+ */
 export function pause(state: TimerState, now: number): TimerState {
   if (state.status !== 'running') {
     return state;
   }
+  const served = state.startedAt === null ? 0 : Math.max(0, now - state.startedAt);
+
   return {
     ...state,
     status: 'paused',
     endsAt: null,
+    startedAt: null,
     remaining: remainingAt(state, now),
+    elapsedMs: state.elapsedMs + served,
   };
 }
 
@@ -139,11 +152,40 @@ export function advance(state: TimerState, config: TimerConfig): TimerState {
     status: 'idle',
     phase,
     endsAt: null,
+    startedAt: null,
     remaining,
+    // A fresh phase starts with nothing banked and without the previous
+    // phase's interruptions.
+    elapsedMs: 0,
     completedWorkSessions,
     totalWorkSessions: workCompleted ? state.totalWorkSessions + 1 : state.totalWorkSessions,
-    // A fresh phase starts without the previous phase's interruptions.
     interruptions: 0,
+  };
+}
+
+/**
+ * Builds the record of a phase that has just reached its deadline.
+ *
+ * The duration is the time the phase actually occupied: the banked
+ * `elapsedMs` plus the segment that was running when the deadline was hit.
+ * Summing the two is what makes the figure exact across pauses, where a
+ * naive `endsAt - startedAt` would only see the final segment.
+ */
+export function phaseCompletion(
+  state: TimerState,
+  config: TimerConfig,
+  now: number,
+): PhaseCompletion {
+  const duration = durationForPhase(state.phase, config);
+  const finalSegment = state.startedAt === null ? 0 : Math.max(0, now - state.startedAt);
+  const served = Math.min(duration, state.elapsedMs + finalSegment);
+
+  return {
+    phase: state.phase,
+    startedAt: state.startedAt ?? now - served,
+    endedAt: now,
+    durationMs: served,
+    interruptions: state.interruptions,
   };
 }
 
@@ -156,8 +198,9 @@ export function completePhase(
   state: TimerState,
   config: TimerConfig,
   now: number,
-): { state: TimerState; completedPhase: TimerPhase } {
+): { state: TimerState; completedPhase: TimerPhase; completion: PhaseCompletion } {
   const completedPhase = state.phase;
+  const completion = phaseCompletion(state, config, now);
   const advanced = advance(state, config);
   const shouldAutoStart =
     completedPhase === 'work' ? config.autoStartBreaks : config.autoStartWork;
@@ -165,6 +208,7 @@ export function completePhase(
   return {
     state: shouldAutoStart ? start(advanced, now) : advanced,
     completedPhase,
+    completion,
   };
 }
 
@@ -174,7 +218,9 @@ export function resetPhase(state: TimerState, config: TimerConfig): TimerState {
     ...state,
     status: 'idle',
     endsAt: null,
+    startedAt: null,
     remaining: durationForPhase(state.phase, config),
+    elapsedMs: 0,
     interruptions: 0,
   };
 }
@@ -206,7 +252,9 @@ export function skipPhase(state: TimerState, config: TimerConfig): TimerState {
     status: 'idle',
     phase,
     endsAt: null,
+    startedAt: null,
     remaining: durationForPhase(phase, config),
+    elapsedMs: 0,
     // The skipped session is void: it counts neither towards the session
     // total nor towards the current cycle.
     totalWorkSessions: state.totalWorkSessions,
