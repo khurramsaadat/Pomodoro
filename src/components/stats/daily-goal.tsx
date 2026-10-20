@@ -3,6 +3,7 @@ import { Target } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
+import { cn } from '@/lib/utils';
 
 export interface DailyGoalProps {
   /** The focus sessions completed today. */
@@ -18,17 +19,21 @@ export interface DailyGoalProps {
 /**
  * Today's progress against the daily goal.
  *
- * The goal is the thing the user is working toward, so it belongs beside the
- * clock rather than behind a tab. A bar reads faster than the "3 / 8" text
- * the statistics panel shows, and the badge is what makes the last session
- * of the day feel like an achievement.
+ * The goal is the thing the user is working toward, so it belongs above the
+ * workspace rather than behind a tab. A bar reads faster than the "3 / 8"
+ * text the statistics panel shows, and the badge is what makes the last
+ * session of the day feel like an achievement.
+ *
+ * It sits directly *under* the task the user is working on, because the two
+ * are the same question asked twice: what am I working on, and how far have
+ * I got today. Reading them together is the point.
  */
 export function DailyGoal({ sessions, goal, met, className }: DailyGoalProps) {
   const safeGoal = goal > 0 ? goal : 1;
   const ratio = Math.min(1, sessions / safeGoal);
 
   return (
-    <Card className={className}>
+    <Card className={cn('py-0', className)}>
       <CardContent className="flex flex-col gap-2 px-4 py-3">
         <div className="flex items-center justify-between gap-2">
           <div className="flex min-w-0 items-center gap-2">

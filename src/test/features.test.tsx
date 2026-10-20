@@ -52,7 +52,7 @@ function seedActiveTask(title: string, estimate: number): void {
   });
 }
 
-describe('The active task in the clock column', () => {
+describe('The active task above the tabs', () => {
   beforeEach(() => {
     window.localStorage.clear();
     document.documentElement.classList.remove('dark');
@@ -62,8 +62,8 @@ describe('The active task in the clock column', () => {
   it('says so when there is no active task', () => {
     renderApp();
 
-    const clock = screen.getByTestId('dashboard-clock');
-    expect(within(clock).getByText('No active task')).toBeInTheDocument();
+    const workspace = screen.getByTestId('dashboard-workspace');
+    expect(within(workspace).getByText('No active task')).toBeInTheDocument();
   });
 
   it('shows the active task without switching tabs', async () => {
@@ -72,12 +72,12 @@ describe('The active task in the clock column', () => {
 
     renderApp();
 
-    const clock = screen.getByTestId('dashboard-clock');
-    expect(within(clock).getByText('Write the report')).toBeInTheDocument();
+    const workspace = screen.getByTestId('dashboard-workspace');
+    expect(within(workspace).getByText('Write the report')).toBeInTheDocument();
 
-    // The strip stays in the clock column, not behind a tab.
+    // The card stays above the tabs, not behind one.
     await user.click(screen.getByRole('tab', { name: /stats/i }));
-    expect(within(clock).getByText('Write the report')).toBeInTheDocument();
+    expect(within(workspace).getByText('Write the report')).toBeInTheDocument();
   });
 
   it('shows the progress against the estimate', () => {
@@ -85,8 +85,21 @@ describe('The active task in the clock column', () => {
 
     renderApp();
 
-    const clock = screen.getByTestId('dashboard-clock');
-    expect(within(clock).getByText('0 of 4 focus sessions')).toBeInTheDocument();
+    const workspace = screen.getByTestId('dashboard-workspace');
+    expect(within(workspace).getByText('0 of 4 focus sessions')).toBeInTheDocument();
+  });
+
+  it('sits above the session settings', () => {
+    renderApp();
+
+    const workspace = screen.getByTestId('dashboard-workspace');
+    const workingOn = within(workspace).getByText('Working on');
+    const settings = within(workspace).getByText('Session settings');
+
+    // "Above" is a fact about the document order, not about pixels.
+    expect(
+      workingOn.compareDocumentPosition(settings) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
   });
 });
 
@@ -100,9 +113,21 @@ describe('The daily goal', () => {
   it('shows the goal and the sessions completed today', () => {
     renderApp();
 
-    const clock = screen.getByTestId('dashboard-clock');
-    expect(within(clock).getByText('Daily goal')).toBeInTheDocument();
-    expect(within(clock).getByText('0 of 8 focus sessions today')).toBeInTheDocument();
+    const workspace = screen.getByTestId('dashboard-workspace');
+    expect(within(workspace).getByText('Daily goal')).toBeInTheDocument();
+    expect(within(workspace).getByText('0 of 8 focus sessions today')).toBeInTheDocument();
+  });
+
+  it('sits directly under the task the user is working on', () => {
+    renderApp();
+
+    const workspace = screen.getByTestId('dashboard-workspace');
+    const workingOn = within(workspace).getByText('Working on');
+    const goal = within(workspace).getByText('Daily goal');
+
+    expect(
+      workingOn.compareDocumentPosition(goal) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
   });
 });
 

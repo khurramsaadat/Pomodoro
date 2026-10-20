@@ -103,7 +103,7 @@ than no timer at all.
 | FR-26 | `showCompletedTasks` controls queue visibility | Must |
 | FR-27 | `confirmBeforeClearing` guards the destructive actions | Must |
 | FR-28 | `autoAdvanceTask` has a settings toggle | Should — **met** |
-| FR-30 | The clock column shows the active task and the daily goal | Must — **met** |
+| FR-30 | The active task and the daily goal sit above the tabs, the daily goal under the task | Must — **met** |
 | FR-31 | A task's title and estimate can be edited after it is added | Should — **met** |
 | FR-32 | The session log is visible in the UI | Should — **met** |
 | FR-33 | The timer has keyboard shortcuts | Should — **met** |
@@ -285,6 +285,20 @@ src-tauri/    Rust backend: commands, tray, alarm, window events
   arrived on screen as 156 on a scaled display. Measurements now cross the
   platform seam in physical pixels, and the conversion is done by the webview,
   which knows the display's real ratio.
+
+**Moving "working on" and the daily goal**
+
+- **The active task and the daily goal moved out of the clock column and above
+  the tabs.** The clock column now holds only the timer and the session
+  summary; the two cards that answer *what am I working on* and *how far have I
+  got today* sit in the workspace column, with the daily goal directly under
+  the task.
+- **The clock column was compacted twice over.** The task and the goal left
+  it, and the cards that moved were also tightened: the `Card` primitive's own
+  vertical padding was doubling up with the content's, so a two-line card was
+  rendering as 131 pixels tall instead of 83.
+- The two cards read as a pair because they are one: the task is the *what* and
+  the goal is the *how far*, and both are true whichever tab is open.
 
 **Mini mode (`3c0f7e6`)**
 

@@ -303,6 +303,38 @@ the *real* desktop window rather than to a browser. That is what showed the
 
 ---
 
+## Stage 11 - "Working on" above the session settings
+
+**Commit:** the current commit.
+
+The active task and the daily goal moved out of the clock column and into the
+workspace column, above the tabs, with the daily goal directly under the task.
+
+**Why here:** the request was a layout change, but it exposed a structural
+question the previous stage had left open — which column does the *work* live
+in? The clock column is the *session*: what is running, and for how long. The
+workspace column is the *work*: the task, the day's progress, the settings.
+The two cards that answer *what am I working on* and *how far have I got
+today* were answers about the work, sitting in the session's column.
+
+**The decision: the pair reads as one.** The daily goal sits under the task
+rather than beside it, because they are the same question asked twice — the
+*what* and the *how far* — and a user reads them together.
+
+**The bug the move exposed.** The `Card` primitive carries its own `py-6`, and
+the cards' content added `py-3` on top of it, so every card was rendering
+with far more vertical padding than it asked for. A two-line card measured 131
+pixels instead of 83. The moved cards now cancel the primitive's padding with
+`py-0`, and the two dropped by a third of their height.
+
+**The measurement that settled it.** Moving the plan of the session into the
+clock column balanced the columns too — 840 against 593 — but the clock column
+is *sticky*, and 840 pixels is taller than the viewport of most laptops. A
+sticky column that cannot fit on the screen is not a sticky column. "Up next"
+stayed below the tabs, where it fills the space it was added to fill.
+
+---
+
 ## Verification
 
 | Stage | Tests | Typecheck | Lint | Build | Browser |
@@ -317,8 +349,9 @@ the *real* desktop window rather than to a browser. That is what showed the
 | 8 | 256 / 19 files | green | green | green | two columns, dialog, task editing, shortcuts, 0 console errors |
 | 9 | 283 / 24 files + 6 Rust | green | green | green | web tier loads no Tauri chunk, 0 console errors; native app drives hide-to-tray, the global shortcut, and the tray countdown |
 | 10 | 296 / 24 files + 11 Rust | green | green | green | the dashboard is balanced on every tab; the mini timer replaces it on both tiers; the native window is 241x150 in the corner |
+| 11 | 298 / 24 files + 11 Rust | green | green | green | the order on screen is asserted, the phone layout stacks without a scrollbar, the mini timer still replaces the dashboard |
 
-**Current state:** 296 tests across 24 files and 11 Rust tests, typecheck,
+**Current state:** 298 tests across 24 files and 11 Rust tests, typecheck,
 lint, the production build, the native release build, and the installers
 (NSIS + MSI) all clean.
 

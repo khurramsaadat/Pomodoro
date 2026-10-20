@@ -14,26 +14,32 @@ export interface ActiveTaskProps {
 }
 
 /**
- * The active task, shown under the countdown.
+ * The task the user is working on.
  *
- * The clock column is permanent, and this answers the question the clock
- * itself cannot: *what am I working on?* Without it, the connection between
- * the running timer and the queue is invisible until the stats tab is
- * opened — and the queue can move on by itself, so the answer can change
- * without the user ever seeing the old one.
+ * This answers the question the clock itself cannot: *what am I working
+ * on?* Without it, the connection between the running timer and the queue
+ * is invisible until the stats tab is opened — and the queue can move on by
+ * itself, so the answer can change without the user ever seeing the old
+ * one.
+ *
+ * It therefore sits in the workspace column, *above* the tabs, rather than
+ * inside one of them: the answer is true whichever tab is open, and the
+ * card is worth reading while the queue is being worked through.
  */
 export function ActiveTask({ task, className }: ActiveTaskProps) {
   if (task === null) {
     return (
-      <Card className={className}>
-        <CardContent className="flex items-center gap-2.5 px-4 py-3">
-          <Target className="text-muted-foreground size-4 shrink-0" aria-hidden="true" />
-          <div className="flex min-w-0 flex-col">
-            <span className="text-sm leading-tight font-medium">No active task</span>
-            <span className="text-muted-foreground truncate text-[11px] leading-tight">
-              Pick one in the queue to track what you are working on.
-            </span>
+      <Card className={cn('py-0', className)}>
+        <CardContent className="flex flex-col gap-1 px-4 py-3">
+          <div className="flex items-center gap-2">
+            <Target className="text-muted-foreground size-3.5 shrink-0" aria-hidden="true" />
+            <span className="text-sm leading-tight font-medium">Working on</span>
           </div>
+
+          <span className="text-sm leading-tight">No active task</span>
+          <span className="text-muted-foreground text-[11px] leading-tight">
+            Pick one in the queue to track what you are working on.
+          </span>
         </CardContent>
       </Card>
     );
@@ -44,20 +50,12 @@ export function ActiveTask({ task, className }: ActiveTaskProps) {
   const over = isOverEstimate(task);
 
   return (
-    <Card className={className}>
+    <Card className={cn('py-0', className)}>
       <CardContent className="flex flex-col gap-2 px-4 py-3">
         <div className="flex items-center justify-between gap-3">
           <div className="flex min-w-0 items-center gap-2">
             <Target className="text-muted-foreground size-3.5 shrink-0" aria-hidden="true" />
-            <span
-              className={cn(
-                'truncate text-sm leading-tight font-medium',
-                task.done && 'text-muted-foreground line-through',
-              )}
-              title={task.title}
-            >
-              {task.title}
-            </span>
+            <span className="text-sm leading-tight font-medium">Working on</span>
           </div>
 
           {over ? (
@@ -70,6 +68,16 @@ export function ActiveTask({ task, className }: ActiveTaskProps) {
             </span>
           )}
         </div>
+
+        <span
+          className={cn(
+            'truncate text-sm leading-tight font-medium',
+            task.done && 'text-muted-foreground line-through',
+          )}
+          title={task.title}
+        >
+          {task.title}
+        </span>
 
         <Progress
           value={Math.round(ratio * 100)}

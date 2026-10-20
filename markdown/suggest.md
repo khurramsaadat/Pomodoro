@@ -24,7 +24,7 @@ re-propose them.
 | 8 | Let tasks be edited | **Built** - inline edit of the title and the estimate |
 | 10 | Keyboard shortcuts | **Built** - space/K, arrows/J/L, documented in a dialog |
 | 11 | A week view in the statistics | **Built** - the seven-day chart with calendar-day buckets |
-| 14 | The daily goal as a progress bar | **Built** - in the clock column |
+| 14 | The daily goal as a progress bar | **Built** - above the tabs, under the task |
 | 15 | Installable and offline-capable | **Built** - a service worker and a richer manifest |
 | 16 | Prune the unused dependencies | **Done** - four Radix packages dropped, two put to use |
 | 17 | Expose the history in the UI | **Built** - the "Recent sessions" list |
@@ -34,6 +34,7 @@ re-propose them.
 | 21 | An installable desktop app | **Built** - an NSIS installer and an MSI |
 | 22 | A mini timer that replaces the dashboard | **Built** - the native window becomes the widget; the web tier hides the dashboard |
 | 23 | The dead space under "Session settings" | **Built** - the session plan, and a compacted clock column |
+| 24 | "Working on" above the session settings | **Built** - the task and the daily goal moved above the tabs |
 
 ---
 
@@ -241,18 +242,63 @@ bounding boxes of the two columns, and prints them. Making it part of the
 routine check, rather than something done once when someone notices, is
 what would keep the columns balanced as the app grows.
 
+### 32. The `Card` primitive's padding is doubled by every card
+
+`Card` carries `py-6` and every card's content added its own `py-3` or
+`py-4` on top, so each card rendered with roughly twice the vertical
+padding it asked for. The two cards that moved above the tabs were
+measuring 131 pixels tall for two lines of text; cancelling the
+primitive's padding with `py-0` brought them to 83.
+
+The general fix is in the primitive rather than in the callers: `Card`
+should not carry vertical padding at all, and each card should declare
+its own. Nothing else in the app is affected today, because the other
+cards happen to be tall enough for the doubled padding to look
+deliberate — but it is a trap for the next card someone writes, and it is
+a trap that reads as *design* rather than as a mistake.
+
+### 33. A sticky column has to fit on the screen
+
+Moving the session plan into the clock column balanced the two columns
+better than leaving it below the tabs — 840 pixels against 593, rather
+than 592 against 893. It was the wrong move anyway, because the clock
+column is `lg:sticky`: at 840 pixels it is taller than the viewport of
+most laptops, so the plan at the bottom of it would never be visible
+without scrolling, and the column would not stick.
+
+The rule this suggests: **a sticky column's height is a budget, not a
+result.** The sum of what goes in it has to fit in a viewport, and the
+natural way to discover that is to measure, not to balance. Balancing the
+columns is a proxy for the real goal, which is that nothing important is
+below the fold.
+
+### 34. Say which column a thing belongs in
+
+The move that was asked for — the task and the daily goal above the tabs
+— turned out to answer a question the layout had never been explicit
+about: the clock column is the *session* (what is running, for how long),
+and the workspace column is the *work* (the task, the day's progress, the
+settings). The two cards that answer "what am I working on" and "how far
+have I got today" are answers about the work, and they were in the
+session's column.
+
+Writing that down in the two columns' own doc comments would make the
+next placement question answerable without a screenshot. It is the same
+reason the platform seam has an interface: a stated boundary is one that
+does not erode.
+
 ---
 
 ## Longer-term
 
-### 32. A shift-shaped view of the day
+### 35. A shift-shaped view of the day
 
 The statistics answer "how much did I do" but not "when". A user who wants to
 know whether their focus time lands in the morning or the evening has no way
 to find out, even though the log has the timestamps. A day split into hours
 would answer it.
 
-### 33. A "what changed" note in the history
+### 36. A "what changed" note in the history
 
 The log is append-only and correct, but a user reading it sees a flat list.
 Marking the sessions that were interrupted, that ran long, or that happened
@@ -289,6 +335,10 @@ schedule.
   setPointerCapture throw were both invisible to jsdom and to the test suite.
   The `NaN min` in the session summary was invisible to every test too, and
   only the screenshot showed it.
+- **Say where a thing belongs.** The clock column is the session and the
+  workspace column is the work. Stating that in the two columns' own
+  comments turns the next placement question into a one-line answer
+  instead of a screenshot.
 - **Keep the regression tests honest.** A test that passes against the bug
   it is meant to catch is worse than no test. The daylight-saving test was
   checked by reverting the fix and confirming that it failed.

@@ -20,6 +20,16 @@ export interface DashboardProps {
  * unmounted — switching to the task queue or the statistics cannot take
  * the countdown off the screen.
  *
+ * **The two columns answer different questions.** The clock column is the
+ * *session*: what is running, and for how long. The workspace column is
+ * the *work*: the task, the day's progress, the settings. A card about
+ * the work belongs in the workspace, and a card about the session belongs
+ * in the clock.
+ *
+ * The clock column is also *sticky* on a wide screen, so its height is a
+ * budget: what goes in it has to fit in a viewport, or the column cannot
+ * stick and its bottom is never seen.
+ *
  * On a narrow screen the two columns stack, with the clock on top, so the
  * same component serves the phone layout and the desktop dashboard.
  */

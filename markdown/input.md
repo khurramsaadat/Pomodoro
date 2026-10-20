@@ -163,4 +163,16 @@ and a half: on Windows the desktop process is not per-monitor DPI-aware. The
 measurements are now in physical pixels throughout, and the conversion is done
 on the side that knows the real ratio.
 
+---
+
+## 11. Moving "working on" and the daily goal
+
+> "working on to be above the sessions settings
+> Daily goal to be under working on"
+
+The two cards that answer *what am I working on* and *how far have I got
+today* now sit above the tabs, with the daily goal directly under the task.
+The clock column keeps the timer and the session summary, and "Up next" stays
+below the tabs where the empty space was.
+
 

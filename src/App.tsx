@@ -130,15 +130,23 @@ export default function App() {
               <div className="flex flex-col gap-3">
                 <TimerPanel />
                 <SessionSummary />
-                <ActiveTask task={activeTask} />
-                <DailyGoal
-                  sessions={progress.sessions}
-                  goal={progress.goal}
-                  met={progress.met}
-                />
               </div>
             }
           >
+            {/*
+              The task the user is working on and the daily goal sit *above*
+              the tabs, not inside one. Both are true whichever tab is open:
+              the queue moves on by itself, and the day rolls over on its own.
+              Putting them here means the answer is on screen while the
+              settings are being changed, which is when it matters.
+            */}
+            <ActiveTask task={activeTask} />
+            <DailyGoal
+              sessions={progress.sessions}
+              goal={progress.goal}
+              met={progress.met}
+            />
+
             <Tabs defaultValue="session">
               <TabsList className="w-full">
                 <TabsTrigger value="session">
