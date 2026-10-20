@@ -27,18 +27,34 @@ standalone static web app from the same source tree.
 ```
 src/
   domain/    pure logic, zero platform imports   (unit-tested)
-  platform/  the web/desktop seam (PlatformBridge)
-  storage/   versioned, validated localStorage repositories
+  platform/  the web/desktop seam (PlatformBridge)          [Phase 5]
+  storage/   versioned, validated localStorage repositories [Phase 4]
   store/     zustand stores
   hooks/     custom hooks
-  lib/       time formatting, Web Audio chime
+  lib/       time formatting, Web Audio chime, persistence
   components/ui/      shadcn/ui primitives
   components/timer/   timer UI
-  components/tasks/   task queue UI
-  components/stats/   statistics UI
-  components/settings/ preferences UI
-src-tauri/  Rust backend: commands, tray, window events
+  components/tasks/   task queue UI                        [Phase 4]
+  components/stats/   statistics UI                        [Phase 4]
+  components/settings/ preferences UI                      [Phase 4]
+src-tauri/  Rust backend: commands, tray, window events    [Phase 5]
 ```
+
+## Timer engine
+
+The engine is deadline-based end to end:
+
+- `src/domain/timer.ts` holds the pure transitions. Every function takes an
+  explicit `now` so the whole engine is testable with fixed timestamps and
+  has no hidden dependency on the wall clock.
+- `endsAt` is the single source of truth. `remaining` is always derived as
+  `endsAt - Date.now()`; no counter is ever decremented.
+- `src/domain/catch-up.ts` replays the phases that elapsed while the app was
+  closed, using the *scheduled* end times so the reconstructed timeline
+  matches what would have happened had the tab stayed open.
+- A skipped focus session is void: it counts neither towards the session
+  total nor towards the current cycle, and it never earns a long break.
+
 
 ## Commands
 
