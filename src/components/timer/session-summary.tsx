@@ -24,7 +24,7 @@ export function SessionSummary({ className }: SessionSummaryProps) {
   // the measured duration of each phase. Multiplying the session count by
   // the *current* focus length would be an estimate that changes with the
   // settings, and would disagree with the statistics panel.
-  const focusMinutes = Math.round(state.completedFocusMs / 60_000);
+  const focusMinutes = Math.round((state.completedFocusMs || 0) / 60_000);
 
   const stats = [
     {

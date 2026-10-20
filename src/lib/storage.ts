@@ -65,9 +65,34 @@ export function isTimerState(value: unknown): value is TimerState {
     (value.startedAt === null || isNumber(value.startedAt)) &&
     isNumber(value.completedWorkSessions) &&
     isNumber(value.totalWorkSessions) &&
+    isNumber(value.completedFocusMs) &&
     isNumber(value.interruptions) &&
     isNumber(value.totalInterruptions)
   );
+}
+
+/**
+ * Repairs a persisted timer state, filling in what a payload written by an
+ * older build would be missing.
+ *
+ * A snapshot written before the focus time was tracked has no
+ * `completedFocusMs` field. It is not corrupt — it is simply from an older
+ * version — so it is repaired rather than discarded. The focus time is
+ * back-filled from the session count and the configured focus length, which
+ * is exactly the estimate the field replaced, so the number does not jump
+ * when the app is upgraded.
+ */
+export function repairTimerState(value: unknown, config: TimerConfig): TimerState | null {
+  if (!isRecord(value)) {
+    return null;
+  }
+
+  if (!isNumber(value.completedFocusMs)) {
+    const sessions = isNumber(value.totalWorkSessions) ? value.totalWorkSessions : 0;
+    value = { ...value, completedFocusMs: sessions * config.workMs };
+  }
+
+  return isTimerState(value) ? value : null;
 }
 
 /** Validates a persisted timer configuration, rejecting anything malformed. */
@@ -97,11 +122,19 @@ export function readPersistedTimer(): PersistedTimer | null {
     if (!isRecord(parsed)) {
       return null;
     }
-    if (!isTimerState(parsed.state) || !isTimerConfig(parsed.config)) {
+    if (!isTimerConfig(parsed.config)) {
       return null;
     }
+
+    // The state is repaired rather than rejected, so a snapshot written by
+    // an older build still restores instead of being thrown away.
+    const state = repairTimerState(parsed.state, parsed.config);
+    if (state === null) {
+      return null;
+    }
+
     return {
-      state: parsed.state,
+      state,
       config: parsed.config,
       savedAt: isNumber(parsed.savedAt) ? parsed.savedAt : Date.now(),
     };

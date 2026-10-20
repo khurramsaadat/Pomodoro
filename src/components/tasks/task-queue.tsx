@@ -25,6 +25,7 @@ export function TaskQueue({ className }: TaskQueueProps) {
   const tasks = useTaskStore((store) => store.tasks);
   const activeTaskId = useTaskStore((store) => store.activeTaskId);
   const addTask = useTaskStore((store) => store.addTask);
+  const updateTask = useTaskStore((store) => store.updateTask);
   const removeTask = useTaskStore((store) => store.removeTask);
   const completeTask = useTaskStore((store) => store.completeTask);
   const reopenTask = useTaskStore((store) => store.reopenTask);
@@ -128,6 +129,7 @@ export function TaskQueue({ className }: TaskQueueProps) {
                   }
                 }}
                 onRemove={() => removeTask(task.id)}
+                onEdit={(patch) => updateTask(task.id, patch)}
               />
             ))}
           </ul>

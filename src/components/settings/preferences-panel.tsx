@@ -82,6 +82,22 @@ export function PreferencesPanel({ className }: PreferencesPanelProps) {
 
         <div className="flex items-center justify-between gap-4">
           <div className="flex flex-col gap-0.5">
+            <Label htmlFor={`${id}-advance`} className="font-normal">
+              Auto-advance the task
+            </Label>
+            <span className="text-muted-foreground text-xs">
+              Move to the next open task once this one reaches its estimate.
+            </span>
+          </div>
+          <Switch
+            id={`${id}-advance`}
+            checked={preferences.autoAdvanceTask}
+            onCheckedChange={(checked) => updatePreference('autoAdvanceTask', checked)}
+          />
+        </div>
+
+        <div className="flex items-center justify-between gap-4">
+          <div className="flex flex-col gap-0.5">
             <Label htmlFor={`${id}-completed`} className="font-normal">
               Show completed tasks
             </Label>
