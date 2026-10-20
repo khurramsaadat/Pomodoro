@@ -21,6 +21,20 @@ standalone static web app from the same source tree.
    throttling in background tabs would silently lose time.
 6. **Every user preference is persisted** and schema-validated on read, so a
    corrupt or outdated payload can never crash the app.
+7. **The project records in `markdown/` are maintained, not written once.**
+   Every feature updates all four, in `markdown/`:
+
+   | File | Holds | Updated |
+   |------|-------|---------|
+   | `markdown/input.md` | The prompts as received, verbatim and nothing else | When a feature is requested |
+   | `markdown/prd.md` | The overall view: what the app is, its goals, its requirements, and the release notes | When requirements change, and at release |
+   | `markdown/plan.md` | The stagewise implementation: what was built, in order, and why | As the work proceeds, and at the end |
+   | `markdown/suggest.md` | The recommended overall improvements to the app | At the end of a feature, carrying them forward |
+
+   A feature is not finished until all four are updated. The release notes in
+   `markdown/prd.md` are the single place a shipped change is announced, so
+   they must match the code. Keep all four concise — they are a record, not a
+   log.
 
 ## Layout
 
@@ -32,13 +46,35 @@ src/
   store/     zustand stores
   hooks/     custom hooks
   lib/       time formatting, Web Audio chime, persistence
-  components/ui/      shadcn/ui primitives
-  components/timer/   timer UI
-  components/tasks/   task queue UI
-  components/stats/   statistics UI
-  components/settings/ preferences UI
+  components/layout/    app shell, dashboard grid, theme
+  components/ui/        shadcn/ui primitives
+  components/mini/      the floating mini timer
+  components/timer/     timer UI
+  components/tasks/     task queue UI
+  components/stats/     statistics UI
+  components/settings/  preferences UI
 src-tauri/  Rust backend: commands, tray, window events    [Phase 5]
 ```
+
+## Dashboard layout
+
+The desktop UI is a two-column dashboard, and the split is load-bearing.
+
+- **The clock is permanent.** `src/components/layout/dashboard.tsx` puts the
+  clock in its own column, *outside* the Radix tab boundary, so switching
+  tabs can never unmount the countdown. "Permanent" is a lifetime guarantee,
+  not a position.
+- **The engine and the clock are separate concerns.**
+  `TimerEngineProvider` sits above the dashboard, so the timer keeps running
+  even if the clock column itself is ever rearranged.
+- **The workspace column holds the tabs.** Session settings, the task queue,
+  the statistics, and the preferences.
+- **Below the `lg` breakpoint the columns stack, clock first.** The phone
+  layout keeps the timer above the fold.
+- **A grid child must not be able to force a horizontal scrollbar.** Use
+  `minmax(0, …)` on the tracks and `min-w-0` on the flexible column.
+- **The footer is one line** and carries the copyright. It wraps rather than
+  truncating, so the copyright is never cut off on a narrow screen.
 
 ## Timer engine
 
@@ -109,6 +145,21 @@ cargo check --manifest-path src-tauri/Cargo.toml
 **Do not run `npm run dev` and `npm run tauri dev` at the same time** — the dev
 server uses `strictPort: true` on 3000, so a second instance fails loudly rather
 than drifting to 3001 and desyncing the native window.
+
+**Run Vitest directly, not through `cmd /c`.** In this environment, wrapping
+the run in `cmd /c` produces a spurious `Vitest failed to find the current
+suite` failure across every test file. The suite itself is stable.
+
+```powershell
+# Works reliably
+npx vitest run
+
+# Misleading failures
+cmd /c "npx vitest run"
+```
+
+When a tool fails in a way that looks environmental, test the *invocation*
+before testing the *code*.
 
 ## Conventions
 

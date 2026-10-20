@@ -7,7 +7,13 @@ import { cycleProgress, durationForPhase, phaseLabel, statusLabel } from '@/doma
 import { useRemaining, useTimerEngine } from '@/components/timer/timer-engine';
 import { phaseColor } from '@/lib/phase';
 import { formatDuration } from '@/lib/time';
+import { cn } from '@/lib/utils';
 import { useTimerStore } from '@/store/timer-store';
+
+export interface TimerPanelProps {
+  /** Additional classes for the card. */
+  readonly className?: string;
+}
 
 /**
  * The main timer surface: the countdown ring, the controls and the cycle
@@ -17,7 +23,7 @@ import { useTimerStore } from '@/store/timer-store';
  * the countdown keeps running while the user is on another tab. This
  * component is only the *view* of it.
  */
-export function TimerPanel() {
+export function TimerPanel({ className }: TimerPanelProps) {
   const state = useTimerStore((store) => store.state);
   const config = useTimerStore((store) => store.config);
 
@@ -30,8 +36,8 @@ export function TimerPanel() {
   const cycle = cycleProgress(state, config);
 
   return (
-    <Card className="mx-auto w-full max-w-xl">
-      <CardContent className="flex flex-col items-center gap-7 px-6 py-8 sm:px-8">
+    <Card className={cn('w-full', className)}>
+      <CardContent className="flex flex-col items-center gap-6 px-5 py-7 sm:px-6">
         <div className="flex flex-wrap items-center justify-center gap-2">
           <Badge
             variant="secondary"
@@ -44,9 +50,9 @@ export function TimerPanel() {
           <span className="text-muted-foreground text-xs">{statusLabel(state.status)}</span>
         </div>
 
-        <CountdownRing progress={progress} size={300} color={color}>
+        <CountdownRing progress={progress} size={280} color={color}>
           <div
-            className="tabular-nums text-6xl leading-none font-semibold tracking-tight sm:text-7xl"
+            className="tabular-nums text-5xl leading-none font-semibold tracking-tight sm:text-6xl"
             aria-live="off"
             data-testid="timer-countdown"
           >

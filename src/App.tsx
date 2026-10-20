@@ -2,6 +2,7 @@ import { Toaster, toast } from 'sonner';
 import { BarChart3, ListTodo, Settings2, Timer } from 'lucide-react';
 
 import { AppShell } from '@/components/layout/app-shell';
+import { Dashboard } from '@/components/layout/dashboard';
 import { MiniModeToggle } from '@/components/mini/mini-mode-toggle';
 import { MiniTimer } from '@/components/mini/mini-timer';
 import { PreferencesPanel } from '@/components/settings/preferences-panel';
@@ -61,14 +62,21 @@ export default function App() {
         queue — and the mini widget would have nothing to show.
       */}
       <TimerEngineProvider onPhaseComplete={handlePhaseComplete}>
-        <div className="mx-auto flex w-full max-w-2xl flex-col gap-4">
-          <h1 className="sr-only">Pomodoro timer</h1>
+        <h1 className="sr-only">Pomodoro timer</h1>
 
-          <Tabs defaultValue="focus">
+        <Dashboard
+          clock={
+            <div className="flex flex-col gap-4">
+              <TimerPanel />
+              <SessionSummary />
+            </div>
+          }
+        >
+          <Tabs defaultValue="session">
             <TabsList className="w-full">
-              <TabsTrigger value="focus">
+              <TabsTrigger value="session">
                 <Timer />
-                Focus
+                Session
               </TabsTrigger>
               <TabsTrigger value="tasks">
                 <ListTodo />
@@ -84,9 +92,7 @@ export default function App() {
               </TabsTrigger>
             </TabsList>
 
-            <TabsContent value="focus" className="flex flex-col gap-4">
-              <TimerPanel />
-              <SessionSummary />
+            <TabsContent value="session" className="flex flex-col gap-4">
               <TimerSettings />
             </TabsContent>
 
@@ -102,7 +108,7 @@ export default function App() {
               <PreferencesPanel />
             </TabsContent>
           </Tabs>
-        </div>
+        </Dashboard>
 
         {/* The widget reads the shared engine, so it lives inside the provider. */}
         {miniEnabled ? <MiniTimer /> : null}

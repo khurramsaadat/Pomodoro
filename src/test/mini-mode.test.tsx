@@ -121,11 +121,11 @@ describe('Mini timer', () => {
     await user.click(screen.getByRole('button', { name: /show the mini timer/i }));
     await user.click(screen.getByRole('button', { name: /^start timer$/i }));
 
-    // Switch to the tasks tab. The focus panel is unmounted, but the engine
-    // lives above the tabs, so the countdown must keep running.
+    // Switch to the tasks tab. The engine lives above the tabs and the clock
+    // column is permanent, so both countdowns must keep running.
     await user.click(screen.getByRole('tab', { name: /tasks/i }));
 
-    expect(screen.queryByTestId('timer-countdown')).not.toBeInTheDocument();
+    expect(screen.getByTestId('timer-countdown')).toBeInTheDocument();
     expect(screen.getByTestId('mini-countdown')).toBeInTheDocument();
     expect(screen.getByTestId('mini-countdown')).not.toHaveTextContent('25:00');
   });
