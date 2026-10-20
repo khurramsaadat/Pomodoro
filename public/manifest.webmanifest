@@ -1,0 +1,19 @@
+{
+  "name": "Pomodoro",
+  "short_name": "Pomodoro",
+  "description": "A focused Pomodoro timer for the web and the desktop.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#0b1020",
+  "theme_color": "#0b1020",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ]
+}
