@@ -18,10 +18,13 @@ export interface SessionSummaryProps {
  */
 export function SessionSummary({ className }: SessionSummaryProps) {
   const state = useTimerStore((store) => store.state);
-  const config = useTimerStore((store) => store.config);
   const resetAll = useTimerStore((store) => store.resetAll);
 
-  const focusMinutes = Math.round((state.totalWorkSessions * config.workMs) / 60_000);
+  // The focus time is the time that was actually spent focusing, banked from
+  // the measured duration of each phase. Multiplying the session count by
+  // the *current* focus length would be an estimate that changes with the
+  // settings, and would disagree with the statistics panel.
+  const focusMinutes = Math.round(state.completedFocusMs / 60_000);
 
   const stats = [
     {

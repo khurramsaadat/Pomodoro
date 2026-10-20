@@ -75,11 +75,23 @@ export const useTimerStore = create<TimerStore>()((set, get) => ({
   },
 
   resetAll: () => {
-    set((store) => ({ state: resetSession(store.state, store.config) }));
+    set((store) => ({ state: resetSession(store.config) }));
   },
 
   skip: () => {
-    set((store) => ({ state: skipPhase(store.state, store.config) }));
+    const current = get();
+
+    // A focus session that was started and then abandoned is an interruption.
+    // It is written into the history so the statistic can see it; the entry
+    // is voided, so it still counts towards no completion.
+    const { state, completion } = skipPhase(current.state, current.config, now());
+
+    set({ state });
+
+    if (completion !== null) {
+      const activeTask = selectActiveTask(useTaskStore.getState());
+      useHistoryStore.getState().record(completion, activeTask);
+    }
   },
 
   interrupt: () => {

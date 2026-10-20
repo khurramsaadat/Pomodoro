@@ -62,6 +62,15 @@ export interface TimerState {
   readonly completedWorkSessions: number;
   /** Focus sessions completed since the timer was created. */
   readonly totalWorkSessions: number;
+  /**
+   * The focus time banked in this session, in milliseconds.
+   *
+   * This is the *measured* duration of the focus phases that completed, not
+   * a count multiplied by the configured length. The two agree only while
+   * the focus length stays the same, and an estimate that silently changes
+   * with the settings is exactly what the summary must not show.
+   */
+  readonly completedFocusMs: number;
   /** Interruptions recorded for the phase in progress. */
   readonly interruptions: number;
   /** Interruptions recorded across the whole session. */
@@ -88,4 +97,12 @@ export interface PhaseCompletion {
   readonly durationMs: number;
   /** Interruptions recorded during the phase. */
   readonly interruptions: number;
+  /**
+   * Whether the phase was abandoned rather than completed.
+   *
+   * A phase that reached its deadline is never voided. A phase that was
+   * skipped is: the session was started and then given up, which is what
+   * the method calls an interruption.
+   */
+  readonly voided: boolean;
 }

@@ -97,6 +97,7 @@ describe('history store', () => {
       endedAt: 2000,
       durationMs: 25 * 60_000,
       interruptions: 0,
+      voided: false,
     };
 
     useHistoryStore.getState().record(completion, null);
@@ -115,6 +116,7 @@ describe('history store', () => {
         endedAt: 2000,
         durationMs: 1000,
         interruptions: 0,
+        voided: false,
       },
       { id: 'task-1', title: 'Write the report' },
     );

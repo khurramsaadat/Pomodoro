@@ -29,7 +29,7 @@ export function validateSessionEntry(value: unknown): SessionEntry | null {
     return null;
   }
 
-  const { id, phase, startedAt, endedAt, durationMs, taskId, taskTitle, interruptions } = value;
+  const { id, phase, startedAt, endedAt, durationMs, taskId, taskTitle, interruptions, voided } = value;
 
   if (typeof id !== 'string' || id.length === 0) {
     return null;
@@ -52,6 +52,12 @@ export function validateSessionEntry(value: unknown): SessionEntry | null {
   if (!isNonNegativeNumber(interruptions)) {
     return null;
   }
+  // A payload written before the `voided` flag existed has no abandoned
+  // sessions in it, so a missing flag means "not voided" rather than
+  // "unusable" — an old history must not be thrown away.
+  if (voided !== undefined && typeof voided !== 'boolean') {
+    return null;
+  }
 
   return {
     id,
@@ -62,6 +68,7 @@ export function validateSessionEntry(value: unknown): SessionEntry | null {
     taskId,
     taskTitle,
     interruptions,
+    voided: voided === true,
   };
 }
 

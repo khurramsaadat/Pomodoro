@@ -67,14 +67,33 @@ export function localDayKey(timestamp: number): string {
   return `${year}-${month}-${day}`;
 }
 
-/** Whether two timestamps fall on the same local calendar day. */
-export function isSameLocalDay(a: number, b: number): boolean {
-  return localDayKey(a) === localDayKey(b);
-}
-
 /** Midnight at the start of the local day containing `timestamp`. */
 export function startOfLocalDay(timestamp: number): number {
   const date = new Date(timestamp);
   date.setHours(0, 0, 0, 0);
   return date.getTime();
+}
+
+/**
+ * The local calendar day a given number of days away from `timestamp`.
+ *
+ * The step is a *calendar* step rather than a fixed number of milliseconds,
+ * because a day is not always 86 400 000 ms long: across a daylight-saving
+ * boundary it is 23 or 25 hours. Subtracting a fixed 86 400 000 therefore
+ * lands on the wrong day — sometimes twice on the same day, and sometimes
+ * skipping one entirely.
+ *
+ * The date is normalised to local midnight first, so the result does not
+ * depend on the time of day, and `setDate` moves the day of the month the
+ * way a calendar does.
+ */
+export function shiftLocalDay(timestamp: number, offset: number): number {
+  const date = new Date(startOfLocalDay(timestamp));
+  date.setDate(date.getDate() - offset);
+  return date.getTime();
+}
+
+/** Whether two timestamps fall on the same local calendar day. */
+export function isSameLocalDay(a: number, b: number): boolean {
+  return localDayKey(a) === localDayKey(b);
 }

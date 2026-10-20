@@ -24,6 +24,7 @@ export function createInitialState(config: TimerConfig): TimerState {
     startedAt: null,
     completedWorkSessions: 0,
     totalWorkSessions: 0,
+    completedFocusMs: 0,
     interruptions: 0,
     totalInterruptions: 0,
   };
@@ -164,6 +165,25 @@ export function advance(state: TimerState, config: TimerConfig): TimerState {
 }
 
 /**
+ * Banks a measured focus duration against the session.
+ *
+ * The focus time is banked from the time the phase *actually* occupied, not
+ * from the count of sessions multiplied by the configured length. The two
+ * agree only while the focus length stays the same; an estimate that changes
+ * with the settings is not a measurement.
+ *
+ * Banking is separate from `advance` because the measured duration is only
+ * known once the phase has finished, and the catch-up replays phases that
+ * ran unattended.
+ */
+export function bankFocusTime(state: TimerState, durationMs: number): TimerState {
+  return {
+    ...state,
+    completedFocusMs: state.completedFocusMs + Math.max(0, durationMs),
+  };
+}
+
+/**
  * Builds the record of a phase that has just reached its deadline.
  *
  * The duration is the time the phase actually occupied: the banked
@@ -186,6 +206,7 @@ export function phaseCompletion(
     endedAt: now,
     durationMs: served,
     interruptions: state.interruptions,
+    voided: false,
   };
 }
 
@@ -205,8 +226,13 @@ export function completePhase(
   const shouldAutoStart =
     completedPhase === 'work' ? config.autoStartBreaks : config.autoStartWork;
 
+  // The focus time is banked from the measured duration of the phase that
+  // just finished, so the summary shows what was actually spent focusing.
+  const banked =
+    completedPhase === 'work' ? bankFocusTime(advanced, completion.durationMs) : advanced;
+
   return {
-    state: shouldAutoStart ? start(advanced, now) : advanced,
+    state: shouldAutoStart ? start(banked, now) : banked,
     completedPhase,
     completion,
   };
@@ -227,13 +253,17 @@ export function resetPhase(state: TimerState, config: TimerConfig): TimerState {
 
 /**
  * Resets the whole session: back to an idle focus session with no progress.
+ *
+ * The counters are cleared as well as the cycle. The session summary shows
+ * the session's focus sessions, its focus time and its interruptions, so
+ * keeping them would leave the panel looking exactly as it did before the
+ * button was pressed.
+ *
+ * The recorded history is *not* touched: the log is append-only, and the
+ * sessions that really happened stay in it whatever the timer is reset to.
  */
-export function resetSession(state: TimerState, config: TimerConfig): TimerState {
-  return {
-    ...createInitialState(config),
-    totalWorkSessions: state.totalWorkSessions,
-    totalInterruptions: state.totalInterruptions,
-  };
+export function resetSession(config: TimerConfig): TimerState {
+  return createInitialState(config);
 }
 
 /**
@@ -243,23 +273,48 @@ export function resetSession(state: TimerState, config: TimerConfig): TimerState
  * skipping means abandoning the session, not finishing it. Because the
  * session was never completed it also cannot earn a long break, so the skip
  * always leads to a short break.
+ *
+ * It *is* counted as an interruption, though. A focus session that was
+ * started and then given up is exactly what the method calls an
+ * interruption, and a phase that was never started at all is not — so
+ * only a phase that had actually begun is voided.
+ *
+ * The voided phase is returned as a completion record so the caller can
+ * write it into the history. The history is where the interruption becomes
+ * visible in the statistics; without it the metric could never be non-zero.
  */
-export function skipPhase(state: TimerState, config: TimerConfig): TimerState {
+export function skipPhase(
+  state: TimerState,
+  config: TimerConfig,
+  now: number,
+): { state: TimerState; completion: PhaseCompletion | null } {
+  const hadStarted = state.status !== 'idle' || state.elapsedMs > 0;
+  const abandonedWork = state.phase === 'work' && hadStarted;
+
+  const completion: PhaseCompletion | null = abandonedWork
+    ? { ...phaseCompletion(state, config, now), voided: true }
+    : null;
+
   const phase: TimerPhase = state.phase === 'work' ? 'shortBreak' : 'work';
 
   return {
-    ...state,
-    status: 'idle',
-    phase,
-    endsAt: null,
-    startedAt: null,
-    remaining: durationForPhase(phase, config),
-    elapsedMs: 0,
-    // The skipped session is void: it counts neither towards the session
-    // total nor towards the current cycle.
-    totalWorkSessions: state.totalWorkSessions,
-    completedWorkSessions: state.completedWorkSessions,
-    interruptions: 0,
+    state: {
+      ...state,
+      status: 'idle',
+      phase,
+      endsAt: null,
+      startedAt: null,
+      remaining: durationForPhase(phase, config),
+      elapsedMs: 0,
+      // The skipped session is void: it counts neither towards the session
+      // total nor towards the current cycle.
+      totalWorkSessions: state.totalWorkSessions,
+      completedWorkSessions: state.completedWorkSessions,
+      // Abandoning a focus session is an interruption, so it is counted.
+      totalInterruptions: abandonedWork ? state.totalInterruptions + 1 : state.totalInterruptions,
+      interruptions: 0,
+    },
+    completion,
   };
 }
 

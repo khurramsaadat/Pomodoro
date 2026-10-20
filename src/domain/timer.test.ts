@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest';
 import { configFromPreset, defaultPreset, TIMER_PRESETS } from '@/domain/presets';
 import {
   advance,
+  bankFocusTime,
   completePhase,
   createInitialState,
   cycleProgress,
@@ -354,28 +355,25 @@ describe('resetPhase', () => {
 });
 
 describe('resetSession', () => {
-  it('clears the cycle progress but keeps the lifetime counters', () => {
-    let state = createInitialState(makeConfig());
-    state = advance(state, makeConfig());
-    state = recordInterruption(state);
-
-    const reset = resetSession(state, makeConfig());
+  it('clears the cycle progress and the counters the summary shows', () => {
+    const reset = resetSession(makeConfig());
 
     expect(reset.phase).toBe('work');
     expect(reset.completedWorkSessions).toBe(0);
-    expect(reset.totalWorkSessions).toBe(1);
-    expect(reset.totalInterruptions).toBe(1);
+    expect(reset.totalWorkSessions).toBe(0);
+    expect(reset.totalInterruptions).toBe(0);
+    expect(reset.completedFocusMs).toBe(0);
   });
 });
 
 describe('skipPhase', () => {
   it('moves to the next phase without counting the focus session', () => {
-    const skipped = skipPhase(createInitialState(makeConfig()), makeConfig());
+    const { state } = skipPhase(createInitialState(makeConfig()), makeConfig(), T0);
 
-    expect(skipped.phase).toBe('shortBreak');
-    expect(skipped.totalWorkSessions).toBe(0);
-    expect(skipped.completedWorkSessions).toBe(0);
-    expect(skipped.status).toBe('idle');
+    expect(state.phase).toBe('shortBreak');
+    expect(state.totalWorkSessions).toBe(0);
+    expect(state.completedWorkSessions).toBe(0);
+    expect(state.status).toBe('idle');
   });
 
   it('does not let a skipped session earn a long break', () => {
@@ -387,11 +385,85 @@ describe('skipPhase', () => {
     expect(inProgress.phase).toBe('work');
     expect(inProgress.completedWorkSessions).toBe(3);
 
-    const skipped = skipPhase(inProgress, config);
+    const { state: skipped } = skipPhase(inProgress, config, T0);
 
     // The skipped session is void, so the break that follows is short.
     expect(skipped.phase).toBe('shortBreak');
     expect(skipped.completedWorkSessions).toBe(3);
+  });
+
+  it('counts an abandoned focus session as an interruption', () => {
+    const config = makeConfig();
+    const running = start(createInitialState(config), T0);
+
+    const { state } = skipPhase(running, config, T0 + 5 * MINUTE);
+
+    expect(state.totalInterruptions).toBe(1);
+    // The session is still void: it is not a completion.
+    expect(state.totalWorkSessions).toBe(0);
+  });
+
+  it('records the abandoned session so it can be written to the history', () => {
+    const config = makeConfig();
+    const running = start(createInitialState(config), T0);
+
+    const { completion } = skipPhase(running, config, T0 + 5 * MINUTE);
+
+    expect(completion).not.toBeNull();
+    expect(completion?.phase).toBe('work');
+    expect(completion?.voided).toBe(true);
+    // The time it did serve is kept, so the history shows how far it got.
+    expect(completion?.durationMs).toBe(5 * MINUTE);
+  });
+
+  it('does not void a focus session that never started', () => {
+    const config = makeConfig();
+
+    const { state, completion } = skipPhase(createInitialState(config), config, T0);
+
+    expect(completion).toBeNull();
+    expect(state.totalInterruptions).toBe(0);
+  });
+
+  it('does not void a break', () => {
+    const config = makeConfig();
+    const onBreak = advance(createInitialState(config), config);
+    const running = start(onBreak, T0);
+
+    const { state, completion } = skipPhase(running, config, T0 + MINUTE);
+
+    expect(completion).toBeNull();
+    expect(state.totalInterruptions).toBe(0);
+  });
+});
+
+describe('bankFocusTime', () => {
+  it('adds the measured duration to the session', () => {
+    const config = makeConfig();
+    const state = bankFocusTime(createInitialState(config), 25 * MINUTE);
+
+    expect(state.completedFocusMs).toBe(25 * MINUTE);
+  });
+
+  it('ignores a negative duration', () => {
+    const config = makeConfig();
+    const state = bankFocusTime(createInitialState(config), -1000);
+
+    expect(state.completedFocusMs).toBe(0);
+  });
+});
+
+describe('completePhase', () => {
+  it('banks the measured focus time rather than the configured length', () => {
+    const config = makeConfig();
+    const running = start(createInitialState(config), T0);
+
+    // The phase completes early — the user stopped it. The banked time is
+    // what was actually spent, not a full session.
+    const { state, completion } = completePhase(running, config, T0 + 10 * MINUTE);
+
+    expect(completion.durationMs).toBe(10 * MINUTE);
+    expect(state.completedFocusMs).toBe(10 * MINUTE);
   });
 });
 

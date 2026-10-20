@@ -1,4 +1,4 @@
-import { advance, durationForPhase } from './timer';
+import { advance, bankFocusTime, durationForPhase } from './timer';
 import type { PhaseCompletion, TimerConfig, TimerPhase, TimerState } from './types';
 
 /** The maximum number of phases to replay when catching up. */
@@ -58,9 +58,13 @@ export function catchUp(
       endedAt: current.endsAt,
       durationMs,
       interruptions: current.interruptions,
+      voided: false,
     });
 
-    const advanced = advance(current, config);
+    // A phase that ran unattended occupies exactly its configured duration,
+    // so the focus time it banks is that duration.
+    const advanced =
+      completedPhase === 'work' ? bankFocusTime(advance(current, config), durationMs) : advance(current, config);
     const shouldAutoStart =
       completedPhase === 'work' ? config.autoStartBreaks : config.autoStartWork;
 

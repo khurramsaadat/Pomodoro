@@ -1,18 +1,18 @@
-import { localDayKey } from '@/lib/time';
+import { localDayKey, shiftLocalDay } from '@/lib/time';
 import type { TimerPhase } from './types';
 
 /**
- * The session history: a record of every phase that reached its deadline.
+ * The session history: a record of every phase that ended.
  *
  * The history is the only durable record of what the user actually did, so it
  * is append-only. Entries are never mutated — a correction is a new entry —
  * which keeps the statistics reproducible from the log.
  */
 
-/** A completed focus session, attributed to a task when there was one. */
+/** A phase that ended, attributed to a task when there was one. */
 export interface SessionEntry {
   readonly id: string;
-  /** The phase that completed. */
+  /** The phase that ended. */
   readonly phase: TimerPhase;
   /** When the phase started, in epoch ms. */
   readonly startedAt: number;
@@ -26,6 +26,15 @@ export interface SessionEntry {
   readonly taskTitle: string | null;
   /** Interruptions recorded during the phase. */
   readonly interruptions: number;
+  /**
+   * Whether the phase was abandoned rather than completed.
+   *
+   * A voided entry records that a focus session was started and then given
+   * up. It is kept in the log because the abandonment is real work of a kind
+   * — it is the interruption — but it is excluded from every count of
+   * *completed* sessions, so a skipped session still counts towards nothing.
+   */
+  readonly voided: boolean;
 }
 
 /** The most history entries that are kept. */
@@ -58,9 +67,26 @@ export function clearHistory(): SessionEntry[] {
   return [];
 }
 
-/** The focus sessions in the history, in the order they were completed. */
+/**
+ * The focus sessions in the history, in the order they were completed.
+ *
+ * Voided sessions are excluded: a session that was abandoned was never
+ * completed, so it counts towards nothing — not towards the session total,
+ * not towards the daily goal, and not towards the streak.
+ */
 export function focusSessions(history: readonly SessionEntry[]): SessionEntry[] {
-  return history.filter((entry) => entry.phase === 'work');
+  return history.filter((entry) => entry.phase === 'work' && !entry.voided);
+}
+
+/**
+ * The focus sessions that were started and then abandoned.
+ *
+ * These are the interruptions. They are counted separately because they are
+ * the sessions that did *not* happen, and a method is only working when the
+ * abandoned ones are visible.
+ */
+export function voidedSessions(history: readonly SessionEntry[]): SessionEntry[] {
+  return history.filter((entry) => entry.voided);
 }
 
 /** The total time spent focusing, in milliseconds. */
@@ -73,9 +99,20 @@ export function focusSessionCount(history: readonly SessionEntry[]): number {
   return focusSessions(history).length;
 }
 
-/** The number of interruptions recorded across all focus sessions. */
+/**
+ * The number of interruptions recorded across all focus sessions.
+ *
+ * A session that was abandoned is itself an interruption, so the voided
+ * entries are counted here. Without them the metric would only ever report
+ * the interruptions the user marked by hand, and a skipped session — the
+ * most obvious interruption of all — would be invisible.
+ */
 export function interruptionCount(history: readonly SessionEntry[]): number {
-  return focusSessions(history).reduce((total, entry) => total + entry.interruptions, 0);
+  const marked = focusSessions(history).reduce(
+    (total, entry) => total + entry.interruptions,
+    0,
+  );
+  return marked + voidedSessions(history).length;
 }
 
 /** The focus sessions completed on a given local calendar day. */
@@ -108,9 +145,11 @@ export function focusMsByDay(
   const buckets = new Map<string, { focusMs: number; sessions: number }>();
 
   // Seed every day in the window so the chart shows gaps as zero rather than
-  // silently dropping them.
+  // silently dropping them. The window steps back by calendar day, so a
+  // daylight-saving change cannot shift the buckets off the days they
+  // belong to.
   for (let offset = days - 1; offset >= 0; offset -= 1) {
-    buckets.set(localDayKey(now - offset * 86_400_000), { focusMs: 0, sessions: 0 });
+    buckets.set(localDayKey(shiftLocalDay(now, offset)), { focusMs: 0, sessions: 0 });
   }
 
   for (const entry of focusSessions(history)) {
@@ -216,6 +255,11 @@ export function dailyProgress(
  *
  * The streak counts back from today. Today not having a session yet does not
  * break the streak — the day is not over — but any gap further back does.
+ *
+ * The walk steps back by *calendar* day rather than by 86 400 000 ms. A day
+ * is 23 or 25 hours long across a daylight-saving boundary, so a fixed step
+ * would visit one day twice and skip another, and the streak would be wrong
+ * for every user in a zone that observes the change.
  */
 export function currentStreak(history: readonly SessionEntry[], now: number): number {
   const days = new Set(focusSessions(history).map((entry) => localDayKey(entry.endedAt)));
@@ -224,7 +268,7 @@ export function currentStreak(history: readonly SessionEntry[], now: number): nu
   let offset = 0;
 
   while (streak < days.size) {
-    const key = localDayKey(now - offset * 86_400_000);
+    const key = localDayKey(shiftLocalDay(now, offset));
 
     if (!days.has(key)) {
       // Today may legitimately be empty, so only a gap on an earlier day ends

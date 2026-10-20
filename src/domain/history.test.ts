@@ -34,6 +34,7 @@ function entry(overrides: Partial<SessionEntry> = {}): SessionEntry {
     taskId: null,
     taskTitle: null,
     interruptions: 0,
+    voided: false,
     ...overrides,
   });
 }

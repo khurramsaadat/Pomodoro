@@ -45,6 +45,7 @@ export const useHistoryStore = create<HistoryStore>()((set) => ({
       taskId: task?.id ?? null,
       taskTitle: task?.title ?? null,
       interruptions: completion.interruptions,
+      voided: completion.voided,
     });
 
     set((store) => ({ entries: appendEntry(store.entries, entry) }));
