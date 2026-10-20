@@ -14,6 +14,7 @@ import { HistoryList } from '@/components/stats/history-list';
 import { StatsPanel } from '@/components/stats/stats-panel';
 import { ActiveTask } from '@/components/tasks/active-task';
 import { TaskQueue } from '@/components/tasks/task-queue';
+import { SessionPlan } from '@/components/timer/session-plan';
 import { SessionSummary } from '@/components/timer/session-summary';
 import { TimerEngineProvider } from '@/components/timer/timer-engine-provider';
 import { TimerPanel } from '@/components/timer/timer-panel';
@@ -21,13 +22,16 @@ import { TimerSettings } from '@/components/timer/timer-settings';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { dailyProgress } from '@/domain/history';
 import type { TimerPhase } from '@/domain/types';
+import { useMiniMode } from '@/hooks/use-mini-mode';
 import { useMiniModePersistence } from '@/hooks/use-mini-mode-persistence';
 import { useTimerPersistence } from '@/hooks/use-timer-persistence';
 import { useWorkspacePersistence } from '@/hooks/use-workspace-persistence';
+import { platform } from '@/platform';
 import { useHistoryStore } from '@/store/history-store';
 import { useMiniModeStore } from '@/store/mini-mode-store';
 import { usePreferencesStore } from '@/store/preferences-store';
 import { selectActiveTask, useTaskStore } from '@/store/task-store';
+import { useTimerStore } from '@/store/timer-store';
 
 /** A human-readable message for each phase completion. */
 function completionMessage(phase: TimerPhase): string {
@@ -45,6 +49,9 @@ export default function App() {
   const activeTask = useTaskStore(selectActiveTask);
   const entries = useHistoryStore((store) => store.entries);
   const dailyGoal = usePreferencesStore((store) => store.preferences.dailyGoal);
+
+  const timerState = useTimerStore((store) => store.state);
+  const timerConfig = useTimerStore((store) => store.config);
 
   // The clock lives in state rather than being read during render, so the
   // component stays a pure function of its state. It ticks once a minute,
@@ -86,8 +93,20 @@ export default function App() {
   // Restores and persists the mini timer's visibility and position.
   useMiniModePersistence();
 
+  // Tells the host whether it should present a mini window.
+  useMiniMode();
+
+  // The native tier shrinks its own window to become the mini timer, so
+  // there is no room for the dashboard. The web tier draws the widget
+  // inside the page, so the dashboard is hidden there instead. Either way
+  // the user sees one timer and not two — a widget floating over a
+  // full-size dashboard is the thing this feature exists to avoid.
+  const hostOwnsTheWindow = platform.capabilities.supportsMiniWindow;
+  const overlayMini = miniEnabled;
+
   return (
     <AppShell
+      bare={overlayMini}
       actions={
         <>
           <ShortcutsDialog />
@@ -105,61 +124,79 @@ export default function App() {
       <TimerEngineProvider onPhaseComplete={handlePhaseComplete}>
         <h1 className="sr-only">Pomodoro timer</h1>
 
-        <Dashboard
-          clock={
-            <div className="flex flex-col gap-4">
-              <TimerPanel />
-              <SessionSummary />
-              <ActiveTask task={activeTask} />
-              <DailyGoal
-                sessions={progress.sessions}
-                goal={progress.goal}
-                met={progress.met}
-              />
-            </div>
-          }
-        >
-          <Tabs defaultValue="session">
-            <TabsList className="w-full">
-              <TabsTrigger value="session">
-                <Timer />
-                Session
-              </TabsTrigger>
-              <TabsTrigger value="tasks">
-                <ListTodo />
-                Tasks
-              </TabsTrigger>
-              <TabsTrigger value="stats">
-                <BarChart3 />
-                Stats
-              </TabsTrigger>
-              <TabsTrigger value="settings">
-                <Settings2 />
-                Settings
-              </TabsTrigger>
-            </TabsList>
+        {overlayMini ? null : (
+          <Dashboard
+            clock={
+              <div className="flex flex-col gap-3">
+                <TimerPanel />
+                <SessionSummary />
+                <ActiveTask task={activeTask} />
+                <DailyGoal
+                  sessions={progress.sessions}
+                  goal={progress.goal}
+                  met={progress.met}
+                />
+              </div>
+            }
+          >
+            <Tabs defaultValue="session">
+              <TabsList className="w-full">
+                <TabsTrigger value="session">
+                  <Timer />
+                  Session
+                </TabsTrigger>
+                <TabsTrigger value="tasks">
+                  <ListTodo />
+                  Tasks
+                </TabsTrigger>
+                <TabsTrigger value="stats">
+                  <BarChart3 />
+                  Stats
+                </TabsTrigger>
+                <TabsTrigger value="settings">
+                  <Settings2 />
+                  Settings
+                </TabsTrigger>
+              </TabsList>
 
-            <TabsContent value="session" className="flex flex-col gap-4">
-              <TimerSettings />
-            </TabsContent>
+              <TabsContent value="session" className="flex flex-col gap-4">
+                <TimerSettings />
+              </TabsContent>
 
-            <TabsContent value="tasks" className="flex flex-col gap-4">
-              <TaskQueue />
-            </TabsContent>
+              <TabsContent value="tasks" className="flex flex-col gap-4">
+                <TaskQueue />
+              </TabsContent>
 
-            <TabsContent value="stats" className="flex flex-col gap-4">
-              <StatsPanel />
-              <HistoryList entries={entries} />
-            </TabsContent>
+              <TabsContent value="stats" className="flex flex-col gap-4">
+                <StatsPanel />
+                <HistoryList entries={entries} />
+              </TabsContent>
 
-            <TabsContent value="settings" className="flex flex-col gap-4">
-              <PreferencesPanel />
-            </TabsContent>
-          </Tabs>
-        </Dashboard>
+              <TabsContent value="settings" className="flex flex-col gap-4">
+                <PreferencesPanel />
+              </TabsContent>
+            </Tabs>
 
-        {/* The widget reads the shared engine, so it lives inside the provider. */}
-        {miniEnabled ? <MiniTimer /> : null}
+            {/*
+              The plan sits *below* the tabs rather than inside one, because
+              it is true whichever tab is open: it is the session the
+              current configuration describes, and the user wants to know
+              when the next break is due at the same time as they are
+              looking at the task queue.
+            */}
+            <SessionPlan state={timerState} config={timerConfig} />
+          </Dashboard>
+        )}
+
+        {/*
+          The widget reads the shared engine, so it lives inside the
+          provider. On the web tier it is drawn over the page; on the
+          native tier the window itself is the widget, so the page draws
+          it edge to edge and nothing else.
+        */}
+        {miniEnabled ? (
+          <MiniTimer variant={hostOwnsTheWindow ? 'filling' : 'floating'} />
+        ) : null}
       </TimerEngineProvider>
 
       <Toaster position="bottom-right" richColors closeButton />

@@ -8,6 +8,8 @@ fn main() {
         "set_tray_state",
         "set_keep_alive",
         "hide_window",
+        "set_mini_window",
+        "work_area",
       ]),
     ),
   )

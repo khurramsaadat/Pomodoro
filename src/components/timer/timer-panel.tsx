@@ -37,7 +37,7 @@ export function TimerPanel({ className }: TimerPanelProps) {
 
   return (
     <Card className={cn('w-full', className)}>
-      <CardContent className="flex flex-col items-center gap-6 px-5 py-7 sm:px-6">
+      <CardContent className="flex flex-col items-center gap-4 px-5 py-5 sm:px-6">
         <div className="flex flex-wrap items-center justify-center gap-2">
           <Badge
             variant="secondary"
@@ -50,9 +50,9 @@ export function TimerPanel({ className }: TimerPanelProps) {
           <span className="text-muted-foreground text-xs">{statusLabel(state.status)}</span>
         </div>
 
-        <CountdownRing progress={progress} size={280} color={color}>
+        <CountdownRing progress={progress} size={240} color={color}>
           <div
-            className="tabular-nums text-5xl leading-none font-semibold tracking-tight sm:text-6xl"
+            className="tabular-nums text-4xl leading-none font-semibold tracking-tight sm:text-5xl"
             aria-live="off"
             data-testid="timer-countdown"
           >

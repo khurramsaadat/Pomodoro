@@ -11,7 +11,13 @@
  */
 
 import type { TimerPhase } from '@/domain/types';
-import type { PlatformBridge, TrayStatus } from './types';
+import type {
+  MiniModeRequest,
+  MiniWindowPosition,
+  PlatformBridge,
+  TrayStatus,
+  WorkArea,
+} from './types';
 import { WEB_CAPABILITIES } from './types';
 
 /**
@@ -22,6 +28,9 @@ import { WEB_CAPABILITIES } from './types';
  * are still accepted so the caller does not have to branch on the tier.
  */
 export function createWebBridge(): PlatformBridge {
+  /** The handlers, held so a late subscription still reaches them. */
+  const movedHandlers = new Set<(position: MiniWindowPosition) => void>();
+
   return {
     capabilities: WEB_CAPABILITIES,
 
@@ -57,6 +66,27 @@ export function createWebBridge(): PlatformBridge {
 
     onAlarm: (_handler: (phase: TimerPhase) => void) => {
       // The page's own deadline drives the countdown.
+    },
+
+    setMiniWindow: (_request: MiniModeRequest) => {
+      // The web tier has no window of its own to shrink. The mini timer is
+      // drawn inside the page instead, and the page decides for itself what
+      // to show.
+    },
+
+    workArea: (): Promise<WorkArea> =>
+      Promise.resolve({
+        // The viewport is the browser's closest equivalent of a screen, and
+        // it is what the in-page widget is positioned against.
+        width: typeof window === 'undefined' ? 0 : window.innerWidth,
+        height: typeof window === 'undefined' ? 0 : window.innerHeight,
+      }),
+
+    onMiniWindowMoved: (handler: (position: MiniWindowPosition) => void) => {
+      // The web tier has no window to move, but the in-page widget reports
+      // where it was dropped through the same channel, so the app only has
+      // to remember the position in one place.
+      movedHandlers.add(handler);
     },
   };
 }

@@ -270,7 +270,7 @@ describe('The keyboard shortcuts', () => {
 
     await user.keyboard('{ArrowRight}');
 
-    expect(screen.getByText('Short break')).toBeInTheDocument();
+    expect(screen.getByTestId('timer-phase')).toHaveTextContent('Short break');
   });
 
   it('does not fire while a text field has the focus', async () => {
@@ -284,7 +284,9 @@ describe('The keyboard shortcuts', () => {
     await user.keyboard('{ArrowRight}');
 
     // The phase is unchanged: the shortcut was swallowed by the field.
-    expect(screen.queryByText('Short break')).not.toBeInTheDocument();
+    // The badge is what says which phase the timer is in — the session
+    // plan names the phases too, so the page text would be ambiguous.
+    expect(screen.getByTestId('timer-phase')).toHaveTextContent('Focus');
   });
 
   it('is discoverable through the shortcuts dialog', async () => {

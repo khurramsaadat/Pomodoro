@@ -15,6 +15,9 @@ export interface SessionSummaryProps {
  * Focus sessions completed, total focus time banked, and how many times the
  * timer was interrupted — the last of these is the metric that actually
  * predicts whether the Pomodoro method is working for the user.
+ *
+ * The three numbers sit on one line rather than on three, because the card
+ * lives in a row with two other cards and a tall card would unbalance it.
  */
 export function SessionSummary({ className }: SessionSummaryProps) {
   const state = useTimerStore((store) => store.state);
@@ -29,19 +32,19 @@ export function SessionSummary({ className }: SessionSummaryProps) {
   const stats = [
     {
       id: 'completed',
-      label: 'Focus sessions',
+      label: 'Sessions',
       value: `${state.totalWorkSessions}`,
       icon: CheckCircle2,
     },
     {
       id: 'time',
-      label: 'Focus time',
-      value: `${focusMinutes} min`,
+      label: 'Focus',
+      value: `${focusMinutes}m`,
       icon: Flame,
     },
     {
       id: 'interruptions',
-      label: 'Interruptions',
+      label: 'Interrupted',
       value: `${state.totalInterruptions}`,
       icon: CircleSlash,
     },
@@ -49,34 +52,33 @@ export function SessionSummary({ className }: SessionSummaryProps) {
 
   return (
     <Card className={className}>
-      <CardContent className="grid grid-cols-3 gap-3 px-5 py-4">
+      <CardContent className="flex items-center gap-3 px-4 py-3">
         {stats.map((stat) => {
           const Icon = stat.icon;
           return (
-            <div key={stat.id} className="flex flex-col items-center gap-1 text-center">
-              <Icon className="text-muted-foreground size-4" aria-hidden="true" />
-              <span className="tabular-nums text-lg leading-none font-semibold">
+            <div key={stat.id} className="flex min-w-0 flex-1 items-center gap-1.5">
+              <Icon className="text-muted-foreground size-3.5 shrink-0" aria-hidden="true" />
+              <span className="tabular-nums text-sm leading-none font-semibold">
                 {stat.value}
               </span>
-              <span className="text-muted-foreground text-[11px] leading-tight">
+              <span className="text-muted-foreground truncate text-[11px] leading-none">
                 {stat.label}
               </span>
             </div>
           );
         })}
-      </CardContent>
 
-      <div className="flex justify-end border-t px-5 py-2.5">
         <Button
           variant="ghost"
-          size="sm"
+          size="icon"
           onClick={resetAll}
-          className="text-muted-foreground h-7 text-xs"
+          aria-label="Reset session"
+          title="Reset session"
+          className="text-muted-foreground size-7 shrink-0"
         >
           <RotateCcw className="size-3.5" />
-          Reset session
         </Button>
-      </div>
+      </CardContent>
     </Card>
   );
 }

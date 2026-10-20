@@ -32,6 +32,8 @@ re-propose them.
 | 19 | The native tier - the Tauri desktop app | **Built** - the tray, the global shortcut, hide-to-tray |
 | 20 | Notifications when the window is hidden | **Built** - the native alarm, scheduled against the deadline |
 | 21 | An installable desktop app | **Built** - an NSIS installer and an MSI |
+| 22 | A mini timer that replaces the dashboard | **Built** - the native window becomes the widget; the web tier hides the dashboard |
+| 23 | The dead space under "Session settings" | **Built** - the session plan, and a compacted clock column |
 
 ---
 
@@ -198,18 +200,59 @@ terse. It is also the only place the user can see the timer without
 opening the window, so it is worth a little more: the phase's name, and
 perhaps the task the session is being spent on.
 
+### 29. The mini window should remember the display it was on
+
+The widget remembers the *corner* it was left in and how far from it, which
+survives a resize and a reload. It does not remember the *display*. On a
+machine with two monitors, a widget left in the bottom right of the
+secondary screen comes back in the bottom right of whichever screen the
+window happens to open on.
+
+The fix is small and sits in the same place as the rest of the placement
+logic: store the monitor's identity alongside the corner, and prefer that
+monitor when placing the window. The native tier already asks the operating
+system which monitor the window is on; it is the information the placement
+needs and does not yet use.
+
+### 30. The web tier's mini timer should be able to leave the page
+
+The web tier draws the mini timer inside the page, which is the best a
+browser can do. It is still a widget *on a page*, though: the tab has to be
+open and the tab has to be in front.
+
+The browser has an answer for this that the app does not use — the
+`Picture-in-Picture` API, or a `Document Picture-in-Picture` window. That
+would let the web tier's timer float above other applications, which is the
+one thing it genuinely cannot do today. It is a real API, it is
+Chromium-only at the moment, and it would need a fallback for the browsers
+that do not have it. Worth doing only if the web tier is meant to be a
+first-class citizen rather than a demonstration.
+
+### 31. Measure the layout, do not eyeball it
+
+The dead space in the dashboard was obvious once it was measured and
+invisible while it was being built. The two numbers that mattered — the
+height of the clock column and the height of the workspace — are now
+different by 107 pixels rather than by 661, and the second column has real
+content on every tab.
+
+The measurement itself is cheap: a script that opens the app, reads the
+bounding boxes of the two columns, and prints them. Making it part of the
+routine check, rather than something done once when someone notices, is
+what would keep the columns balanced as the app grows.
+
 ---
 
 ## Longer-term
 
-### 29. A shift-shaped view of the day
+### 32. A shift-shaped view of the day
 
 The statistics answer "how much did I do" but not "when". A user who wants to
 know whether their focus time lands in the morning or the evening has no way
 to find out, even though the log has the timestamps. A day split into hours
 would answer it.
 
-### 30. A "what changed" note in the history
+### 33. A "what changed" note in the history
 
 The log is append-only and correct, but a user reading it sees a flat list.
 Marking the sessions that were interrupted, that ran long, or that happened
@@ -231,6 +274,13 @@ schedule.
   accessible name, invoking it, and checking that the window was hidden
   and the process was still alive - is what found them. A test that only
   ever exercises one side of a seam has not tested the seam.
+- **Attach to the real window, not to a browser.** The WebView2
+  remote-debugging port lets Playwright drive the *actual* desktop window:
+  `WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS=--remote-debugging-port=9222`
+  before `tauri dev`, and then `chromium.connectOverCDP`. The two scale
+  bugs in the mini window were only visible that way - the window was
+  156 pixels wide on a 1.5x display, and no unit test on either side of
+  the seam could have said so.
 - **A panic in a command handler takes the app down.** `state()` panics
   when it is called before `manage()`, and a panic on the main thread is
   not recoverable. Anything that reaches for managed state has to use
@@ -242,3 +292,7 @@ schedule.
 - **Keep the regression tests honest.** A test that passes against the bug
   it is meant to catch is worse than no test. The daylight-saving test was
   checked by reverting the fix and confirming that it failed.
+- **Do not trust the desktop process to know the display's scale factor.**
+  On Windows it is not per-monitor DPI-aware, so it reports one while the
+  webview inside it is drawn at one and a half. The side that knows the
+  true ratio is the webview, and `devicePixelRatio` is exact.

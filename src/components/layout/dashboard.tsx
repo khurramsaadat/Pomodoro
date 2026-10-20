@@ -28,11 +28,14 @@ export function Dashboard({ clock, children, className }: DashboardProps) {
     <div
       className={cn(
         'grid w-full grid-cols-1 items-start gap-6',
-        'lg:grid-cols-[minmax(0,26rem)_minmax(0,1fr)]',
+        'lg:grid-cols-[minmax(0,24rem)_minmax(0,1fr)]',
         className,
       )}
     >
-      <div data-testid="dashboard-clock" className="lg:sticky lg:top-20">
+      <div
+        data-testid="dashboard-clock"
+        className="flex min-w-0 flex-col gap-3 lg:sticky lg:top-20"
+      >
         {clock}
       </div>
 

@@ -249,6 +249,60 @@ tests could not have caught any of it.
 
 ---
 
+## Stage 10 - The dashboard's balance, and a mini timer that replaces it
+
+**Commit:** the current commit.
+
+The dashboard was measured rather than eyeballed. The clock column stood
+1081 pixels tall and the workspace beside it 420, which left roughly 660
+pixels of dead space under "Session settings" — and opening the mini timer
+made it worse, because the widget was drawn *over* a dashboard that was
+still there. Two timers, one of them enormous and irrelevant.
+
+**Why here:** the mini timer was built as a floating widget drawn inside the
+page, which was the only thing a browser could do. The native tier can do
+better, and a feature that behaves differently on the two tiers is a feature
+with two sets of bugs.
+
+**The decision: the mini timer replaces the dashboard.** On the web tier the
+page hides itself and draws the widget; on the native tier the app's own
+window becomes a small frameless widget, and the dashboard is gone because
+the window that held it is gone. Either way the user sees one timer.
+
+**The decision: the empty space is filled with something worth reading.** The
+session plan — the phases ahead, derived from the configuration — sits below
+the tabs rather than inside one, because it is true whichever tab is open. The
+clock column's three summary cards were also compacted from stacked blocks
+into single rows, and the countdown ring was reduced, which took the column
+from 1081 pixels to 827.
+
+**The decision: the host owns the screen.** The native tier's window is moved
+by the operating system, so the placement is the host's business. The
+frontend remembers *which corner* the widget was left in and *how far from
+it*, and the host turns that into a real position — the same corner-and-
+offset model the web tier already used, so one implementation serves both.
+
+**Two bugs that only a real native run found.** Both were invisible in the
+tests, and neither could have been found there:
+
+- **The window was scaled twice.** The size was set in physical pixels *and*
+  multiplied by the display's scale factor, so a 240-pixel timer arrived on
+  screen as 156. The size is now in physical pixels, with no multiplication.
+- **The backend did not know the display's scale factor.** It reported one,
+  while the webview inside it was drawn at one and a half — on Windows the
+  desktop process is not per-monitor DPI-aware, so the two disagree. The
+  measurements now cross the seam in physical pixels, and the conversion is
+  done on the side that knows the true ratio: the webview, whose
+  `devicePixelRatio` is exact.
+
+**The verification was the interesting part again.** The native app was
+driven through the WebView2 remote-debugging port, so Playwright attached to
+the *real* desktop window rather than to a browser. That is what showed the
+156-pixel window, and it is what proved the fix: the window is now 241 by
+150, in the bottom right corner, with the dashboard gone.
+
+---
+
 ## Verification
 
 | Stage | Tests | Typecheck | Lint | Build | Browser |
@@ -262,7 +316,9 @@ tests could not have caught any of it.
 | 7 | 236 / 18 files | green | green | green | 4 assertions fail against the old code |
 | 8 | 256 / 19 files | green | green | green | two columns, dialog, task editing, shortcuts, 0 console errors |
 | 9 | 283 / 24 files + 6 Rust | green | green | green | web tier loads no Tauri chunk, 0 console errors; native app drives hide-to-tray, the global shortcut, and the tray countdown |
+| 10 | 296 / 24 files + 11 Rust | green | green | green | the dashboard is balanced on every tab; the mini timer replaces it on both tiers; the native window is 241x150 in the corner |
 
-**Current state:** 283 tests across 24 files and 6 Rust tests, typecheck,
+**Current state:** 296 tests across 24 files and 11 Rust tests, typecheck,
 lint, the production build, the native release build, and the installers
 (NSIS + MSI) all clean.
+

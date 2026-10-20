@@ -20,6 +20,7 @@
 //! is scheduled against the same deadline the UI is drawing.
 
 mod alarm;
+mod mini;
 mod tray;
 
 use serde::{Deserialize, Serialize};
@@ -27,6 +28,7 @@ use tauri::{AppHandle, Emitter, Manager, WindowEvent};
 use tauri_plugin_global_shortcut::GlobalShortcutExt;
 
 use alarm::Alarm;
+use mini::{MiniModeRequest, WorkArea};
 use tray::TrayState;
 
 /// The event the frontend listens for when the user asks, from the tray or
@@ -59,6 +61,8 @@ pub struct PlatformInfo {
   pub supports_tray: bool,
   /// Whether a global shortcut can be registered.
   pub supports_global_shortcut: bool,
+  /// Whether the host can turn its window into a mini timer.
+  pub supports_mini_window: bool,
 }
 
 /// The name the notification system shows for the app.
@@ -115,7 +119,34 @@ fn platform_info() -> PlatformInfo {
     native: true,
     supports_tray: cfg!(not(any(target_os = "android", target_os = "ios"))),
     supports_global_shortcut: cfg!(not(any(target_os = "android", target_os = "ios"))),
+    supports_mini_window: cfg!(not(any(target_os = "android", target_os = "ios"))),
   }
+}
+
+/// Enters or leaves mini mode.
+///
+/// The window is the app's only window, so entering mini mode *replaces* the
+/// dashboard rather than covering it. That is the whole point of the
+/// feature: a widget drawn on top of a full-size dashboard leaves the user
+/// looking at two timers, one of them enormous and irrelevant.
+#[tauri::command]
+fn set_mini_window(app: AppHandle, request: MiniModeRequest) -> Result<(), String> {
+  mini::apply(&app, &request)
+}
+
+/// Reports the area of the screen the window may be placed in.
+///
+/// The numbers are in logical pixels, so the frontend can compare them with
+/// the positions it is given without knowing the scale factor.
+#[tauri::command]
+fn work_area(app: AppHandle) -> WorkArea {
+  app
+    .get_webview_window("main")
+    .map(|window| mini::work_area(&window))
+    .unwrap_or(WorkArea {
+      width: 0.0,
+      height: 0.0,
+    })
 }
 
 /// Schedules the native alarm for a phase deadline.
@@ -315,6 +346,14 @@ pub fn run() {
           let _ = window.hide();
         }
       }
+
+      // A moved window is reported so the frontend can remember where the
+      // user put it. The event is only raised once the drag has finished,
+      // so the position that is reported is the one the window came to rest
+      // at rather than every pixel it passed through.
+      if let WindowEvent::Moved(_) = event {
+        mini::report_position(window.app_handle());
+      }
     })
     .invoke_handler(tauri::generate_handler![
       platform_info,
@@ -322,7 +361,9 @@ pub fn run() {
       clear_alarm,
       set_tray_state,
       set_keep_alive,
-      hide_window
+      hide_window,
+      set_mini_window,
+      work_area
     ])
     .build(tauri::generate_context!())
     .expect("error while building tauri application")

@@ -29,28 +29,29 @@ export function DailyGoal({ sessions, goal, met, className }: DailyGoalProps) {
 
   return (
     <Card className={className}>
-      <CardContent className="flex flex-col gap-2.5 px-5 py-4">
+      <CardContent className="flex flex-col gap-2 px-4 py-3">
         <div className="flex items-center justify-between gap-2">
-          <div className="flex items-center gap-2">
-            <Target className="text-muted-foreground size-4" aria-hidden="true" />
-            <span className="text-sm font-medium">Daily goal</span>
+          <div className="flex min-w-0 items-center gap-2">
+            <Target className="text-muted-foreground size-3.5 shrink-0" aria-hidden="true" />
+            <span className="text-sm leading-tight font-medium">Daily goal</span>
           </div>
 
           {met ? (
-            <Badge variant="secondary" className="text-[10px]">
+            <Badge variant="secondary" className="shrink-0 text-[10px]">
               Goal reached
             </Badge>
-          ) : null}
+          ) : (
+            <span className="text-muted-foreground shrink-0 text-[11px] tabular-nums">
+              {sessions} of {safeGoal} focus sessions today
+            </span>
+          )}
         </div>
 
         <Progress
           value={Math.round(ratio * 100)}
           aria-label={`${sessions} of ${safeGoal} focus sessions completed today`}
+          className="h-1.5"
         />
-
-        <span className="text-muted-foreground text-[11px] tabular-nums">
-          {sessions} of {safeGoal} focus sessions today
-        </span>
       </CardContent>
     </Card>
   );

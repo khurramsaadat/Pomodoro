@@ -71,10 +71,37 @@ describe('Mini timer', () => {
     const user = userEvent.setup();
     renderApp();
 
+    // The dashboard is shown first, so the main countdown can be read.
+    expect(screen.getByTestId('timer-countdown')).toHaveTextContent('25:00');
+
     await user.click(screen.getByRole('button', { name: /show the mini timer/i }));
 
     expect(screen.getByTestId('mini-countdown')).toHaveTextContent('25:00');
-    expect(screen.getByTestId('timer-countdown')).toHaveTextContent('25:00');
+  });
+
+  it('replaces the dashboard rather than covering it', async () => {
+    const user = userEvent.setup();
+    renderApp();
+
+    await user.click(screen.getByRole('button', { name: /show the mini timer/i }));
+
+    // A widget floating over a full-size dashboard leaves the user looking
+    // at two timers, one of them enormous and irrelevant. The mini timer
+    // replaces the dashboard instead.
+    expect(screen.queryByTestId('dashboard-clock')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('dashboard-workspace')).not.toBeInTheDocument();
+    expect(screen.getByTestId('mini-timer')).toBeInTheDocument();
+  });
+
+  it('brings the dashboard back when the widget is closed', async () => {
+    const user = userEvent.setup();
+    renderApp();
+
+    await user.click(screen.getByRole('button', { name: /show the mini timer/i }));
+    await user.click(screen.getByRole('button', { name: /close the mini timer/i }));
+
+    expect(screen.getByTestId('dashboard-clock')).toBeInTheDocument();
+    expect(screen.queryByTestId('mini-timer')).not.toBeInTheDocument();
   });
 
   it('can be closed again from the widget', async () => {
@@ -118,14 +145,14 @@ describe('Mini timer', () => {
     const user = userEvent.setup();
     renderApp();
 
-    await user.click(screen.getByRole('button', { name: /show the mini timer/i }));
     await user.click(screen.getByRole('button', { name: /^start timer$/i }));
 
-    // Switch to the tasks tab. The engine lives above the tabs and the clock
-    // column is permanent, so both countdowns must keep running.
+    // Switch to the tasks tab *before* opening the widget, because the
+    // widget replaces the dashboard. The engine lives above the tabs, so
+    // the countdown keeps running whatever is on screen.
     await user.click(screen.getByRole('tab', { name: /tasks/i }));
+    await user.click(screen.getByRole('button', { name: /show the mini timer/i }));
 
-    expect(screen.getByTestId('timer-countdown')).toBeInTheDocument();
     expect(screen.getByTestId('mini-countdown')).toBeInTheDocument();
     expect(screen.getByTestId('mini-countdown')).not.toHaveTextContent('25:00');
   });

@@ -9,6 +9,7 @@ import {
   nearestCorner,
   normalizeMiniPosition,
   positionToMiniPosition,
+  reportedPositionToMiniPosition,
 } from '@/domain/mini-mode';
 
 const VIEWPORT_WIDTH = 1000;
@@ -193,5 +194,69 @@ describe('isMiniCorner', () => {
     expect(isMiniCorner('middle')).toBe(false);
     expect(isMiniCorner(42)).toBe(false);
     expect(isMiniCorner(undefined)).toBe(false);
+  });
+});
+
+describe('reportedPositionToMiniPosition', () => {
+  it('works out the corner the window was left in', () => {
+    // The window is in the bottom right of a 1000 x 800 work area.
+    const position = reportedPositionToMiniPosition({
+      x: 1000 - WIDTH - MINI_MARGIN,
+      y: 800 - HEIGHT - MINI_MARGIN,
+      areaWidth: 1000,
+      areaHeight: 800,
+      width: WIDTH,
+      height: HEIGHT,
+    });
+
+    expect(position).not.toBeNull();
+    expect(position?.corner).toBe('bottomRight');
+    expect(position?.offsetX).toBe(0);
+    expect(position?.offsetY).toBe(0);
+  });
+
+  it('records the offset when the window was nudged away from the corner', () => {
+    const position = reportedPositionToMiniPosition({
+      x: 700,
+      y: 600,
+      areaWidth: 1000,
+      areaHeight: 800,
+      width: WIDTH,
+      height: HEIGHT,
+    });
+
+    expect(position?.corner).toBe('bottomRight');
+    expect(position?.offsetX).toBe(700 - (1000 - WIDTH - MINI_MARGIN));
+    expect(position?.offsetY).toBe(600 - (800 - HEIGHT - MINI_MARGIN));
+  });
+
+  it('ignores a report that carries no usable area', () => {
+    // A position relative to an unknown screen is not a position at all.
+    const position = reportedPositionToMiniPosition({
+      x: 10,
+      y: 20,
+      areaWidth: 0,
+      areaHeight: 0,
+      width: WIDTH,
+      height: HEIGHT,
+    });
+
+    expect(position).toBeNull();
+  });
+
+  it('falls back to the nominal size when the window size is unknown', () => {
+    const position = reportedPositionToMiniPosition({
+      x: 16,
+      y: 16,
+      areaWidth: 1000,
+      areaHeight: 800,
+      width: 0,
+      height: 0,
+    });
+
+    // The nominal size is 240 x 150, so the top left anchor is the margin.
+    expect(position?.corner).toBe('topLeft');
+    expect(position?.offsetX).toBe(0);
+    expect(position?.offsetY).toBe(0);
   });
 });

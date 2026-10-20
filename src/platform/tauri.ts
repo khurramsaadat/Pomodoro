@@ -12,7 +12,13 @@
  */
 
 import type { TimerPhase } from '@/domain/types';
-import type { PlatformBridge, PlatformCapabilities, TrayStatus } from './types';
+import type {
+  MiniWindowPosition,
+  PlatformBridge,
+  PlatformCapabilities,
+  TrayStatus,
+  WorkArea,
+} from './types';
 
 /** The event the backend emits when the tray or the shortcut asks for a toggle. */
 const TOGGLE_EVENT = 'pomodoro://toggle';
@@ -22,6 +28,9 @@ const SHOW_EVENT = 'pomodoro://show';
 
 /** The event the backend emits when the native alarm fires. */
 const ALARM_EVENT = 'pomodoro://alarm';
+
+/** The event the backend emits when the window has been moved. */
+const MOVED_EVENT = 'pomodoro://moved';
 
 /**
  * Whether the app is running inside the Tauri webview.
@@ -71,6 +80,33 @@ async function loadModules(): Promise<TauriModules | null> {
 }
 
 /**
+ * The work area the native window may be placed in.
+ *
+ * The backend knows the real work area — the screen minus the taskbar —
+ * and it knows the scale factor, so the numbers it returns are already in
+ * logical pixels. That matters: a placement computed in physical pixels
+ * would land in the wrong place on a scaled display.
+ *
+ * A failure is not fatal. A zero-sized area means the host cannot place
+ * the window, and the app carries on with the placement it already has.
+ */
+async function fetchWorkArea(
+  invoke: (command: string, args?: Record<string, unknown>) => Promise<unknown>,
+): Promise<WorkArea> {
+  try {
+    const info = (await invoke('work_area')) as Partial<WorkArea> | null;
+
+    if (info && typeof info.width === 'number' && typeof info.height === 'number') {
+      return { width: info.width, height: info.height };
+    }
+  } catch {
+    // The command is not available; the fallbacks below stand.
+  }
+
+  return { width: 0, height: 0 };
+}
+
+/**
  * Creates the native tier's bridge.
  *
  * The bridge is created immediately, but the Tauri modules are resolved
@@ -88,12 +124,14 @@ export function createTauriBridge(): PlatformBridge {
     supportsTray: true,
     supportsGlobalShortcut: true,
     supportsNotifications: true,
+    supportsMiniWindow: true,
   };
 
   /** The handlers, held so a late subscription still reaches them. */
   const toggleHandlers = new Set<() => void>();
   const showHandlers = new Set<() => void>();
   const alarmHandlers = new Set<(phase: TimerPhase) => void>();
+  const movedHandlers = new Set<(position: MiniWindowPosition) => void>();
 
   /** Resolves the modules once. */
   const ready = (): Promise<TauriModules | null> => {
@@ -116,6 +154,7 @@ export function createTauriBridge(): PlatformBridge {
         supportsTray: false,
         supportsGlobalShortcut: false,
         supportsNotifications: false,
+        supportsMiniWindow: false,
       };
       return;
     }
@@ -128,6 +167,7 @@ export function createTauriBridge(): PlatformBridge {
           supportsTray: info.supportsTray ?? false,
           supportsGlobalShortcut: info.supportsGlobalShortcut ?? false,
           supportsNotifications: info.supportsTray ?? false,
+          supportsMiniWindow: info.supportsMiniWindow ?? false,
         };
       }
     } catch {
@@ -165,6 +205,12 @@ export function createTauriBridge(): PlatformBridge {
   subscribe(ALARM_EVENT, (payload) => {
     for (const handler of alarmHandlers) {
       handler(payload as TimerPhase);
+    }
+  });
+
+  subscribe(MOVED_EVENT, (payload) => {
+    for (const handler of movedHandlers) {
+      handler(payload as MiniWindowPosition);
     }
   });
 
@@ -225,6 +271,36 @@ export function createTauriBridge(): PlatformBridge {
 
     onAlarm: (handler: (phase: TimerPhase) => void) => {
       alarmHandlers.add(handler);
+    },
+
+    setMiniWindow: (request) => {
+      // The command is what actually resizes and re-styles the window, so
+      // the placement is sent as a single request rather than as a series
+      // of window calls that could be seen half-applied.
+      send('set_mini_window', {
+        request: {
+          active: request.active,
+          corner: request.corner,
+          offsetX: request.offsetX,
+          offsetY: request.offsetY,
+          width: request.width,
+          height: request.height,
+          restoreWidth: request.restoreWidth,
+          restoreHeight: request.restoreHeight,
+        },
+      });
+    },
+
+    workArea: async () => {
+      // The work area comes from the operating system, so the answer is a
+      // promise. A failure is not fatal: a zero-sized area simply means the
+      // host cannot place the window, and the app carries on.
+      const api = await ready();
+      return api ? fetchWorkArea(api.invoke) : { width: 0, height: 0 };
+    },
+
+    onMiniWindowMoved: (handler: (position: MiniWindowPosition) => void) => {
+      movedHandlers.add(handler);
     },
   };
 }

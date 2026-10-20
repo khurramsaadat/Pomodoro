@@ -86,7 +86,10 @@ describe('Timer panel', () => {
 
     await user.click(screen.getByRole('button', { name: /skip to next phase/i }));
 
-    expect(screen.getByText('Short break')).toBeInTheDocument();
+    // The phase is read from the badge rather than from the page text: the
+    // session plan names the phases too, and the badge is the one that
+    // says what the timer is doing *now*.
+    expect(screen.getByTestId('timer-phase')).toHaveTextContent('Short break');
     expect(screen.getByTestId('timer-countdown')).toHaveTextContent('05:00');
   });
 

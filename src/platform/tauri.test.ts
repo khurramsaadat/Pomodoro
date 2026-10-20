@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import type { TimerPhase } from '@/domain/types';
+import type { MiniWindowPosition } from './types';
 
 /**
  * The recorded calls to the Tauri runtime.
@@ -132,6 +133,88 @@ describe('the Tauri platform bridge', () => {
     await settle();
 
     expect(invoke).toHaveBeenCalledWith('hide_window', undefined);
+  });
+
+  it('asks the host to present a mini window', async () => {
+    const bridge = await createBridge();
+    await settle();
+
+    bridge.setMiniWindow({
+      active: true,
+      corner: 'topLeft',
+      offsetX: 10,
+      offsetY: 20,
+      width: 240,
+      height: 150,
+      restoreWidth: 1180,
+      restoreHeight: 820,
+    });
+    await settle();
+
+    // The placement is sent as one request rather than as a series of
+    // window calls, so the host never sees the window half-applied.
+    expect(invoke).toHaveBeenCalledWith('set_mini_window', {
+      request: {
+        active: true,
+        corner: 'topLeft',
+        offsetX: 10,
+        offsetY: 20,
+        width: 240,
+        height: 150,
+        restoreWidth: 1180,
+        restoreHeight: 820,
+      },
+    });
+  });
+
+  it('reports the work area the host gives it', async () => {
+    invoke.mockResolvedValue({ width: 1920, height: 1040 });
+
+    const bridge = await createBridge();
+    await settle();
+
+    const area = await bridge.workArea();
+
+    expect(area).toEqual({ width: 1920, height: 1040 });
+  });
+
+  it('reports an empty work area rather than failing', async () => {
+    // A host that cannot place the window is a problem for the host, not
+    // for the app: the app carries on with the placement it already has.
+    invoke.mockRejectedValue(new Error('no such command'));
+
+    const bridge = await createBridge();
+    await settle();
+
+    const area = await bridge.workArea();
+
+    expect(area).toEqual({ width: 0, height: 0 });
+  });
+
+  it('forwards a window move from the host', async () => {
+    const bridge = await createBridge();
+    await settle();
+
+    const handler = vi.fn<(position: MiniWindowPosition) => void>();
+    bridge.onMiniWindowMoved(handler);
+
+    emit('pomodoro://moved', {
+      x: 100,
+      y: 200,
+      areaWidth: 1920,
+      areaHeight: 1040,
+      width: 240,
+      height: 150,
+    });
+
+    expect(handler).toHaveBeenCalledWith({
+      x: 100,
+      y: 200,
+      areaWidth: 1920,
+      areaHeight: 1040,
+      width: 240,
+      height: 150,
+    });
   });
 
   it('forwards a toggle request from the tray', async () => {

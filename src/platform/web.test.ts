@@ -12,6 +12,7 @@ describe('the web platform bridge', () => {
     expect(bridge.capabilities.supportsTray).toBe(false);
     expect(bridge.capabilities.supportsGlobalShortcut).toBe(false);
     expect(bridge.capabilities.supportsNotifications).toBe(false);
+    expect(bridge.capabilities.supportsMiniWindow).toBe(false);
   });
 
   it('accepts every call without throwing', () => {
@@ -25,10 +26,31 @@ describe('the web platform bridge', () => {
       bridge.updateTray({ phase: 'work', remaining: '25:00', running: true });
       bridge.setKeepAlive(true);
       bridge.hideWindow();
+      bridge.setMiniWindow({
+        active: true,
+        corner: 'bottomRight',
+        offsetX: 0,
+        offsetY: 0,
+        width: 240,
+        height: 150,
+        restoreWidth: 1180,
+        restoreHeight: 820,
+      });
       bridge.onToggleRequest(() => {});
       bridge.onShowRequest(() => {});
       bridge.onAlarm(() => {});
+      bridge.onMiniWindowMoved(() => {});
     }).not.toThrow();
+  });
+
+  it('reports the viewport as its work area', async () => {
+    const bridge = createWebBridge();
+
+    // The browser's viewport is the closest thing it has to a screen.
+    const area = await bridge.workArea();
+
+    expect(area.width).toBe(window.innerWidth);
+    expect(area.height).toBe(window.innerHeight);
   });
 
   it('never invokes a registered handler', () => {

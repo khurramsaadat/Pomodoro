@@ -14,6 +14,7 @@ import {
 } from '@/domain/mini-mode';
 import { phaseColor } from '@/lib/phase';
 import { formatDuration } from '@/lib/time';
+import { cn } from '@/lib/utils';
 import { useMiniModeStore } from '@/store/mini-mode-store';
 import { useTimerStore } from '@/store/timer-store';
 
@@ -39,7 +40,24 @@ interface DragState {
   readonly startTop: number;
 }
 
-export function MiniTimer() {
+/**
+ * How the mini timer is presented.
+ *
+ *  - `floating` draws the widget inside the page, in a corner of the
+ *    viewport. This is the web tier's only option, because a browser tab
+ *    has no window of its own to shrink.
+ *  - `filling` draws the widget edge to edge. The native tier's window
+ *    *is* the widget, so the page has nothing else to draw and the widget
+ *    must not be floating inside a window that is already the right size.
+ */
+export type MiniTimerVariant = 'floating' | 'filling';
+
+export interface MiniTimerProps {
+  /** How the widget is presented. */
+  readonly variant?: MiniTimerVariant;
+}
+
+export function MiniTimer({ variant = 'floating' }: MiniTimerProps = {}) {
   const state = useTimerStore((store) => store.state);
   const config = useTimerStore((store) => store.config);
 
@@ -61,6 +79,10 @@ export function MiniTimer() {
   const color = phaseColor(state.phase);
   const cycle = cycleProgress(state, config);
   const isRunning = state.status === 'running';
+
+  // The filling variant is not dragged by the page: the operating system
+  // moves the window, so the page has no drag to handle.
+  const floating = variant === 'floating';
 
   // Measure the widget so the drag maths and the clamping use its real
   // size rather than a guess.
@@ -95,10 +117,15 @@ export function MiniTimer() {
   }, []);
 
   // The resting position, recomputed whenever the window is resized so the
-  // widget stays inside the viewport.
+  // widget stays inside the viewport. The filling variant has no resting
+  // position: it fills the window it is in.
   const [resting, setResting] = useState<Point>({ x: 0, y: 0 });
 
   useLayoutEffect(() => {
+    if (!floating) {
+      return;
+    }
+
     const update = (): void => {
       const anchor = cornerAnchor(
         position.corner,
@@ -126,41 +153,44 @@ export function MiniTimer() {
     return () => {
       window.removeEventListener('resize', update);
     };
-  }, [position, size]);
+  }, [position, size, floating]);
 
-  const onPointerDown = useCallback((event: React.PointerEvent<HTMLButtonElement>) => {
-    if (event.button !== 0) {
-      return;
-    }
+  const onPointerDown = useCallback(
+    (event: React.PointerEvent<HTMLButtonElement>) => {
+      if (!floating || event.button !== 0) {
+        return;
+      }
 
-    const element = event.currentTarget;
-    const rect = widgetRef.current?.getBoundingClientRect();
-    if (!rect) {
-      return;
-    }
+      const element = event.currentTarget;
+      const rect = widgetRef.current?.getBoundingClientRect();
+      if (!rect) {
+        return;
+      }
 
-    dragRef.current = {
-      originX: event.clientX,
-      originY: event.clientY,
-      startLeft: rect.left,
-      startTop: rect.top,
-    };
+      dragRef.current = {
+        originX: event.clientX,
+        originY: event.clientY,
+        startLeft: rect.left,
+        startTop: rect.top,
+      };
 
-    // The pointer is captured on the *handle*, not on the widget: capture
-    // retargets every subsequent pointer event to the capturing element, so
-    // capturing the widget would deliver the moves to the widget and the
-    // handle's own handlers would never see them.
-    //
-    // Capture is best-effort: it is not implemented everywhere, and a failure
-    // here must not stop the drag from working.
-    try {
-      element.setPointerCapture(event.pointerId);
-    } catch {
-      // Ignore: the drag still works, it just ends when the pointer leaves.
-    }
+      // The pointer is captured on the *handle*, not on the widget: capture
+      // retargets every subsequent pointer event to the capturing element, so
+      // capturing the widget would deliver the moves to the widget and the
+      // handle's own handlers would never see them.
+      //
+      // Capture is best-effort: it is not implemented everywhere, and a failure
+      // here must not stop the drag from working.
+      try {
+        element.setPointerCapture(event.pointerId);
+      } catch {
+        // Ignore: the drag still works, it just ends when the pointer leaves.
+      }
 
-    event.preventDefault();
-  }, []);
+      event.preventDefault();
+    },
+    [floating],
+  );
 
   const onPointerMove = useCallback(
     (event: React.PointerEvent<HTMLButtonElement>) => {
@@ -249,17 +279,29 @@ export function MiniTimer() {
   return (
     <div
       ref={widgetRef}
-      className="bg-card text-card-foreground fixed z-50 flex flex-col overflow-hidden rounded-xl border shadow-lg"
-      style={{
-        left: `${left}px`,
-        top: `${top}px`,
-        width: `${size.width}px`,
-      }}
+      className={cn(
+        'bg-card text-card-foreground z-50 flex flex-col overflow-hidden border shadow-lg',
+        floating
+          ? 'fixed rounded-xl'
+          : 'h-dvh w-full rounded-none border-0 shadow-none',
+      )}
+      style={
+        floating
+          ? {
+              left: `${left}px`,
+              top: `${top}px`,
+              width: `${size.width}px`,
+            }
+          : undefined
+      }
       data-testid="mini-timer"
       role="region"
       aria-label="Mini timer"
     >
-      <div className="bg-muted/40 flex items-center gap-1 border-b px-1.5 py-1">
+      <div
+        className="bg-muted/40 flex items-center gap-1 border-b px-1.5 py-1"
+        data-tauri-drag-region
+      >
         <button
           type="button"
           onPointerDown={onPointerDown}
@@ -273,6 +315,10 @@ export function MiniTimer() {
           <GripVertical className="size-3.5" />
           {phaseLabel(state.phase)}
         </button>
+
+        <span className="text-muted-foreground ml-1 text-[11px] tabular-nums">
+          {cycle.completed}/{cycle.total}
+        </span>
 
         <div className="ml-auto flex items-center gap-0.5">
           <Button
@@ -299,28 +345,29 @@ export function MiniTimer() {
         </div>
       </div>
 
-      <div className="flex items-center gap-3 px-3 py-2.5">
+      {/*
+        The countdown sits *inside* the ring rather than beneath it. The
+        window is a fixed 240 by 150, and the ring plus a line of text
+        beside it does not fit: the number was being cut off at the bottom.
+        Inside the ring, the whole widget is legible in the space there is.
+      */}
+      <div className="relative flex flex-1 items-center justify-center p-2">
         <div
-          className="relative flex size-14 shrink-0 items-center justify-center rounded-full"
+          className="relative flex size-[88px] shrink-0 items-center justify-center rounded-full"
           style={{
             background: `conic-gradient(${color} ${progress * 360}deg, var(--color-border) 0deg)`,
           }}
           aria-hidden="true"
         >
-          <div className="bg-card absolute inset-[3px] rounded-full" />
+          <div className="bg-card absolute inset-[4px] rounded-full" />
         </div>
 
-        <div className="flex min-w-0 flex-1 flex-col">
-          <span
-            className="tabular-nums text-2xl leading-none font-semibold"
-            data-testid="mini-countdown"
-          >
-            {formatDuration(remaining)}
-          </span>
-          <span className="text-muted-foreground mt-1 text-[11px]">
-            {cycle.completed}/{cycle.total} in this set
-          </span>
-        </div>
+        <span
+          className="tabular-nums absolute text-2xl leading-none font-semibold"
+          data-testid="mini-countdown"
+        >
+          {formatDuration(remaining)}
+        </span>
       </div>
     </div>
   );

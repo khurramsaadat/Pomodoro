@@ -263,6 +263,29 @@ src-tauri/    Rust backend: commands, tray, alarm, window events
 - The "Focus" tab became "Session" - it now holds only the session settings.
 - The footer is a single line carrying `© 2006 Khurram`.
 
+**The dashboard's balance, and a mini timer that replaces it**
+
+- **The mini timer now replaces the dashboard rather than covering it.** The
+  old behaviour drew a small widget over a full-size dashboard, which left
+  the user looking at two timers. Opening the mini timer now removes the
+  dashboard on both tiers.
+- **The native tier's own window becomes the mini timer.** The desktop app's
+  window is made frameless, always-on-top and 240 by 150, and placed in the
+  corner it was left in. The dashboard is gone because the window that held
+  it is gone, and the operating system moves the widget rather than the page
+  dragging it.
+- **The empty space is filled with the session plan** - the phases ahead,
+  derived from the configuration. It sits below the tabs, because it is true
+  whichever tab is open.
+- **The clock column was compacted**: the session summary, the active task and
+  the daily goal are single rows rather than stacked blocks, and the countdown
+  ring is smaller. The column went from 1081 pixels to 827.
+- **Fixed a scale bug in the native window.** The window was sized in physical
+  pixels *and* multiplied by the display's scale factor, so a 240-pixel timer
+  arrived on screen as 156 on a scaled display. Measurements now cross the
+  platform seam in physical pixels, and the conversion is done by the webview,
+  which knows the display's real ratio.
+
 **Mini mode (`3c0f7e6`)**
 
 - Added a draggable mini timer that docks in a viewport corner, with

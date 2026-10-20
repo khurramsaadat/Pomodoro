@@ -32,6 +32,17 @@ export const MINI_WIDTH = 240;
 /** The nominal height of the widget, used before it has been measured. */
 export const MINI_HEIGHT = 150;
 
+/**
+ * The size the dashboard window is restored to when mini mode ends.
+ *
+ * These are logical pixels, and they are the same numbers the window
+ * configuration uses, so the dashboard comes back exactly as it was.
+ */
+export const DASHBOARD_WIDTH = 1180;
+
+/** The height the dashboard window is restored to when mini mode ends. */
+export const DASHBOARD_HEIGHT = 820;
+
 /** Every corner the widget can be anchored to. */
 export const MINI_CORNERS: readonly MiniCorner[] = [
   'topLeft',
@@ -178,4 +189,55 @@ export function positionToMiniPosition(
     offsetX: Math.round(left - anchor.x),
     offsetY: Math.round(top - anchor.y),
   };
+}
+
+/**
+ * The position of a widget the *host* has placed.
+ *
+ * The native tier gets this from the operating system, which knows where
+ * the user has actually dragged the window. The web tier gets it from the
+ * widget's own drag handling. Both are expressed relative to the top left
+ * of the work area, so the corner can be worked out the same way in both.
+ */
+export interface ReportedMiniPosition {
+  /** The left edge of the window. */
+  readonly x: number;
+  /** The top edge of the window. */
+  readonly y: number;
+  /** The width of the work area the window sits in. */
+  readonly areaWidth: number;
+  /** The height of the work area the window sits in. */
+  readonly areaHeight: number;
+  /** The width of the window itself. */
+  readonly width: number;
+  /** The height of the window itself. */
+  readonly height: number;
+}
+
+/**
+ * Converts a reported window position into the stored representation.
+ *
+ * The corner is worked out from where the window *is*, not from where it
+ * was dropped, so the widget comes back in the same place next time. A
+ * report that carries no usable area is ignored, because a position
+ * relative to an unknown screen is not a position at all.
+ */
+export function reportedPositionToMiniPosition(
+  reported: ReportedMiniPosition,
+): MiniPosition | null {
+  if (reported.areaWidth <= 0 || reported.areaHeight <= 0) {
+    return null;
+  }
+
+  const width = reported.width > 0 ? reported.width : MINI_WIDTH;
+  const height = reported.height > 0 ? reported.height : MINI_HEIGHT;
+
+  return positionToMiniPosition(
+    reported.x,
+    reported.y,
+    reported.areaWidth,
+    reported.areaHeight,
+    width,
+    height,
+  );
 }

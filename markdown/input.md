@@ -130,3 +130,37 @@ upgrade. None of them were visible in the tests, and the tests could not
 have found them: the bug was in the relationship between a Rust object and
 a browser page, not in any one of them.
 
+---
+
+## 10. The dashboard's empty space, and a mini timer that replaces it
+
+> "check with playright as the dashboard has too much empty space under sessions
+> settings
+> when mini is open the large desktop should hide - do it properly. rearrange the
+> ui for better ux. keep clock on left"
+
+The dashboard was measured rather than eyeballed: the clock column stood 1081
+pixels tall while the workspace beside it was 420, leaving roughly 660 pixels
+of dead space under "Session settings". Opening the mini timer made it worse
+rather than better, because the widget was drawn *over* a dashboard that was
+still there — two timers, one of them enormous and irrelevant.
+
+**The decision:** the mini timer now *replaces* the dashboard instead of
+covering it, and the empty space is filled with something worth reading — the
+plan of the session ahead, which is true on every tab rather than only on one.
+
+**The native tier needed real work.** The desktop app's own window becomes the
+mini timer — frameless, always on top, and the size of the widget — so the
+dashboard is genuinely gone rather than hidden behind it. That is a window the
+operating system moves, which is why the placement is the host's business and
+not the page's.
+
+**Two bugs that only a real native run found.** The window was sized in
+physical pixels *and* multiplied by the display's scale factor, so a
+240-pixel timer arrived on screen as 156. And the backend's idea of the
+display's scale factor was one, while the webview inside it was drawn at one
+and a half: on Windows the desktop process is not per-monitor DPI-aware. The
+measurements are now in physical pixels throughout, and the conversion is done
+on the side that knows the real ratio.
+
+

@@ -82,4 +82,33 @@ describe('the platform bridge', () => {
       bridge.clearAlarm();
     }).not.toThrow();
   });
+
+  it('holds the mini window request until the bridge is ready', async () => {
+    const bridge = await loadPlatform(false);
+
+    // A mini window the user asked for and never got is a button that
+    // appears to do nothing, so the request has to survive the bridge's
+    // arrival.
+    expect(() => {
+      bridge.setMiniWindow({
+        active: true,
+        corner: 'bottomRight',
+        offsetX: 0,
+        offsetY: 0,
+        width: 240,
+        height: 150,
+        restoreWidth: 1180,
+        restoreHeight: 820,
+      });
+    }).not.toThrow();
+  });
+
+  it('keeps a window-move handler registered before the bridge has loaded', async () => {
+    const bridge = await loadPlatform(false);
+    const handler = vi.fn();
+
+    bridge.onMiniWindowMoved(handler);
+
+    expect(handler).not.toHaveBeenCalled();
+  });
 });

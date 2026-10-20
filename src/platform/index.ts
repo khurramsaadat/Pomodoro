@@ -15,7 +15,15 @@
  */
 
 import type { TimerPhase } from '@/domain/types';
-import type { AlarmRequest, PlatformBridge, PlatformCapabilities, TrayStatus } from './types';
+import type {
+  AlarmRequest,
+  MiniModeRequest,
+  MiniWindowPosition,
+  PlatformBridge,
+  PlatformCapabilities,
+  TrayStatus,
+  WorkArea,
+} from './types';
 import { WEB_CAPABILITIES } from './types';
 import { createWebBridge } from './web';
 
@@ -31,6 +39,7 @@ let active: PlatformBridge | null = null;
 const pendingToggles: (() => void)[] = [];
 const pendingShows: (() => void)[] = [];
 const pendingAlarms: ((phase: TimerPhase) => void)[] = [];
+const pendingMoved: ((position: MiniWindowPosition) => void)[] = [];
 
 /**
  * The alarm that was asked for before the native bridge arrived.
@@ -44,6 +53,14 @@ let pendingAlarm: AlarmRequest | null = null;
 
 /** Whether an alarm is waiting to be sent. */
 let pendingClear = false;
+
+/**
+ * The mini window request made before the bridge was ready.
+ *
+ * The request is held rather than dropped, because a mini window the user
+ * asked for and never got is a button that appears to do nothing.
+ */
+let pendingMiniWindow: MiniModeRequest | null = null;
 
 /**
  * The last tray status, held until the bridge is ready.
@@ -67,6 +84,7 @@ const fallbackCapabilities: PlatformCapabilities = isNative()
       supportsTray: true,
       supportsGlobalShortcut: true,
       supportsNotifications: true,
+      supportsMiniWindow: true,
     }
   : WEB_CAPABILITIES;
 
@@ -93,9 +111,13 @@ async function resolve(): Promise<void> {
     for (const handler of pendingAlarms) {
       bridge.onAlarm(handler);
     }
+    for (const handler of pendingMoved) {
+      bridge.onMiniWindowMoved(handler);
+    }
     pendingToggles.length = 0;
     pendingShows.length = 0;
     pendingAlarms.length = 0;
+    pendingMoved.length = 0;
 
     // The alarm that was asked for before the bridge arrived is sent now.
     // A deadline that is never sent is a phase that ends in silence, so
@@ -114,6 +136,14 @@ async function resolve(): Promise<void> {
     if (pendingTray !== null) {
       bridge.updateTray(pendingTray);
       pendingTray = null;
+    }
+
+    // The mini window request made before the bridge arrived is sent now, so
+    // the window is in the state the user asked for rather than the state it
+    // happened to be in when the page loaded.
+    if (pendingMiniWindow !== null) {
+      bridge.setMiniWindow(pendingMiniWindow);
+      pendingMiniWindow = null;
     }
   } catch {
     // The native modules could not be loaded: fall back to the web bridge
@@ -189,8 +219,42 @@ export const platform: PlatformBridge = {
     }
     pendingAlarms.push(handler);
   },
+
+  setMiniWindow: (request: MiniModeRequest) => {
+    if (active) {
+      active.setMiniWindow(request);
+      return;
+    }
+
+    // The request is held until the bridge is ready. A mini window that was
+    // asked for and never sent is a request the user believes was granted.
+    pendingMiniWindow = request;
+  },
+
+  workArea: async (): Promise<WorkArea> => {
+    if (active) {
+      return active.workArea();
+    }
+    return { width: 0, height: 0 };
+  },
+
+  onMiniWindowMoved: (handler: (position: MiniWindowPosition) => void) => {
+    if (active) {
+      active.onMiniWindowMoved(handler);
+      return;
+    }
+    pendingMoved.push(handler);
+  },
 };
 
-export type { AlarmRequest, PlatformBridge, PlatformCapabilities, TrayStatus } from './types';
+export type {
+  AlarmRequest,
+  MiniModeRequest,
+  MiniWindowPosition,
+  PlatformBridge,
+  PlatformCapabilities,
+  TrayStatus,
+  WorkArea,
+} from './types';
 export { WEB_CAPABILITIES } from './types';
 
