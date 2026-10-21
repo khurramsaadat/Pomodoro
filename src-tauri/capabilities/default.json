@@ -13,8 +13,7 @@
     "allow-set-alarm",
     "allow-clear-alarm",
     "allow-set-tray-state",
-    "allow-set-keep-alive",
-    "allow-hide-window",
+    "allow-set-always-on-top",
     "allow-set-mini-window",
     "allow-work-area"
   ]

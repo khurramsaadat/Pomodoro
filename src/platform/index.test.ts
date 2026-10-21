@@ -51,8 +51,7 @@ describe('the platform bridge', () => {
       bridge.scheduleAlarm({ endsAt: 1_000, phase: 'work' });
       bridge.clearAlarm();
       bridge.updateTray({ phase: 'work', remaining: '25:00', running: true });
-      bridge.setKeepAlive(true);
-      bridge.hideWindow();
+      bridge.setAlwaysOnTop(true);
     }).not.toThrow();
   });
 
@@ -99,6 +98,7 @@ describe('the platform bridge', () => {
         height: 150,
         restoreWidth: 1180,
         restoreHeight: 820,
+        alwaysOnTop: false,
       });
     }).not.toThrow();
   });

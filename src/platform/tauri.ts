@@ -125,6 +125,7 @@ export function createTauriBridge(): PlatformBridge {
     supportsGlobalShortcut: true,
     supportsNotifications: true,
     supportsMiniWindow: true,
+    supportsAlwaysOnTop: true,
   };
 
   /** The handlers, held so a late subscription still reaches them. */
@@ -155,6 +156,7 @@ export function createTauriBridge(): PlatformBridge {
         supportsGlobalShortcut: false,
         supportsNotifications: false,
         supportsMiniWindow: false,
+        supportsAlwaysOnTop: false,
       };
       return;
     }
@@ -168,6 +170,7 @@ export function createTauriBridge(): PlatformBridge {
           supportsGlobalShortcut: info.supportsGlobalShortcut ?? false,
           supportsNotifications: info.supportsTray ?? false,
           supportsMiniWindow: info.supportsMiniWindow ?? false,
+          supportsAlwaysOnTop: info.supportsAlwaysOnTop ?? false,
         };
       }
     } catch {
@@ -250,15 +253,9 @@ export function createTauriBridge(): PlatformBridge {
       send('set_tray_state', { state: status });
     },
 
-    setKeepAlive: (keepAlive: boolean) => {
-      send('set_keep_alive', { keepAlive });
-    },
-
-    hideWindow: () => {
-      // The window is owned by the backend, so the hide is a command. The
-      // command also sets the keep-alive flag, so the timer survives the
-      // window going away.
-      send('hide_window');
+    setAlwaysOnTop: (alwaysOnTop: boolean) => {
+      // The window is owned by the backend, so the z-order is a command.
+      send('set_always_on_top', { alwaysOnTop });
     },
 
     onToggleRequest: (handler: () => void) => {
@@ -287,6 +284,7 @@ export function createTauriBridge(): PlatformBridge {
           height: request.height,
           restoreWidth: request.restoreWidth,
           restoreHeight: request.restoreHeight,
+          alwaysOnTop: request.alwaysOnTop,
         },
       });
     },

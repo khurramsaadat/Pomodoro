@@ -23,8 +23,10 @@ function resetStores(): void {
       dailyGoal: 8,
       autoAdvanceTask: true,
       soundEnabled: true,
+      completionSound: 'chime',
       confirmBeforeClearing: true,
       showCompletedTasks: true,
+      alwaysOnTop: false,
     },
   });
 }

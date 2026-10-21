@@ -1,91 +1,17 @@
-import {
-  clampEstimate,
-  isValidTaskTitle,
-  MAX_TASK_ESTIMATE,
-  MIN_TASK_ESTIMATE,
-  normalizeTaskTitle,
-  type Task,
-} from '@/domain/tasks';
-import { createRepository, isRecord, type Repository } from './repository';
+import { isRecord } from '@/domain/guards';
+import { validateTaskList, type Task } from '@/domain/tasks';
+import { createRepository, type Repository } from './repository';
 
 /**
  * Persistence for the task queue.
  *
  * A task is only accepted if it is structurally sound, so a hand-edited or
- * corrupted payload can never put the queue into an impossible state.
+ * corrupted payload can never put the queue into an impossible state. The
+ * validation itself lives in the domain, because an imported backup has to
+ * be checked by exactly the same rules.
  */
 
 export const TASKS_STORAGE_KEY = 'pomodoro-tasks';
-
-function isNonNegativeInteger(value: unknown): value is number {
-  return typeof value === 'number' && Number.isInteger(value) && value >= 0;
-}
-
-/** Validates one task, returning `null` when it is unusable. */
-export function validateTask(value: unknown): Task | null {
-  if (!isRecord(value)) {
-    return null;
-  }
-
-  const { id, title, estimatedPomodoros, completedPomodoros, done, createdAt, completedAt } = value;
-
-  if (typeof id !== 'string' || id.length === 0) {
-    return null;
-  }
-  if (typeof title !== 'string' || !isValidTaskTitle(title)) {
-    return null;
-  }
-  if (
-    typeof estimatedPomodoros !== 'number' ||
-    !Number.isFinite(estimatedPomodoros) ||
-    estimatedPomodoros < MIN_TASK_ESTIMATE ||
-    estimatedPomodoros > MAX_TASK_ESTIMATE
-  ) {
-    return null;
-  }
-  if (!isNonNegativeInteger(completedPomodoros)) {
-    return null;
-  }
-  if (typeof done !== 'boolean') {
-    return null;
-  }
-  if (!isNonNegativeInteger(createdAt)) {
-    return null;
-  }
-  if (completedAt !== null && !isNonNegativeInteger(completedAt)) {
-    return null;
-  }
-
-  return {
-    id,
-    title: normalizeTaskTitle(title),
-    estimatedPomodoros: clampEstimate(estimatedPomodoros),
-    completedPomodoros,
-    done,
-    createdAt,
-    completedAt,
-  };
-}
-
-/** Validates a whole queue, dropping any individual task that is unusable. */
-export function validateTaskList(value: unknown): Task[] | null {
-  if (!Array.isArray(value)) {
-    return null;
-  }
-
-  const tasks: Task[] = [];
-  const seen = new Set<string>();
-
-  for (const entry of value) {
-    const task = validateTask(entry);
-    if (task && !seen.has(task.id)) {
-      seen.add(task.id);
-      tasks.push(task);
-    }
-  }
-
-  return tasks;
-}
 
 /** The persisted shape of the queue: the tasks plus the selected one. */
 export interface PersistedTasks {

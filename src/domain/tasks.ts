@@ -7,6 +7,8 @@
  * did", so a completed focus session is attributed to the active task.
  */
 
+import { isNonNegativeInteger, isRecord } from './guards';
+
 /** A unit of work the user intends to complete. */
 export interface Task {
   readonly id: string;
@@ -149,4 +151,107 @@ export function sortTasks(tasks: readonly Task[]): Task[] {
     }
     return a.createdAt - b.createdAt;
   });
+}
+
+/**
+ * The open tasks and the completed ones, split apart.
+ *
+ * The queue is one list, but it answers two different questions — *what is
+ * still to do* and *what is already finished* — and a single list sorted by
+ * completion time mixes them. Splitting them here means the view can show
+ * the finished work as its own section rather than as a tail that has to be
+ * scrolled to.
+ */
+export interface SplitTasks {
+  /** The tasks that are still open, oldest first. */
+  readonly open: readonly Task[];
+  /** The tasks that are done, most recently completed first. */
+  readonly completed: readonly Task[];
+}
+
+/** Splits the queue into its open and completed halves. */
+export function splitTasks(tasks: readonly Task[]): SplitTasks {
+  const ordered = sortTasks(tasks);
+
+  return {
+    open: ordered.filter((task) => !task.done),
+    completed: ordered.filter((task) => task.done),
+  };
+}
+
+/**
+ * Validates one task, returning `null` when it is unusable.
+ *
+ * The check is strict rather than forgiving: a task whose estimate is
+ * nonsense, or whose id is missing, cannot be repaired without inventing
+ * information, and inventing it would put a lie in the user's queue.
+ */
+export function validateTask(value: unknown): Task | null {
+  if (!isRecord(value)) {
+    return null;
+  }
+
+  const { id, title, estimatedPomodoros, completedPomodoros, done, createdAt, completedAt } = value;
+
+  if (typeof id !== 'string' || id.length === 0) {
+    return null;
+  }
+  if (typeof title !== 'string' || !isValidTaskTitle(title)) {
+    return null;
+  }
+  if (
+    typeof estimatedPomodoros !== 'number' ||
+    !Number.isFinite(estimatedPomodoros) ||
+    estimatedPomodoros < MIN_TASK_ESTIMATE ||
+    estimatedPomodoros > MAX_TASK_ESTIMATE
+  ) {
+    return null;
+  }
+  if (!isNonNegativeInteger(completedPomodoros)) {
+    return null;
+  }
+  if (typeof done !== 'boolean') {
+    return null;
+  }
+  if (!isNonNegativeInteger(createdAt)) {
+    return null;
+  }
+  if (completedAt !== null && !isNonNegativeInteger(completedAt)) {
+    return null;
+  }
+
+  return {
+    id,
+    title: normalizeTaskTitle(title),
+    estimatedPomodoros: clampEstimate(estimatedPomodoros),
+    completedPomodoros,
+    done,
+    createdAt,
+    completedAt,
+  };
+}
+
+/**
+ * Validates a whole queue, dropping any individual task that is unusable.
+ *
+ * One broken task must not cost the user the rest of the queue, so the
+ * unusable entries are dropped rather than the whole list being rejected.
+ */
+export function validateTaskList(value: unknown): Task[] | null {
+  if (!Array.isArray(value)) {
+    return null;
+  }
+
+  const tasks: Task[] = [];
+  const seen = new Set<string>();
+
+  for (const entry of value) {
+    const task = validateTask(entry);
+    if (task && !seen.has(task.id)) {
+      seen.add(task.id);
+      tasks.push(task);
+    }
+  }
+
+  return tasks;
 }

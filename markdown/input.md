@@ -175,4 +175,41 @@ today* now sit above the tabs, with the daily goal directly under the task.
 The clock column keeps the timer and the session summary, and "Up next" stays
 below the tabs where the empty space was.
 
+---
+
+## 12. Always on top, no hiding, better sounds, and backups
+
+> "add always on top option and remove hide to tray. improve the sound
+> options so the user can select different completion sounds. show completed
+> tasks clearly and make the recent sessions easy to find. add a validated
+> import and export"
+
+Five changes, and they turned out to share one theme: the app was good at
+*recording* what the user did and bad at *showing* it.
+
+**The always-on-top preference and the end of hide-to-tray.** The tray stays
+— it is the app's status and its quick controls — but closing the window now
+ends the app, as it does in any other program. A program that survives its
+own close button is a program the user cannot get rid of. The window can be
+pinned above the others instead, which is the thing that actually helps: a
+timer the user has to go looking for is a timer whose deadline they will
+miss.
+
+**The sounds.** The cue used to be two sine notes. It is now a *stack* —
+a body tone, a fifth above it, and a soft noise transient — in five
+distinct shapes, and the user can choose between them and hear each one
+before choosing it. A sound the user has never heard is a sound they cannot
+choose between.
+
+**The completed tasks and the recent sessions.** Both were *there* and both
+were invisible: the finished tasks were the tail of a sorted list, and the
+session log was below the statistics card. The finished work is now a
+section of its own, and the log comes first in its tab — the log is what
+the statistics are derived from, so the thing the statistics come from
+should be the thing that is read first.
+
+**The backups.** The whole workspace in one file, validated on the way back
+in. A backup that cannot be restored is not a backup, and a backup that is
+restored *partly* without saying so is worse than one that is refused.
+
 

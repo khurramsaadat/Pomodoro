@@ -58,6 +58,7 @@ export function usePomodoroTimer(
   const storeInterrupt = useTimerStore((store) => store.interrupt);
   const storeComplete = useTimerStore((store) => store.complete);
   const soundEnabled = usePreferencesStore((store) => store.preferences.soundEnabled);
+  const completionSound = usePreferencesStore((store) => store.preferences.completionSound);
 
   const { onPhaseComplete } = options;
 
@@ -102,7 +103,10 @@ export function usePomodoroTimer(
     // turned the sound off should not hear it, even though the phase still
     // completes.
     if (soundEnabled) {
-      playChime({ volume: CHIME_VOLUME, sound: chimeForPhase(completedPhase) });
+      playChime({
+        volume: CHIME_VOLUME,
+        sound: chimeForPhase(completedPhase, completionSound),
+      });
     }
 
     onPhaseCompleteRef.current?.(completedPhase);
@@ -111,7 +115,7 @@ export function usePomodoroTimer(
     window.setTimeout(() => {
       completingRef.current = false;
     }, 0);
-  }, [storeComplete, soundEnabled]);
+  }, [storeComplete, soundEnabled, completionSound]);
 
   // Keep the derived timestamp fresh while the timer runs.
   useEffect(() => {

@@ -48,12 +48,8 @@ export function createWebBridge(): PlatformBridge {
       // There is no tray.
     },
 
-    setKeepAlive: (_keepAlive: boolean) => {
-      // A browser tab cannot outlive its window.
-    },
-
-    hideWindow: () => {
-      // A browser tab cannot be hidden to a notification area.
+    setAlwaysOnTop: (_alwaysOnTop: boolean) => {
+      // A browser tab has no z-order: the browser decides what is on top.
     },
 
     onToggleRequest: (_handler: () => void) => {

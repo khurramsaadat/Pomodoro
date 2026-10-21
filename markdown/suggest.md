@@ -29,12 +29,18 @@ re-propose them.
 | 16 | Prune the unused dependencies | **Done** - four Radix packages dropped, two put to use |
 | 17 | Expose the history in the UI | **Built** - the "Recent sessions" list |
 | 18 | Show which task a session is spent on | **Built** - the active-task strip |
-| 19 | The native tier - the Tauri desktop app | **Built** - the tray, the global shortcut, hide-to-tray |
-| 20 | Notifications when the window is hidden | **Built** - the native alarm, scheduled against the deadline |
+| 19 | The native tier - the Tauri desktop app | **Built** - the tray, the global shortcut, always-on-top |
+| 20 | Notifications when the window is in the background | **Built** - the native alarm, scheduled against the deadline |
 | 21 | An installable desktop app | **Built** - an NSIS installer and an MSI |
 | 22 | A mini timer that replaces the dashboard | **Built** - the native window becomes the widget; the web tier hides the dashboard |
 | 23 | The dead space under "Session settings" | **Built** - the session plan, and a compacted clock column |
 | 24 | "Working on" above the session settings | **Built** - the task and the daily goal moved above the tabs |
+| 25 | The window can be kept above the others | **Built** - a persisted preference, in the header and in the settings |
+| 26 | No more hiding the app from its own close button | **Built** - closing the window ends the app; the tray stays as a control panel |
+| 27 | Completion sounds the user can choose | **Built** - five layered cues, with a preview |
+| 28 | The completed tasks are visible | **Built** - a section of their own, not a tail of the queue |
+| 29 | The recent sessions are easy to find | **Built** - the log comes before the statistics derived from it |
+| 30 | Import and export | **Built** - a versioned file, validated on the way back in |
 
 ---
 
@@ -305,6 +311,31 @@ Marking the sessions that were interrupted, that ran long, or that happened
 outside the usual hours would make the log tell a story rather than a
 schedule.
 
+### 37. Backups should be scheduled, not only on demand
+
+The backup is a file the user has to remember to make. A desktop app could
+write one automatically — a dated copy in a known folder, keeping the last
+few — so the file exists *before* the day it would be needed is the day it
+is needed.
+
+The web tier has no filesystem, so the honest version is a periodic download
+the browser asks the user to allow, which is a worse experience. That
+difference is worth stating rather than papering over.
+
+### 38. The always-on-top preference should follow the phase
+
+The window is pinned while a focus session is running and unpinned during a
+break, because that is when the user is looking at something else. It is a
+small thing, and it is a guess — but the app already knows which phase it
+is in, and the guess is a better one than "always" or "never".
+
+### 39. The sound catalogue could grow
+
+Five cues is enough to choose between and few enough to remember. A user
+who wants a sound of their own would need an upload path, which is a
+different feature with a different risk: a file the app plays is a file the
+app has to trust.
+
 ---
 
 ## Keep doing
@@ -317,9 +348,9 @@ schedule.
 - **Run the real app.** The three native-tier bugs were all in the seam
   between a Rust object and a browser page, and none of them was visible
   from either side. Driving the installed app - finding a button by its
-  accessible name, invoking it, and checking that the window was hidden
-  and the process was still alive - is what found them. A test that only
-  ever exercises one side of a seam has not tested the seam.
+  accessible name, invoking it, and checking the window's state - is what
+  found them. A test that only ever exercises one side of a seam has not
+  tested the seam.
 - **Attach to the real window, not to a browser.** The WebView2
   remote-debugging port lets Playwright drive the *actual* desktop window:
   `WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS=--remote-debugging-port=9222`
@@ -327,6 +358,15 @@ schedule.
   bugs in the mini window were only visible that way - the window was
   156 pixels wide on a 1.5x display, and no unit test on either side of
   the seam could have said so.
+- **A behaviour change on one side of a seam is a behaviour change on
+  both.** Removing hide-to-tray was one request, and it touched a button,
+  a bridge method, a Rust command, a managed state and a runtime exit
+  handler. The parts that were left behind would have been a button that
+  did nothing and a process that could not be closed.
+- **A preference is the source of truth, and the host is told.** Two places
+  writing the host's state is two places that can disagree about it. The
+  always-on-top preference is written in two places — the header button
+  and the settings switch — and read in one.
 - **A panic in a command handler takes the app down.** `state()` panics
   when it is called before `manage()`, and a panic on the main thread is
   not recoverable. Anything that reaches for managed state has to use

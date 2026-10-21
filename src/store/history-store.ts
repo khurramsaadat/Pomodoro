@@ -4,6 +4,7 @@ import {
   appendEntry,
   clearHistory,
   createSessionEntry,
+  MAX_HISTORY_ENTRIES,
   type SessionEntry,
 } from '@/domain/history';
 import { historyRepository } from '@/storage/history';
@@ -23,6 +24,14 @@ export interface HistoryStore {
   record: (completion: PhaseCompletion, task: { id: string; title: string } | null) => void;
   /** Removes every recorded session. */
   clear: () => void;
+  /**
+   * Replaces the whole log at once.
+   *
+   * This is what an import uses: the backup is a *whole* log, and
+   * replacing it entry by entry would leave the user's own sessions mixed
+   * in with the imported ones.
+   */
+  setEntries: (entries: readonly SessionEntry[]) => void;
   /** Restores the history from storage. */
   restore: () => void;
 }
@@ -53,6 +62,12 @@ export const useHistoryStore = create<HistoryStore>()((set) => ({
 
   clear: () => {
     set({ entries: clearHistory() });
+  },
+
+  setEntries: (entries) => {
+    // The log is bounded, so an import cannot make it larger than the one
+    // the app would have kept.
+    set({ entries: entries.slice(0, MAX_HISTORY_ENTRIES) });
   },
 
   restore: () => {

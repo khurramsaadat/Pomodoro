@@ -1,12 +1,15 @@
 import { useId } from 'react';
 import { Settings2 } from 'lucide-react';
 
+import { BackupControls } from '@/components/settings/backup-controls';
+import { SoundPicker } from '@/components/settings/sound-picker';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { clampDailyGoal, MAX_DAILY_GOAL, MIN_DAILY_GOAL } from '@/domain/preferences';
+import { platform } from '@/platform';
 import { useHistoryStore } from '@/store/history-store';
 import { usePreferencesStore } from '@/store/preferences-store';
 import { useTaskStore } from '@/store/task-store';
@@ -67,10 +70,10 @@ export function PreferencesPanel({ className }: PreferencesPanelProps) {
         <div className="flex items-center justify-between gap-4">
           <div className="flex flex-col gap-0.5">
             <Label htmlFor={`${id}-sound`} className="font-normal">
-              Completion sound
+              Play a sound
             </Label>
             <span className="text-muted-foreground text-xs">
-              Play a chime when a phase finishes.
+              Play a cue when a phase finishes.
             </span>
           </div>
           <Switch
@@ -79,6 +82,35 @@ export function PreferencesPanel({ className }: PreferencesPanelProps) {
             onCheckedChange={(checked) => updatePreference('soundEnabled', checked)}
           />
         </div>
+
+        {/*
+          The picker is only shown when the sound is on: choosing a sound
+          that will not be played is a setting that does nothing.
+        */}
+        {preferences.soundEnabled ? <SoundPicker /> : null}
+
+        {/*
+          The always-on-top control is native-only. A browser tab has no
+          z-order, so offering the choice there would be a promise the
+          browser cannot keep.
+        */}
+        {platform.capabilities.supportsAlwaysOnTop ? (
+          <div className="flex items-center justify-between gap-4">
+            <div className="flex flex-col gap-0.5">
+              <Label htmlFor={`${id}-always-on-top`} className="font-normal">
+                Keep the window on top
+              </Label>
+              <span className="text-muted-foreground text-xs">
+                Stay above the other windows, so the timer is never hidden.
+              </span>
+            </div>
+            <Switch
+              id={`${id}-always-on-top`}
+              checked={preferences.alwaysOnTop}
+              onCheckedChange={(checked) => updatePreference('alwaysOnTop', checked)}
+            />
+          </div>
+        ) : null}
 
         <div className="flex items-center justify-between gap-4">
           <div className="flex flex-col gap-0.5">
@@ -126,6 +158,17 @@ export function PreferencesPanel({ className }: PreferencesPanelProps) {
             checked={preferences.confirmBeforeClearing}
             onCheckedChange={(checked) => updatePreference('confirmBeforeClearing', checked)}
           />
+        </div>
+
+        <div className="flex flex-col gap-3 border-t pt-4">
+          <div className="flex flex-col gap-0.5">
+            <h3 className="text-sm font-medium">Backup</h3>
+            <span className="text-muted-foreground text-xs">
+              Save everything to a file, or restore it from one.
+            </span>
+          </div>
+
+          <BackupControls />
         </div>
 
         <div className="flex flex-col gap-2 border-t pt-4">

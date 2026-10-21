@@ -7,6 +7,8 @@
  * never silently rewrites the user's session lengths.
  */
 
+import { normalizeSoundId, type SoundId } from './sounds';
+
 /** The smallest daily goal, in focus sessions. */
 export const MIN_DAILY_GOAL = 1;
 
@@ -20,10 +22,22 @@ export interface Preferences {
   readonly autoAdvanceTask: boolean;
   /** Whether the completion chime is played. */
   readonly soundEnabled: boolean;
+  /** Which completion sound is played. */
+  readonly completionSound: SoundId;
   /** Whether destructive actions ask for confirmation first. */
   readonly confirmBeforeClearing: boolean;
   /** Whether completed tasks stay visible in the queue. */
   readonly showCompletedTasks: boolean;
+  /**
+   * Whether the window stays above the other windows.
+   *
+   * A timer the user has to go looking for is a timer they will miss, so the
+   * window can be pinned above everything else. It is a preference rather
+   * than a fixed behaviour because it is a *choice*: a window that floats
+   * over everything is helpful while you are working and an obstruction
+   * while you are not.
+   */
+  readonly alwaysOnTop: boolean;
 }
 
 /** The preferences a first-time user gets. */
@@ -31,8 +45,10 @@ export const DEFAULT_PREFERENCES: Preferences = {
   dailyGoal: 8,
   autoAdvanceTask: true,
   soundEnabled: true,
+  completionSound: 'chime',
   confirmBeforeClearing: true,
   showCompletedTasks: true,
+  alwaysOnTop: false,
 };
 
 /** Clamps a daily goal into the supported range. */
@@ -70,6 +86,9 @@ export function normalizePreferences(value: unknown): Preferences {
       typeof record.soundEnabled === 'boolean'
         ? record.soundEnabled
         : DEFAULT_PREFERENCES.soundEnabled,
+    // A sound that no longer exists falls back to the default rather than
+    // leaving the user with no cue at all.
+    completionSound: normalizeSoundId(record.completionSound),
     confirmBeforeClearing:
       typeof record.confirmBeforeClearing === 'boolean'
         ? record.confirmBeforeClearing
@@ -78,5 +97,7 @@ export function normalizePreferences(value: unknown): Preferences {
       typeof record.showCompletedTasks === 'boolean'
         ? record.showCompletedTasks
         : DEFAULT_PREFERENCES.showCompletedTasks,
+    alwaysOnTop:
+      typeof record.alwaysOnTop === 'boolean' ? record.alwaysOnTop : DEFAULT_PREFERENCES.alwaysOnTop,
   };
 }

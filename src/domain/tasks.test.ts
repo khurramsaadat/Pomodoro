@@ -13,7 +13,10 @@ import {
   removeTask,
   reopenTask,
   sortTasks,
+  splitTasks,
   updateTask,
+  validateTask,
+  validateTaskList,
 } from '@/domain/tasks';
 
 const T0 = 1_700_000_000_000;
@@ -177,5 +180,88 @@ describe('sortTasks', () => {
     const sorted = sortTasks([newDone, oldDone, open]);
 
     expect(sorted.map((task) => task.id)).toEqual(['open', 'new', 'old']);
+  });
+});
+
+describe('splitTasks', () => {
+  it('separates the open tasks from the finished ones', () => {
+    const open = createTask('open', 'Open', 1, T0);
+    const done = markTaskDone(createTask('done', 'Done', 1, T0), T0 + 1000);
+
+    const split = splitTasks([open, done]);
+
+    expect(split.open.map((task) => task.id)).toEqual(['open']);
+    expect(split.completed.map((task) => task.id)).toEqual(['done']);
+  });
+
+  it('keeps the completed tasks in the order they were finished', () => {
+    const oldDone = markTaskDone(createTask('old', 'Old', 1, T0), T0 + 1000);
+    const newDone = markTaskDone(createTask('new', 'New', 1, T0), T0 + 2000);
+
+    const split = splitTasks([oldDone, newDone]);
+
+    // The most recently completed is the one the user just finished.
+    expect(split.completed.map((task) => task.id)).toEqual(['new', 'old']);
+  });
+
+  it('handles an empty queue', () => {
+    const split = splitTasks([]);
+
+    expect(split.open).toEqual([]);
+    expect(split.completed).toEqual([]);
+  });
+});
+
+describe('validateTask', () => {
+  it('accepts a well-formed task', () => {
+    const task = createTask('task-1', 'Write the report', 3, T0);
+
+    expect(validateTask(task)).toEqual(task);
+  });
+
+  it('rejects a task with no id', () => {
+    const task = { ...createTask('task-1', 'Write the report', 3, T0), id: '' };
+
+    expect(validateTask(task)).toBeNull();
+  });
+
+  it('rejects a task with an impossible estimate', () => {
+    const task = { ...createTask('task-1', 'Write the report', 3, T0), estimatedPomodoros: 0 };
+
+    expect(validateTask(task)).toBeNull();
+  });
+
+  it('rejects a task with a fractional session count', () => {
+    const task = { ...createTask('task-1', 'Write the report', 3, T0), completedPomodoros: 1.5 };
+
+    expect(validateTask(task)).toBeNull();
+  });
+
+  it('rejects values that are not objects', () => {
+    expect(validateTask(null)).toBeNull();
+    expect(validateTask('task')).toBeNull();
+  });
+});
+
+describe('validateTaskList', () => {
+  it('drops the unusable tasks and keeps the rest', () => {
+    const good = createTask('good', 'Good', 1, T0);
+    const bad = { ...createTask('bad', 'Bad', 1, T0), id: '' };
+
+    const tasks = validateTaskList([good, bad]);
+
+    // One broken task must not cost the user the rest of the queue.
+    expect(tasks).toHaveLength(1);
+    expect(tasks?.[0]?.id).toBe('good');
+  });
+
+  it('drops a duplicate id', () => {
+    const task = createTask('task-1', 'Write the report', 1, T0);
+
+    expect(validateTaskList([task, task])).toHaveLength(1);
+  });
+
+  it('rejects a value that is not a list', () => {
+    expect(validateTaskList({ tasks: [] })).toBeNull();
   });
 });

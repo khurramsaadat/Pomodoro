@@ -1,4 +1,5 @@
 import { localDayKey, shiftLocalDay } from '@/lib/time';
+import { isNonNegativeNumber, isRecord } from './guards';
 import type { TimerPhase } from './types';
 
 /**
@@ -39,6 +40,93 @@ export interface SessionEntry {
 
 /** The most history entries that are kept. */
 export const MAX_HISTORY_ENTRIES = 500;
+
+/** The phases a history entry can describe. */
+const PHASES: readonly TimerPhase[] = ['work', 'shortBreak', 'longBreak'];
+
+function isPhase(value: unknown): value is TimerPhase {
+  return typeof value === 'string' && (PHASES as readonly string[]).includes(value);
+}
+
+/**
+ * Validates one history entry, returning `null` when it is unusable.
+ *
+ * The check is strict: an entry that does not describe a real phase is
+ * dropped rather than patched, because a silently mis-stated duration would
+ * corrupt the statistics.
+ */
+export function validateSessionEntry(value: unknown): SessionEntry | null {
+  if (!isRecord(value)) {
+    return null;
+  }
+
+  const { id, phase, startedAt, endedAt, durationMs, taskId, taskTitle, interruptions, voided } = value;
+
+  if (typeof id !== 'string' || id.length === 0) {
+    return null;
+  }
+  if (!isPhase(phase)) {
+    return null;
+  }
+  if (!isNonNegativeNumber(startedAt) || !isNonNegativeNumber(endedAt)) {
+    return null;
+  }
+  if (!isNonNegativeNumber(durationMs)) {
+    return null;
+  }
+  if (taskId !== null && typeof taskId !== 'string') {
+    return null;
+  }
+  if (taskTitle !== null && typeof taskTitle !== 'string') {
+    return null;
+  }
+  if (!isNonNegativeNumber(interruptions)) {
+    return null;
+  }
+  // A payload written before the `voided` flag existed has no abandoned
+  // sessions in it, so a missing flag means "not voided" rather than
+  // "unusable" — an old history must not be thrown away.
+  if (voided !== undefined && typeof voided !== 'boolean') {
+    return null;
+  }
+
+  return {
+    id,
+    phase,
+    startedAt,
+    endedAt,
+    durationMs,
+    taskId,
+    taskTitle,
+    interruptions,
+    voided: voided === true,
+  };
+}
+
+/**
+ * Validates the whole history, dropping any entry that is unusable.
+ *
+ * The log is bounded by the same cap the app applies when appending, so an
+ * imported history cannot be larger than the one the app would have kept.
+ */
+export function validateHistory(value: unknown): SessionEntry[] | null {
+  if (!Array.isArray(value)) {
+    return null;
+  }
+
+  const entries: SessionEntry[] = [];
+  const seen = new Set<string>();
+
+  for (const entry of value) {
+    const validated = validateSessionEntry(entry);
+    if (validated && !seen.has(validated.id)) {
+      seen.add(validated.id);
+      entries.push(validated);
+    }
+  }
+
+  return entries.slice(0, MAX_HISTORY_ENTRIES);
+}
 
 /** Builds a history entry from a completed phase. */
 export function createSessionEntry(

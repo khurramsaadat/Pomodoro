@@ -4,14 +4,14 @@
 //! them is a small set of commands. Everything the frontend cannot do in a
 //! browser lives here:
 //!
-//!  - a **system tray** icon that keeps the app reachable when the window is
-//!    closed;
-//!  - a **window that hides to the tray** instead of quitting, so a running
-//!    timer survives the user tidying their desktop;
+//!  - a **system tray** icon that shows the live timer and offers start/pause
+//!    and quit, so the app is reachable from anywhere;
+//!  - a **window that can be kept above the others**, so a timer the user
+//!    would otherwise have to go looking for is always in view;
 //!  - a **global shortcut** that starts and pauses the timer from anywhere;
 //!  - a **deadline-driven alarm**, so a phase that ends while the window is
-//!    hidden still fires its notification on time rather than whenever the
-//!    user happens to bring the window forward.
+//!    in the background still fires its notification on time rather than
+//!    whenever the user happens to bring the window forward.
 //!
 //! The last point is the important one. The web tier can only fire a chime
 //! while the tab is alive, because a browser gives a backgrounded tab no
@@ -63,6 +63,8 @@ pub struct PlatformInfo {
   pub supports_global_shortcut: bool,
   /// Whether the host can turn its window into a mini timer.
   pub supports_mini_window: bool,
+  /// Whether the host can keep the window above the others.
+  pub supports_always_on_top: bool,
 }
 
 /// The name the notification system shows for the app.
@@ -120,6 +122,7 @@ fn platform_info() -> PlatformInfo {
     supports_tray: cfg!(not(any(target_os = "android", target_os = "ios"))),
     supports_global_shortcut: cfg!(not(any(target_os = "android", target_os = "ios"))),
     supports_mini_window: cfg!(not(any(target_os = "android", target_os = "ios"))),
+    supports_always_on_top: cfg!(not(any(target_os = "android", target_os = "ios"))),
   }
 }
 
@@ -192,67 +195,26 @@ fn set_tray_state(app: AppHandle, state: TrayState) -> Result<(), String> {
   Ok(())
 }
 
-/// Sets whether closing the window hides it instead of quitting.
+/// Keeps the window above the other windows, or lets it sink back.
 ///
-/// This is what makes "hide to tray" work: the window is hidden, but the
-/// process stays alive so the timer keeps running and the tray icon keeps
-/// working.
-#[tauri::command]
-fn set_keep_alive(state: tauri::State<'_, KeepAlive>, keep_alive: bool) -> Result<(), String> {
-  state.set(keep_alive);
-  Ok(())
-}
-
-/// Hides the main window to the system tray.
+/// This is the one thing the web tier genuinely cannot do, and it is the
+/// reason the desktop app is worth having: a timer whose window the user
+/// has to go looking for is a timer whose deadline they will miss.
 ///
-/// The keep-alive flag is set first, so the window stays hidden rather than
-/// being closed — a closed window would take the timer with it.
+/// The window is looked up by its label, with the first window as a
+/// fallback, because the label is a configuration detail and a window that
+/// cannot be found must not take the app down.
 #[tauri::command]
-fn hide_window(app: AppHandle, state: tauri::State<'_, KeepAlive>) -> Result<(), String> {
-  state.set(true);
-
-  // The window is looked up by its label. The first window is used as a
-  // fallback, because the label is a configuration detail and a window
-  // that cannot be found must not leave the user with no way back.
+fn set_always_on_top(app: AppHandle, always_on_top: bool) -> Result<(), String> {
   let window = app
     .get_webview_window("main")
     .or_else(|| app.webview_windows().into_values().next())
     .ok_or("no main window")?;
 
-  log::info!("hiding the window to the tray");
-  window.hide().map_err(|error| error.to_string())
-}
-
-/// The flags that decide whether the app may end.
-///
-/// They are shared through an `Arc` rather than held as managed state,
-/// because the tray's menu handler and the runtime's exit handler both
-/// need them, and managed state is not available in every one of those
-/// places — a `state()` lookup before `manage()` panics.
-#[derive(Clone, Default)]
-pub struct KeepAlive {
-  alive: std::sync::Arc<std::sync::atomic::AtomicBool>,
-  quitting: std::sync::Arc<std::sync::atomic::AtomicBool>,
-}
-
-impl KeepAlive {
-  fn set(&self, value: bool) {
-    self.alive.store(value, std::sync::atomic::Ordering::Relaxed);
-  }
-
-  fn get(&self) -> bool {
-    self.alive.load(std::sync::atomic::Ordering::Relaxed)
-  }
-
-  /// Marks the exit as deliberate, so it is allowed to proceed.
-  fn request_quit(&self) {
-    self.quitting.store(true, std::sync::atomic::Ordering::Relaxed);
-  }
-
-  /// Whether the user asked for the app to end.
-  fn is_quitting(&self) -> bool {
-    self.quitting.load(std::sync::atomic::Ordering::Relaxed)
-  }
+  log::info!("always on top: {always_on_top}");
+  window
+    .set_always_on_top(always_on_top)
+    .map_err(|error| error.to_string())
 }
 
 /// The global shortcut that starts and pauses the timer from anywhere.
@@ -300,19 +262,11 @@ pub fn run() {
         .build(),
     )
     .setup(|app| {
-      // The keep-alive flags are created here and shared by clone, rather
-      // than being managed state looked up on demand. The tray's menu
-      // handler and the runtime's exit handler both need them, and a
-      // `state()` lookup in either of those places can run before the
-      // state has been managed — which panics.
-      let keep_alive = KeepAlive::default();
-      app.manage(keep_alive.clone());
-
       // The notification system has to know the app before it will show a
       // toast for it.
       register_windows_app_id(&app.config().identifier);
 
-      tray::install(app.handle(), keep_alive)?;
+      tray::install(app.handle())?;
       app.manage(Alarm::new(app.handle().clone()));
 
       // A shortcut that another application already owns is simply not
@@ -329,24 +283,6 @@ pub fn run() {
       Ok(())
     })
     .on_window_event(|window, event| {
-      // The close button hides the window rather than ending the process. A
-      // Pomodoro timer that stops when its window is closed is a timer that
-      // cannot be trusted to be there when the break is due.
-      if let WindowEvent::CloseRequested { api, .. } = event {
-        // `try_state` rather than `state`: the lookup can run before the
-        // state has been managed, and a panic in a window event takes the
-        // app down.
-        let keep_alive = window
-          .try_state::<KeepAlive>()
-          .map(|state| state.get())
-          .unwrap_or(false);
-
-        if keep_alive {
-          api.prevent_close();
-          let _ = window.hide();
-        }
-      }
-
       // A moved window is reported so the frontend can remember where the
       // user put it. The event is only raised once the drag has finished,
       // so the position that is reported is the one the window came to rest
@@ -360,42 +296,11 @@ pub fn run() {
       set_alarm,
       clear_alarm,
       set_tray_state,
-      set_keep_alive,
-      hide_window,
+      set_always_on_top,
       set_mini_window,
       work_area
     ])
     .build(tauri::generate_context!())
     .expect("error while building tauri application")
-    .run(|app, event| {
-      // Hiding the last window would otherwise end the process, which is
-      // precisely what the tray exists to prevent: the timer has to keep
-      // running with no window on screen.
-      //
-      // The exit is only allowed to proceed when the app was asked to quit
-      // deliberately — from the tray's Quit item — and never when a window
-      // merely went away.
-      if let tauri::RunEvent::ExitRequested { api, code, .. } = &event {
-        // `try_state` rather than `state`: a lookup before the state has
-        // been managed panics, and a panic in the exit handler takes the
-        // whole app down.
-        let keep_alive = app.try_state::<KeepAlive>();
-
-        let (alive, quitting) = keep_alive
-          .as_ref()
-          .map(|state| (state.get(), state.is_quitting()))
-          .unwrap_or((false, false));
-
-        log::info!("exit requested (code: {code:?}, alive: {alive}, quitting: {quitting})");
-
-        // The exit proceeds only when the user asked for it — from the
-        // tray's Quit item. A window that merely went away is not a reason
-        // to end a running timer.
-        if alive && !quitting {
-          api.prevent_exit();
-          log::info!("the exit was prevented; the timer keeps running");
-        }
-      }
-    });
+    .run(|_, _| {});
 }
-

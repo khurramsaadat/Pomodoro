@@ -1,14 +1,17 @@
 //! The system tray.
 //!
-//! The tray is the app's reason to exist in the background. A Pomodoro timer
-//! that only works while its window is open is a timer the user has to
-//! babysit; one that lives in the notification area keeps working, keeps
-//! showing the time, and can be driven from the tray menu without the
-//! window ever coming forward.
+//! The tray is the app's second view of the timer. A Pomodoro timer that
+//! only works while its window is open is a timer the user has to babysit;
+//! one that lives in the notification area keeps showing the time, and can
+//! be driven from the tray menu without the window ever coming forward.
+//!
+//! The tray is *not* a place to hide the window. Closing the window ends
+//! the app, as it should — a program that survives its own close button is
+//! a program the user cannot get rid of. The tray stays because it is a
+//! control panel, not a hiding place.
 //!
 //! The tray icon is created in Rust rather than from the frontend, because
-//! the menu has to exist before the window does — the window may be hidden
-//! from the very first moment.
+//! the menu has to exist before the window does.
 
 use serde::{Deserialize, Serialize};
 use tauri::menu::{Menu, MenuItem, PredefinedMenuItem};
@@ -56,7 +59,7 @@ const MENU_QUIT: &str = "quit";
 pub const TRAY_ID: &str = "pomodoro-tray";
 
 /// Installs the tray icon and its menu.
-pub fn install<R: Runtime>(app: &AppHandle<R>, keep_alive: crate::KeepAlive) -> tauri::Result<()> {
+pub fn install<R: Runtime>(app: &AppHandle<R>) -> tauri::Result<()> {
   let show = MenuItem::with_id(app, MENU_SHOW, "Show Pomodoro", true, None::<&str>)?;
   let toggle = MenuItem::with_id(app, MENU_TOGGLE, "Start / pause", true, None::<&str>)?;
   let quit = MenuItem::with_id(app, MENU_QUIT, "Quit Pomodoro", true, None::<&str>)?;
@@ -78,9 +81,6 @@ pub fn install<R: Runtime>(app: &AppHandle<R>, keep_alive: crate::KeepAlive) -> 
         focus_main(app);
       }
       MENU_QUIT => {
-        // The exit has to be marked as deliberate, because the app refuses
-        // to end on its own while the timer is meant to keep running.
-        keep_alive.request_quit();
         app.exit(0);
       }
       _ => {}

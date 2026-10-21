@@ -335,7 +335,129 @@ stayed below the tabs, where it fills the space it was added to fill.
 
 ---
 
-## Verification
+## Stage 12 - Always on top, and the end of hide-to-tray
+
+**Commit:** the current commit.
+
+The tray stays; the way the window was hidden to it does not. Closing the
+window now ends the app, and the `KeepAlive` plumbing that made "hide to
+tray" work is gone with it — the flags, the `hide_window` command, the
+`ExitRequested` handler that prevented the process from ending, and the
+`set_keep_alive` command that turned the whole thing on.
+
+**Why here:** the request was a change of behaviour, and the behaviour was
+spread across both sides of the seam. The web tier had a button that called
+a method the bridge did not have; the native tier had three commands, a
+managed state, and a runtime exit handler. Removing the behaviour meant
+removing all of it, not just the button.
+
+**What replaced it:** `set_always_on_top`. It is the same shape as the
+command it replaced — one boolean across the seam — and it is the thing
+that actually helps. A timer the user has to go looking for is a timer
+whose deadline they will miss.
+
+**The decision: the preference is the source of truth, and the host is
+told.** The header button and the preferences switch both write the
+`alwaysOnTop` preference; `usePlatform` watches it and tells the host. Two
+places writing the host's state would be two places that could disagree
+about it.
+
+**The mini window needed a correction.** The widget is always on top — it
+is a floating thing — but the dashboard is not necessarily. So the
+mini-mode request now carries the preference, and leaving mini mode
+restores the window to the state the *user* asked for rather than forcing
+it down. The request is sent in one piece, as it always was, so the host
+never sees the window half-applied.
+
+**The verification was the interesting part again.** The native app was
+driven through the WebView2 remote-debugging port, so Playwright attached
+to the *real* desktop window. The close button was then pressed through
+the operating system: the process went from one to zero, which is the
+only way to prove that the app really ends rather than hiding.
+
+---
+
+## Stage 13 - Sounds the user can choose
+
+**Commit:** the current commit.
+
+`src/domain/sounds.ts` holds the catalogue — five sounds, each with a name
+and a description — and `src/lib/audio.ts` holds the synthesis. The
+domain knows *which* sounds exist; the library knows *how* they sound.
+
+**Why here:** the cue was two sine notes, and a two-note sine chime is a
+beep. A beep is easy to ignore, which defeats the purpose of the sound
+entirely.
+
+**The decision: a cue is a stack, not a wave.** Every sound layers a body
+tone, a partial above it, and — for the struck ones — a short burst of
+noise that is the *transient*. The noise is what stops them sounding like
+electronic beeps; it is the click of a mallet on wood. The five cues are
+deliberately different in shape and not only in pitch, because a
+higher-pitched version of the same cue is hard to tell apart.
+
+**The break that ends gets the next voice along.** The two phases are told
+apart by their shape rather than by a second setting, so the user is not
+asked to configure two things where one will do.
+
+**The picker plays the sound.** A sound the user has never heard is a sound
+they cannot choose between, so every option can be previewed.
+
+---
+
+## Stage 14 - Showing what has been done
+
+**Commit:** the current commit.
+
+The completed tasks are a *section* of the queue rather than a tail of it,
+and the recent sessions come before the statistics in their tab.
+
+**Why here:** both were *there* and both were invisible. The finished tasks
+were sorted to the end of one list, so they were below the fold; the
+session log was the second card in the statistics tab, so it was below the
+fold too. A record nobody can reach stops being a record.
+
+**The decision: the log comes first.** The statistics are derived from the
+log — every number in the panel is recomputed from it — so the thing they
+are derived from should be the thing that is read first. This is the same
+argument that put the active task above the tabs in stage 11.
+
+**The split is in the domain.** `splitTasks` in `src/domain/tasks.ts`
+separates the open tasks from the finished ones, because the *view* should
+not be deciding what the two groups are.
+
+---
+
+## Stage 15 - Backups, and what they are worth
+
+**Commit:** the current commit.
+
+`src/domain/backup.ts` is the whole feature as pure data: the shape of the
+file, what counts as a valid one, and how to read one. The storage layer
+and the settings panel are adapters around it.
+
+**Why here:** a backup is only worth having if it can be *restored*, and
+one that can be restored is only trustworthy if it is validated on the way
+back in. Both halves of that are domain questions, not interface ones.
+
+**The decision: a file that cannot be read is refused; a file that can be
+read but is damaged is restored as far as it goes.** The distinction
+matters. A corrupt file is refused outright, because half-reading it would
+leave the workspace in a state the user did not ask for. A file with one
+broken task in it is restored without that task, and *says so* — a silent
+partial restore is worse than a refusal, because the user would not know
+what did not survive.
+
+**The validation was moved, not copied.** The task and history validators
+used to live in `src/storage`. They now live in `src/domain`, and the
+storage layer imports them, because an imported backup has to be checked
+by exactly the same rules as a stored payload. Two copies of a validator
+is two validators that will drift.
+
+**The format has a version.** A file written by a later build is
+recognised and refused rather than half-read.
+
+---
 
 | Stage | Tests | Typecheck | Lint | Build | Browser |
 |-------|-------|-----------|------|-------|---------|
@@ -350,8 +472,12 @@ stayed below the tabs, where it fills the space it was added to fill.
 | 9 | 283 / 24 files + 6 Rust | green | green | green | web tier loads no Tauri chunk, 0 console errors; native app drives hide-to-tray, the global shortcut, and the tray countdown |
 | 10 | 296 / 24 files + 11 Rust | green | green | green | the dashboard is balanced on every tab; the mini timer replaces it on both tiers; the native window is 241x150 in the corner |
 | 11 | 298 / 24 files + 11 Rust | green | green | green | the order on screen is asserted, the phone layout stacks without a scrollbar, the mini timer still replaces the dashboard |
+| 12 | 349 / 28 files + 11 Rust | green | green | green | the web tier hides the always-on-top control; the native app pins the window, and the close button ends the process |
+| 13 | 349 / 28 files + 11 Rust | green | green | green | the picker lists five sounds, the preview plays, and the cue shapes are asserted to be distinct |
+| 14 | 349 / 28 files + 11 Rust | green | green | green | the completed section is a section; the log card measures fully inside a 900-pixel viewport |
+| 15 | 349 / 28 files + 11 Rust | green | green | green | a backup is exported and imported through the real file input; a corrupt file is refused and the workspace is left alone |
 
-**Current state:** 298 tests across 24 files and 11 Rust tests, typecheck,
+**Current state:** 349 tests across 28 files and 11 Rust tests, typecheck,
 lint, the production build, the native release build, and the installers
 (NSIS + MSI) all clean.
 

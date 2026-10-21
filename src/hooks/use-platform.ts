@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef } from 'react';
 
 import { platform } from '@/platform';
 import type { TimerPhase } from '@/domain/types';
+import { usePreferencesStore } from '@/store/preferences-store';
 import { useTimerStore } from '@/store/timer-store';
 import { formatDuration } from '@/lib/time';
 
@@ -100,14 +101,20 @@ export function usePlatform(): void {
     });
   }, []);
 
-  // The window is hidden rather than closed, so a running timer survives
-  // the user tidying their desktop.
+  // The window is kept above the others when the user asks for it.
+  //
+  // The preference is the *source* of truth, and the host is told whenever
+  // it changes. The initial value is sent too, because a window that is
+  // only pinned after the user toggles the switch is a window that starts
+  // in the wrong place.
+  const alwaysOnTop = usePreferencesStore((store) => store.preferences.alwaysOnTop);
+
   useEffect(() => {
-    if (!platform.capabilities.supportsTray) {
+    if (!platform.capabilities.supportsAlwaysOnTop) {
       return;
     }
-    platform.setKeepAlive(true);
-  }, []);
+    platform.setAlwaysOnTop(alwaysOnTop);
+  }, [alwaysOnTop]);
 }
 
 /**

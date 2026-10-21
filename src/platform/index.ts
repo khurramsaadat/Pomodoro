@@ -85,6 +85,7 @@ const fallbackCapabilities: PlatformCapabilities = isNative()
       supportsGlobalShortcut: true,
       supportsNotifications: true,
       supportsMiniWindow: true,
+      supportsAlwaysOnTop: true,
     }
   : WEB_CAPABILITIES;
 
@@ -188,12 +189,8 @@ export const platform: PlatformBridge = {
     pendingTray = status;
   },
 
-  setKeepAlive: (keepAlive: boolean) => {
-    active?.setKeepAlive(keepAlive);
-  },
-
-  hideWindow: () => {
-    active?.hideWindow();
+  setAlwaysOnTop: (alwaysOnTop: boolean) => {
+    active?.setAlwaysOnTop(alwaysOnTop);
   },
 
   onToggleRequest: (handler: () => void) => {

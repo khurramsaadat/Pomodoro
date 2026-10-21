@@ -13,6 +13,7 @@ describe('the web platform bridge', () => {
     expect(bridge.capabilities.supportsGlobalShortcut).toBe(false);
     expect(bridge.capabilities.supportsNotifications).toBe(false);
     expect(bridge.capabilities.supportsMiniWindow).toBe(false);
+    expect(bridge.capabilities.supportsAlwaysOnTop).toBe(false);
   });
 
   it('accepts every call without throwing', () => {
@@ -24,8 +25,7 @@ describe('the web platform bridge', () => {
       bridge.scheduleAlarm({ endsAt: 1_000, phase: 'work' });
       bridge.clearAlarm();
       bridge.updateTray({ phase: 'work', remaining: '25:00', running: true });
-      bridge.setKeepAlive(true);
-      bridge.hideWindow();
+      bridge.setAlwaysOnTop(true);
       bridge.setMiniWindow({
         active: true,
         corner: 'bottomRight',
@@ -35,6 +35,7 @@ describe('the web platform bridge', () => {
         height: 150,
         restoreWidth: 1180,
         restoreHeight: 820,
+        alwaysOnTop: false,
       });
       bridge.onToggleRequest(() => {});
       bridge.onShowRequest(() => {});

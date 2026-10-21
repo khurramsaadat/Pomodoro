@@ -1,11 +1,11 @@
 import { useState } from 'react';
-import { ListTodo, Plus } from 'lucide-react';
+import { CheckCheck, ListTodo, Plus } from 'lucide-react';
 
 import { TaskItem } from '@/components/tasks/task-item';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
-import { isValidTaskTitle, MAX_TASK_ESTIMATE, MIN_TASK_ESTIMATE } from '@/domain/tasks';
+import { isValidTaskTitle, MAX_TASK_ESTIMATE, MIN_TASK_ESTIMATE, splitTasks } from '@/domain/tasks';
 import { selectOrderedTasks, useTaskStore } from '@/store/task-store';
 import { usePreferencesStore } from '@/store/preferences-store';
 
@@ -20,6 +20,12 @@ export interface TaskQueueProps {
  * Tasks are the "what" and the timer is the "how long": a completed focus
  * session is credited to whichever task is active, so the queue fills up with
  * real progress rather than guesswork.
+ *
+ * The finished tasks are a *section* of their own rather than a tail of the
+ * same list. A queue sorted by completion time mixes "what is still to do"
+ * with "what is already done", and the finished work ends up below the fold
+ * where nobody sees it — which is the opposite of what a completed task is
+ * for.
  */
 export function TaskQueue({ className }: TaskQueueProps) {
   const tasks = useTaskStore((store) => store.tasks);
@@ -37,8 +43,8 @@ export function TaskQueue({ className }: TaskQueueProps) {
   const [estimate, setEstimate] = useState(1);
 
   const ordered = selectOrderedTasks(tasks);
-  const visible = showCompleted ? ordered : ordered.filter((task) => !task.done);
-  const open = visible.filter((task) => !task.done);
+  const { open, completed } = splitTasks(ordered);
+  const visibleCompleted = showCompleted ? completed : [];
 
   const canAdd = isValidTaskTitle(title);
 
@@ -50,6 +56,24 @@ export function TaskQueue({ className }: TaskQueueProps) {
     setTitle('');
     setEstimate(MIN_TASK_ESTIMATE);
   };
+
+  const renderTask = (task: (typeof ordered)[number]): React.ReactNode => (
+    <TaskItem
+      key={task.id}
+      task={task}
+      active={task.id === activeTaskId}
+      onSelect={() => setActiveTask(task.id === activeTaskId ? null : task.id)}
+      onToggleDone={() => {
+        if (task.done) {
+          reopenTask(task.id);
+        } else {
+          completeTask(task.id);
+        }
+      }}
+      onRemove={() => removeTask(task.id)}
+      onEdit={(patch) => updateTask(task.id, patch)}
+    />
+  );
 
   return (
     <Card className={className}>
@@ -109,31 +133,29 @@ export function TaskQueue({ className }: TaskQueueProps) {
 
         {open.length === 0 ? (
           <p className="text-muted-foreground rounded-lg border border-dashed py-8 text-center text-sm">
-            {visible.length === 0
+            {ordered.length === 0
               ? 'No tasks yet — add one above to start tracking.'
               : 'Everything is done. Enjoy the break.'}
           </p>
         ) : (
-          <ul className="flex flex-col gap-2">
-            {visible.map((task) => (
-              <TaskItem
-                key={task.id}
-                task={task}
-                active={task.id === activeTaskId}
-                onSelect={() => setActiveTask(task.id === activeTaskId ? null : task.id)}
-                onToggleDone={() => {
-                  if (task.done) {
-                    reopenTask(task.id);
-                  } else {
-                    completeTask(task.id);
-                  }
-                }}
-                onRemove={() => removeTask(task.id)}
-                onEdit={(patch) => updateTask(task.id, patch)}
-              />
-            ))}
-          </ul>
+          <ul className="flex flex-col gap-2">{open.map(renderTask)}</ul>
         )}
+
+        {/*
+          The finished work is its own section, so it is visible rather
+          than being a tail of the queue that has to be scrolled to.
+        */}
+        {visibleCompleted.length > 0 ? (
+          <div className="flex flex-col gap-2 border-t pt-4" data-testid="completed-tasks">
+            <h3 className="text-muted-foreground flex items-center gap-1.5 text-xs font-medium">
+              <CheckCheck className="size-3.5" />
+              Completed
+              <span className="tabular-nums">({visibleCompleted.length})</span>
+            </h3>
+
+            <ul className="flex flex-col gap-2">{visibleCompleted.map(renderTask)}</ul>
+          </div>
+        ) : null}
       </CardContent>
     </Card>
   );

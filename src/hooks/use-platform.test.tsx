@@ -2,6 +2,7 @@ import { act, render } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { usePlatform } from './use-platform';
+import { usePreferencesStore } from '@/store/preferences-store';
 import { useTimerStore } from '@/store/timer-store';
 
 /**
@@ -22,7 +23,7 @@ const mocks = vi.hoisted(() => ({
   updateTray: vi.fn<(status: { phase: string; remaining: string; running: boolean }) => void>(),
   scheduleAlarm: vi.fn<(request: { endsAt: number; phase: string }) => void>(),
   clearAlarm: vi.fn<() => void>(),
-  setKeepAlive: vi.fn<(keepAlive: boolean) => void>(),
+  setAlwaysOnTop: vi.fn<(alwaysOnTop: boolean) => void>(),
 }));
 
 vi.mock('@/platform', () => ({
@@ -32,12 +33,13 @@ vi.mock('@/platform', () => ({
       supportsTray: false,
       supportsGlobalShortcut: false,
       supportsNotifications: false,
+      supportsMiniWindow: false,
+      supportsAlwaysOnTop: true,
     },
     scheduleAlarm: mocks.scheduleAlarm,
     clearAlarm: mocks.clearAlarm,
     updateTray: mocks.updateTray,
-    setKeepAlive: mocks.setKeepAlive,
-    hideWindow: vi.fn(),
+    setAlwaysOnTop: mocks.setAlwaysOnTop,
     onToggleRequest: vi.fn(),
     onShowRequest: vi.fn(),
     onAlarm: vi.fn(),
@@ -48,7 +50,7 @@ beforeEach(() => {
   mocks.updateTray.mockReset();
   mocks.scheduleAlarm.mockReset();
   mocks.clearAlarm.mockReset();
-  mocks.setKeepAlive.mockReset();
+  mocks.setAlwaysOnTop.mockReset();
 
   useTimerStore.setState({
     state: {
@@ -119,6 +121,50 @@ describe('the platform hook', () => {
     // The tooltip carries a countdown, so it has to be refreshed on a
     // timer rather than only when the timer's state changes.
     expect(mocks.updateTray.mock.calls.length).toBeGreaterThanOrEqual(3);
+  });
+});
+
+describe('the always-on-top preference', () => {
+  beforeEach(() => {
+    mocks.updateTray.mockReset();
+    mocks.scheduleAlarm.mockReset();
+    mocks.clearAlarm.mockReset();
+    mocks.setAlwaysOnTop.mockReset();
+
+    useTimerStore.setState({
+      state: {
+        status: 'idle',
+        phase: 'work',
+        endsAt: null,
+        remaining: 25 * 60_000,
+        elapsedMs: 0,
+        startedAt: null,
+        completedWorkSessions: 0,
+        totalWorkSessions: 0,
+        completedFocusMs: 0,
+        interruptions: 0,
+        totalInterruptions: 0,
+      },
+    });
+  });
+
+  it('tells the host when the window should stay on top', () => {
+    render(<TestComponent />);
+
+    // The preference is the source of truth, so the host is told about it
+    // as soon as the hook mounts.
+    expect(mocks.setAlwaysOnTop).toHaveBeenCalledWith(false);
+  });
+
+  it('tells the host when the preference changes', () => {
+    render(<TestComponent />);
+    mocks.setAlwaysOnTop.mockClear();
+
+    act(() => {
+      usePreferencesStore.getState().updatePreference('alwaysOnTop', true);
+    });
+
+    expect(mocks.setAlwaysOnTop).toHaveBeenCalledWith(true);
   });
 });
 

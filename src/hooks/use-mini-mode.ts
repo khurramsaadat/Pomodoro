@@ -9,6 +9,7 @@ import {
 } from '@/domain/mini-mode';
 import { platform } from '@/platform';
 import { useMiniModeStore } from '@/store/mini-mode-store';
+import { usePreferencesStore } from '@/store/preferences-store';
 
 /**
  * Wires the mini timer to the host.
@@ -42,6 +43,15 @@ export function useMiniMode(): void {
     positionRef.current = position;
   }, [position]);
 
+  // The always-on-top preference is read through a ref for the same reason:
+  // the request is sent when mini mode is entered or left, and the
+  // preference is not what triggers that.
+  const alwaysOnTop = usePreferencesStore((store) => store.preferences.alwaysOnTop);
+  const alwaysOnTopRef = useRef(alwaysOnTop);
+  useEffect(() => {
+    alwaysOnTopRef.current = alwaysOnTop;
+  }, [alwaysOnTop]);
+
   // The host is told to enter or to leave mini mode. The request carries
   // the placement, so the window comes back where the user left it.
   //
@@ -67,6 +77,7 @@ export function useMiniMode(): void {
       height: Math.round(MINI_HEIGHT * scale),
       restoreWidth: Math.round(DASHBOARD_WIDTH * scale),
       restoreHeight: Math.round(DASHBOARD_HEIGHT * scale),
+      alwaysOnTop: alwaysOnTopRef.current,
     });
   }, [enabled, usesHostWindow]);
 

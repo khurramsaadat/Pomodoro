@@ -74,6 +74,8 @@ pub struct MiniModeRequest {
   pub restore_width: f64,
   /// The height the dashboard is restored to, in physical pixels.
   pub restore_height: f64,
+  /// Whether the window stays above the others once the dashboard is back.
+  pub always_on_top: bool,
 }
 
 /// The work area of the screen, in logical pixels.
@@ -227,8 +229,10 @@ fn leave<R: Runtime>(
   window
     .set_decorations(true)
     .map_err(|error| error.to_string())?;
+  // The widget is always on top, but the dashboard is not necessarily: it
+  // goes back to the state the user asked for.
   window
-    .set_always_on_top(false)
+    .set_always_on_top(request.always_on_top)
     .map_err(|error| error.to_string())?;
   window
     .set_resizable(true)
@@ -338,6 +342,7 @@ mod tests {
       height: 150.0,
       restore_width: 1180.0,
       restore_height: 820.0,
+      always_on_top: true,
     };
 
     let json = serde_json::to_string(&request).expect("the request serialises");

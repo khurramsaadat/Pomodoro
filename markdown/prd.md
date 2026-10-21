@@ -69,12 +69,13 @@ than no timer at all.
 | FR-40 | The app runs natively as a Tauri v2 desktop app from the same source tree | Must |
 | FR-41 | The web build contains no Tauri code; the runtime is loaded only when it is present | Must |
 | FR-42 | A system-tray icon shows the live timer and offers start/pause, show, and quit | Must |
-| FR-43 | Closing the window hides it to the tray instead of quitting | Must |
+| FR-43 | Closing the window ends the app — the tray is a control panel, not a hiding place | Must |
 | FR-44 | A global shortcut starts and pauses the timer from any application | Must |
-| FR-45 | A phase that ends while the window is hidden still notifies **on time** | Must |
+| FR-45 | A phase that ends while the window is in the background still notifies **on time** | Must |
 | FR-46 | The native alarm is scheduled against the timer's own deadline, never a duration | Must |
 | FR-47 | A second launch focuses the running app rather than starting a second timer | Must |
 | FR-48 | The web tier offers no affordance the browser cannot honour | Must |
+| FR-49 | The window can be kept above the others, and the choice is persisted | Must |
 
 ### 4.2 Tasks
 
@@ -108,6 +109,11 @@ than no timer at all.
 | FR-32 | The session log is visible in the UI | Should — **met** |
 | FR-33 | The timer has keyboard shortcuts | Should — **met** |
 | FR-34 | The web build installs and works offline | Should — **met** |
+| FR-35 | The completion sound is chosen from a catalogue, and each one can be previewed | Must — **met** |
+| FR-36 | The completed tasks are a section of their own, not a tail of the queue | Must — **met** |
+| FR-37 | The session log comes before the statistics derived from it | Must — **met** |
+| FR-38 | The whole workspace can be exported to a file and restored from one | Must — **met** |
+| FR-39 | An imported backup is validated; an unreadable one is refused and a damaged one is reported | Must — **met** |
 
 ## 5. Non-functional requirements
 
@@ -177,6 +183,57 @@ src-tauri/    Rust backend: commands, tray, alarm, window events
 
 ## 9. Release notes
 
+**Always on top, and the end of hide-to-tray**
+
+- The window can now be **kept above the other windows**. The choice is a
+  preference, so it is persisted, and it is offered in the header and in the
+  preferences panel. A timer the user has to go looking for is a timer whose
+  deadline they will miss.
+- **Closing the window now ends the app.** It used to hide to the tray
+  instead, which meant a program that survived its own close button — a
+  program the user could not get rid of. The tray is still there, and it is
+  still useful: it shows the live timer and offers *Show*, *Start / pause*
+  and *Quit*. It is a control panel now, not a hiding place.
+- The web tier **does not offer the always-on-top control at all**: a
+  browser tab has no z-order, and a switch that does nothing is a lie.
+- The mini timer is still always on top — it is a floating thing — but
+  **leaving mini mode restores the window to the state the user asked
+  for** rather than forcing it down.
+
+**Completion sounds the user can choose**
+
+- The completion cue is no longer a fixed two-note chime. It is a **stack** —
+  a body tone, a partial above it, and, for the struck sounds, a short
+  burst of noise that is the *transient* — in **five distinct shapes**:
+  Chime, Bell, Marimba, Pulse and Digital.
+- The sound is a **preference**, chosen in the settings panel, and every
+  option can be **previewed**. A sound the user has never heard is a sound
+  they cannot choose between.
+- A finished **break** plays the next voice along from the chosen one, so
+  the two phases are audibly different without a second setting.
+
+**Showing what has been done**
+
+- The **completed tasks are a section of their own**, under the open queue,
+  rather than a tail of the same sorted list where they were below the fold.
+- The **recent sessions come before the statistics** in their tab. The
+  statistics are derived from the log, so the thing they are derived from
+  should be the thing that is read first — and the log card is the one that
+  was below the fold at laptop heights.
+
+**Backups**
+
+- The whole workspace — the task queue, the session history, the
+  preferences and the session settings — can be **exported to a file** and
+  **restored from one**, from the preferences panel.
+- An imported backup is **validated against the same rules as a stored
+  payload**. A file that cannot be read is refused outright; a file that
+  can be read but has damage in it is restored as far as it goes, and the
+  damage is reported. A silent partial restore would be worse than a
+  refusal, because the user would not know what did not survive.
+- The backup format **carries a version**, so a file written by a different
+  build is recognised and refused rather than half-read.
+
 **The native tier (`Phase 5`)**
 
 - The app now runs as a **native Tauri v2 desktop app** from the same source
@@ -184,15 +241,15 @@ src-tauri/    Rust backend: commands, tray, alarm, window events
 - A **system tray** shows the live timer. Its tooltip is the countdown, its
   menu offers *Show*, *Start / pause* and *Quit*, and a double click brings
   the window forward.
-- **Closing the window hides it to the tray** instead of quitting. A timer
-  that stopped when its window closed could not be trusted to be there when
-  the break was due.
+- **Closing the window ends the app.** A timer that stopped when its window
+  closed could not be trusted to be there when the break was due — which is
+  why the window can now be pinned above the others instead.
 - A **global shortcut** (`Ctrl+Shift+Space`) starts and pauses the timer from
   any application, so the app can be driven without being on screen.
-- A phase that ends while the window is hidden now **notifies on time**. The
-  native alarm is scheduled against the timer's own deadline — the same
-  `endsAt` the countdown is drawn from — so it is not a second opinion about
-  when the phase ends, it is the same fact.
+- A phase that ends while the window is in the background now **notifies on
+  time**. The native alarm is scheduled against the timer's own deadline —
+  the same `endsAt` the countdown is drawn from — so it is not a second
+  opinion about when the phase ends, it is the same fact.
 - A **second launch focuses the running app** rather than starting a second
   timer, which would have doubled every statistic.
 - The **web tier is honest about itself**: the tray button and the global

@@ -32,6 +32,13 @@ export interface PlatformCapabilities {
    * browser cannot, so the web tier draws the mini timer itself.
    */
   readonly supportsMiniWindow: boolean;
+  /**
+   * Whether the window can be kept above the other windows.
+   *
+   * A browser tab has no z-order to speak of — the browser decides what is
+   * on top — so only a desktop host can honour the request.
+   */
+  readonly supportsAlwaysOnTop: boolean;
 }
 
 /** The capabilities of a tier that can do nothing native. */
@@ -41,6 +48,7 @@ export const WEB_CAPABILITIES: PlatformCapabilities = {
   supportsGlobalShortcut: false,
   supportsNotifications: false,
   supportsMiniWindow: false,
+  supportsAlwaysOnTop: false,
 };
 
 /** The area of the screen a window may be placed in, in logical pixels. */
@@ -84,6 +92,15 @@ export interface MiniModeRequest {
   readonly restoreWidth: number;
   /** The height the dashboard is restored to, in physical pixels. */
   readonly restoreHeight: number;
+  /**
+   * Whether the window stays above the others once the dashboard is back.
+   *
+   * The widget is always on top — it is a floating thing, and a floating
+   * thing that sinks behind the user's work is not a widget. The dashboard
+   * is not necessarily, so the preference is carried with the request and
+   * the host restores it rather than forcing the window down.
+   */
+  readonly alwaysOnTop: boolean;
 }
 
 /**
@@ -152,18 +169,13 @@ export interface PlatformBridge {
   updateTray(status: TrayStatus): void;
 
   /**
-   * Sets whether closing the window hides it instead of quitting.
+   * Keeps the window above the other windows, or lets it sink back.
    *
-   * This is what keeps the timer alive when the user closes the window.
+   * This is the one thing a timer cannot do for itself: a window the user
+   * has to go looking for is a window whose deadline they will miss. A
+   * browser tab has no z-order, so this is a no-op on the web tier.
    */
-  setKeepAlive(keepAlive: boolean): void;
-
-  /**
-   * Hides the window to the system tray.
-   *
-   * A browser tab cannot be hidden, so this is a no-op on the web tier.
-   */
-  hideWindow(): void;
+  setAlwaysOnTop(alwaysOnTop: boolean): void;
 
   /**
    * Registers a handler for a request to start or pause the timer.

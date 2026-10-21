@@ -115,24 +115,24 @@ describe('the Tauri platform bridge', () => {
     });
   });
 
-  it('keeps the app alive when the window is closed', async () => {
+  it('keeps the window above the others', async () => {
     const bridge = await createBridge();
     await settle();
 
-    bridge.setKeepAlive(true);
+    bridge.setAlwaysOnTop(true);
     await settle();
 
-    expect(invoke).toHaveBeenCalledWith('set_keep_alive', { keepAlive: true });
+    expect(invoke).toHaveBeenCalledWith('set_always_on_top', { alwaysOnTop: true });
   });
 
-  it('hides the window', async () => {
+  it('lets the window sink back down', async () => {
     const bridge = await createBridge();
     await settle();
 
-    bridge.hideWindow();
+    bridge.setAlwaysOnTop(false);
     await settle();
 
-    expect(invoke).toHaveBeenCalledWith('hide_window', undefined);
+    expect(invoke).toHaveBeenCalledWith('set_always_on_top', { alwaysOnTop: false });
   });
 
   it('asks the host to present a mini window', async () => {
@@ -148,6 +148,7 @@ describe('the Tauri platform bridge', () => {
       height: 150,
       restoreWidth: 1180,
       restoreHeight: 820,
+      alwaysOnTop: false,
     });
     await settle();
 
@@ -163,6 +164,7 @@ describe('the Tauri platform bridge', () => {
         height: 150,
         restoreWidth: 1180,
         restoreHeight: 820,
+        alwaysOnTop: false,
       },
     });
   });
@@ -266,8 +268,7 @@ describe('the Tauri platform bridge', () => {
       bridge.scheduleAlarm({ endsAt: 1, phase: 'work' });
       bridge.clearAlarm();
       bridge.updateTray({ phase: 'work', remaining: '25:00', running: true });
-      bridge.setKeepAlive(true);
-      bridge.hideWindow();
+      bridge.setAlwaysOnTop(true);
     }).not.toThrow();
   });
 });

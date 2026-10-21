@@ -50,6 +50,14 @@ export interface TaskStore {
   advanceToNextTask: () => void;
   /** Removes every task from the queue. */
   clearTasks: () => void;
+  /**
+   * Replaces the whole queue at once.
+   *
+   * This is what an import uses: the backup is a *whole* queue, and
+   * replacing it entry by entry would leave the user's own tasks mixed in
+   * with the imported ones.
+   */
+  setTasks: (tasks: readonly Task[], activeTaskId: string | null) => void;
   /** Restores the queue from storage. */
   restore: () => void;
 }
@@ -135,6 +143,17 @@ export const useTaskStore = create<TaskStore>()((set, get) => ({
 
   clearTasks: () => {
     set({ tasks: [], activeTaskId: null });
+  },
+
+  setTasks: (tasks, activeTaskId) => {
+    // The selection is only kept when it still refers to a task that
+    // exists, so an import cannot leave the app pointing at nothing.
+    const selection =
+      activeTaskId !== null && tasks.some((task) => task.id === activeTaskId)
+        ? activeTaskId
+        : null;
+
+    set({ tasks: [...tasks], activeTaskId: selection });
   },
 
   restore: () => {

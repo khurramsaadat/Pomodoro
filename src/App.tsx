@@ -3,8 +3,8 @@ import { Toaster, toast } from 'sonner';
 import { BarChart3, ListTodo, Settings2, Timer } from 'lucide-react';
 
 import { AppShell } from '@/components/layout/app-shell';
+import { AlwaysOnTopToggle } from '@/components/layout/always-on-top-toggle';
 import { Dashboard } from '@/components/layout/dashboard';
-import { NativeActions } from '@/components/layout/native-actions';
 import { ShortcutsDialog } from '@/components/layout/shortcuts-dialog';
 import { MiniModeToggle } from '@/components/mini/mini-mode-toggle';
 import { MiniTimer } from '@/components/mini/mini-timer';
@@ -110,7 +110,7 @@ export default function App() {
       actions={
         <>
           <ShortcutsDialog />
-          <NativeActions />
+          <AlwaysOnTopToggle />
           <MiniModeToggle />
         </>
       }
@@ -175,9 +175,18 @@ export default function App() {
                 <TaskQueue />
               </TabsContent>
 
+              {/*
+                The recent sessions come *first* in this tab. The log is
+                the app's only durable record of what the user actually
+                did, and the statistics below it are derived from that log
+                — so the thing the statistics are derived from should be
+                the thing that is read first. It is also the card that
+                was below the fold at laptop heights, which is where a
+                record nobody can reach stops being a record.
+              */}
               <TabsContent value="stats" className="flex flex-col gap-4">
-                <StatsPanel />
                 <HistoryList entries={entries} />
+                <StatsPanel />
               </TabsContent>
 
               <TabsContent value="settings" className="flex flex-col gap-4">

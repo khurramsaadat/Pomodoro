@@ -37,8 +37,10 @@ describe('normalizePreferences', () => {
       dailyGoal: 10,
       autoAdvanceTask: false,
       soundEnabled: false,
+      completionSound: 'bell',
       confirmBeforeClearing: false,
       showCompletedTasks: false,
+      alwaysOnTop: true,
     };
 
     expect(normalizePreferences(preferences)).toEqual(preferences);
@@ -49,15 +51,34 @@ describe('normalizePreferences', () => {
       dailyGoal: 5,
       autoAdvanceTask: 'yes',
       soundEnabled: false,
+      completionSound: 'bell',
       confirmBeforeClearing: true,
       showCompletedTasks: false,
+      alwaysOnTop: true,
     });
 
     expect(preferences.dailyGoal).toBe(5);
     expect(preferences.soundEnabled).toBe(false);
     expect(preferences.showCompletedTasks).toBe(false);
+    expect(preferences.completionSound).toBe('bell');
+    expect(preferences.alwaysOnTop).toBe(true);
     // The corrupt field falls back to its default.
     expect(preferences.autoAdvanceTask).toBe(DEFAULT_PREFERENCES.autoAdvanceTask);
+  });
+
+  it('falls back to the default sound for one that does not exist', () => {
+    // A sound that no longer exists — because the catalogue changed, or
+    // because the payload was written by another build — must not leave the
+    // user with no cue at all.
+    expect(normalizePreferences({ completionSound: 'kazoo' }).completionSound).toBe(
+      DEFAULT_PREFERENCES.completionSound,
+    );
+  });
+
+  it('falls back to the default for a corrupt always-on-top flag', () => {
+    expect(normalizePreferences({ alwaysOnTop: 'yes' }).alwaysOnTop).toBe(
+      DEFAULT_PREFERENCES.alwaysOnTop,
+    );
   });
 
   it('clamps an out-of-range goal', () => {
