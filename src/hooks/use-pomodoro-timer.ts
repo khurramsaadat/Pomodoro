@@ -1,15 +1,12 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 
-import { chimeForPhase, playChime } from '@/lib/audio';
+import { playCompletionCue } from '@/lib/audio';
 import type { TimerPhase } from '@/domain/types';
 import { usePreferencesStore } from '@/store/preferences-store';
 import { useTimerStore } from '@/store/timer-store';
 
 /** How often the countdown is re-rendered, in milliseconds. */
 const TICK_INTERVAL_MS = 200;
-
-/** The volume of the completion chime. */
-const CHIME_VOLUME = 0.6;
 
 export interface UsePomodoroTimerOptions {
   /** Called when a phase reaches its deadline. */
@@ -97,15 +94,23 @@ export function usePomodoroTimer(
     completingRef.current = true;
 
     const completedPhase = current.state.phase;
+
+    // The deadline that was reached. It is read *before* the store is
+    // updated, because the update replaces the state that holds it — and
+    // the deadline is what identifies this phase end, both to the
+    // de-duplication in `playCompletionCue` and to the host's alarm.
+    const endsAt = current.state.endsAt;
+
     storeComplete();
 
     // The chime is a preference, not a fact about the timer: a user who has
     // turned the sound off should not hear it, even though the phase still
     // completes.
     if (soundEnabled) {
-      playChime({
-        volume: CHIME_VOLUME,
-        sound: chimeForPhase(completedPhase, completionSound),
+      playCompletionCue({
+        phase: completedPhase,
+        endsAt,
+        sound: completionSound,
       });
     }
 

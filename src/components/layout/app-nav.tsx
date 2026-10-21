@@ -1,4 +1,4 @@
-import { BarChart3, ListTodo, Settings2, Timer } from 'lucide-react';
+import { BarChart3, ListTodo, Settings, Timer } from 'lucide-react';
 
 import { TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { cn } from '@/lib/utils';
@@ -30,15 +30,11 @@ export function AppNav() {
         'bg-transparent p-1.5 sm:p-2',
       )}
     >
-      <TabsTrigger
-        value="session"
-        className="text-muted-foreground data-[state=active]:text-primary data-[state=active]:bg-accent flex-col gap-1 rounded-lg px-2 py-1.5 text-xs"
-      >
-        <Timer />
-        <span className="hidden sm:inline">Session</span>
-        <span className="sr-only sm:hidden">Session</span>
-      </TabsTrigger>
-
+      {/*
+        The queue comes first. It is the question the user asks most often
+        — *what am I working on?* — and the answer it gives decides what the
+        session is for, so it is the first thing the bar offers.
+      */}
       <TabsTrigger
         value="tasks"
         className="text-muted-foreground data-[state=active]:text-primary data-[state=active]:bg-accent flex-col gap-1 rounded-lg px-2 py-1.5 text-xs"
@@ -46,6 +42,15 @@ export function AppNav() {
         <ListTodo />
         <span className="hidden sm:inline">Tasks</span>
         <span className="sr-only sm:hidden">Tasks</span>
+      </TabsTrigger>
+
+      <TabsTrigger
+        value="session"
+        className="text-muted-foreground data-[state=active]:text-primary data-[state=active]:bg-accent flex-col gap-1 rounded-lg px-2 py-1.5 text-xs"
+      >
+        <Timer />
+        <span className="hidden sm:inline">Session</span>
+        <span className="sr-only sm:hidden">Session</span>
       </TabsTrigger>
 
       <TabsTrigger
@@ -61,7 +66,7 @@ export function AppNav() {
         value="settings"
         className="text-muted-foreground data-[state=active]:text-primary data-[state=active]:bg-accent flex-col gap-1 rounded-lg px-2 py-1.5 text-xs"
       >
-        <Settings2 />
+        <Settings />
         <span className="hidden sm:inline">Settings</span>
         <span className="sr-only sm:hidden">Settings</span>
       </TabsTrigger>

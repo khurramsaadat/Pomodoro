@@ -267,5 +267,73 @@ to stay in the workspace column. Radix does not require the two to be
 siblings in the DOM — the context is what connects them — so the root now
 sits above the shell and takes no part in the layout.
 
+---
+
+## 14. The cog, the working-on strip, the queue first, and the sound
+
+> "settings icon should be a COG not to line bars as you show."
+
+> "show current that i am working on below the clock so i know what I am
+> working on. improvise this feature please."
+
+> "keep auto-advance the task ON by default."
+
+> "move tab for Tasks before Sessions"
+
+> "make sure sound is working"
+
+Five requests. Three of them were small; two of them were defects.
+
+**The settings icon.** `Settings2` in Lucide is the *sliders* icon — a
+row of lines with knobs on them. The cog is `Settings`. The icon in the
+navigation bar and the one in the preferences header were both the
+sliders, and both are now the cog.
+
+**The working-on strip.** "Show me what I am working on below the clock"
+was clear about the *place* and left open the *form*. The answer is a
+strip: a line under the countdown with the task's title, how far through
+it is, and what is coming next. It is a button, because the answer is
+also a doorway — clicking it opens the queue, which is where the answer
+is changed.
+
+The strip is *improvised* in one specific way: it says what happens next.
+The queue moves on by itself once a task has used up its estimate, and
+until now that happened silently — the title under the clock changed
+without explanation. Naming the next task turns a surprising change into
+a plan.
+
+**The auto-advance.** The preference already defaulted to on. The real
+problem was that two paths disagreed about what it meant: the live timer
+credited a session and then advanced the queue, while the catch-up on
+startup credited every session that had elapsed while the app was closed
+and never advanced — and credited them all to the *same* task even when
+the first one had used up its estimate. Both now go through one pure
+function, so a session that is banked is always a session that is given
+the chance to move the queue on.
+
+**The queue first.** The navigation bar offers Tasks, Session, Stats and
+Settings, and the app opens on Tasks. The queue is the question the user
+asks most often, and the answer it gives decides what the session is for.
+
+**The sound.** Two real defects, and one of them is why the cue was
+unreliable exactly when it was most needed.
+
+The first: a cue scheduled on a *suspended* context had its whole gain
+envelope laid out in the past. `resume()` is asynchronous, and the old
+code called it and carried straight on — so the oscillators were
+scheduled against a frozen clock, and the cue was heard as a click, or
+not at all, when the context finally woke up. The context is now resumed
+*first*, and the cue is scheduled against the new clock, a little in the
+future so the envelope has room to live in.
+
+The second: the desktop tier's alarm was emitting an event that nothing
+listened to. The native alarm is the reason the desktop tier can notify
+a user whose window is in the background, but the cue was played only by
+the page's own tick — so a webview that had been throttled hard enough
+to miss the deadline stayed silent. The alarm now plays the cue too, and
+the two are de-duplicated by the *deadline*, which is the one thing they
+agree on.
+
+
 
 

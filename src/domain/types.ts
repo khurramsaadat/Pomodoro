@@ -78,6 +78,26 @@ export interface TimerState {
 }
 
 /**
+ * A deadline the host's alarm has reported as reached.
+ *
+ * The deadline travels with the phase because the app has to be able to
+ * tell whether the alarm is still talking about the phase it is looking at.
+ * A webview that was frozen can be woken by an alarm for a phase that
+ * ended long ago, and completing the *current* phase because of it would
+ * be wrong.
+ *
+ * The deadline is the same `endsAt` the countdown is drawn from, so the
+ * alarm and the countdown are reading the same fact rather than two
+ * opinions about it.
+ */
+export interface AlarmSignal {
+  /** The phase that ended. */
+  readonly phase: TimerPhase;
+  /** The deadline the alarm was scheduled against, in epoch ms. */
+  readonly endsAt: number;
+}
+
+/**
  * A phase that reached its deadline, together with the time it actually ran.
  *
  * This is the bridge between the timer and the session history. The duration

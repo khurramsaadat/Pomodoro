@@ -4,10 +4,12 @@ import {
   applyFocusSession,
   clampEstimate,
   createTask,
+  creditFocusSession,
   isOverEstimate,
   isValidTaskTitle,
   markTaskDone,
   MAX_TASK_ESTIMATE,
+  nextOpenTask,
   normalizeTaskTitle,
   remainingEstimate,
   removeTask,
@@ -17,6 +19,7 @@ import {
   updateTask,
   validateTask,
   validateTaskList,
+  willExceedEstimate,
 } from '@/domain/tasks';
 
 const T0 = 1_700_000_000_000;
@@ -263,5 +266,124 @@ describe('validateTaskList', () => {
 
   it('rejects a value that is not a list', () => {
     expect(validateTaskList({ tasks: [] })).toBeNull();
+  });
+});
+
+describe('nextOpenTask', () => {
+  it('picks the first open task that is not the current one', () => {
+    const first = createTask('first', 'First', 1, T0);
+    const second = createTask('second', 'Second', 1, T0 + 1);
+
+    expect(nextOpenTask([first, second], 'first')?.id).toBe('second');
+  });
+
+  it('skips the tasks that are done', () => {
+    const first = { ...createTask('first', 'First', 1, T0), done: true };
+    const second = createTask('second', 'Second', 1, T0 + 1);
+
+    expect(nextOpenTask([first, second], 'first')?.id).toBe('second');
+  });
+
+  it('has nothing to offer when the current task is the only open one', () => {
+    const only = createTask('only', 'Only', 1, T0);
+
+    expect(nextOpenTask([only], 'only')).toBeNull();
+  });
+});
+
+describe('willExceedEstimate', () => {
+  it('is false while there is budget left after the next session', () => {
+    const task = createTask('task', 'Write the report', 3, T0);
+
+    expect(willExceedEstimate(task)).toBe(false);
+  });
+
+  it('is true when the next session is the last one on the task', () => {
+    // Two sessions done out of three: the third is the last one.
+    const task = { ...createTask('task', 'Write the report', 3, T0), completedPomodoros: 2 };
+
+    expect(willExceedEstimate(task)).toBe(true);
+  });
+
+  it('is true for a task estimated at a single session', () => {
+    const task = createTask('task', 'Write the report', 1, T0);
+
+    expect(willExceedEstimate(task)).toBe(true);
+  });
+});
+
+describe('creditFocusSession', () => {
+  it('banks the session against the active task', () => {
+    const task = createTask('task', 'Write the report', 3, T0);
+
+    const result = creditFocusSession([task], 'task', true);
+
+    expect(result.tasks[0]?.completedPomodoros).toBe(1);
+    expect(result.activeTaskId).toBe('task');
+    expect(result.advanced).toBe(false);
+  });
+
+  it('does nothing when there is no active task', () => {
+    const task = createTask('task', 'Write the report', 3, T0);
+
+    const result = creditFocusSession([task], null, true);
+
+    expect(result.tasks[0]?.completedPomodoros).toBe(0);
+    expect(result.activeTaskId).toBeNull();
+  });
+
+  it('moves on when the task has used up its estimate', () => {
+    const first = createTask('first', 'First', 1, T0);
+    const second = createTask('second', 'Second', 2, T0 + 1);
+
+    const result = creditFocusSession([first, second], 'first', true);
+
+    // The session banked the first task over its estimate, so the queue
+    // moved on to the next one.
+    expect(result.tasks[0]?.completedPomodoros).toBe(1);
+    expect(result.activeTaskId).toBe('second');
+    expect(result.advanced).toBe(true);
+  });
+
+  it('stays put when the user has turned the auto-advance off', () => {
+    const first = createTask('first', 'First', 1, T0);
+    const second = createTask('second', 'Second', 2, T0 + 1);
+
+    const result = creditFocusSession([first, second], 'first', false);
+
+    expect(result.activeTaskId).toBe('first');
+    expect(result.advanced).toBe(false);
+  });
+
+  it('clears the pointer when there is nothing to move on to', () => {
+    const only = createTask('only', 'Only', 1, T0);
+
+    const result = creditFocusSession([only], 'only', true);
+
+    // The task is over budget, but there is no other task to move to, so
+    // the pointer is cleared rather than left pointing at itself.
+    expect(result.activeTaskId).toBeNull();
+    expect(result.advanced).toBe(false);
+  });
+
+  it('moves on only once the session has been banked', () => {
+    // A task estimated at two sessions is not over budget after one.
+    const first = createTask('first', 'First', 2, T0);
+    const second = createTask('second', 'Second', 2, T0 + 1);
+
+    const result = creditFocusSession([first, second], 'first', true);
+
+    expect(result.activeTaskId).toBe('first');
+    expect(result.advanced).toBe(false);
+  });
+
+  it('leaves the queue untouched when it cannot advance', () => {
+    const first = createTask('first', 'First', 1, T0);
+    const second = createTask('second', 'Second', 2, T0 + 1);
+
+    const result = creditFocusSession([first, second], 'first', true);
+
+    // The second task was not given a session of its own.
+    expect(result.tasks[1]?.completedPomodoros).toBe(0);
   });
 });

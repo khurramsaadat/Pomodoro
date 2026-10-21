@@ -54,7 +54,19 @@ function seedActiveTask(title: string, estimate: number): void {
   });
 }
 
-describe('The active task above the tabs', () => {
+/**
+ * Adds a task to the queue without making it the active one.
+ *
+ * It is used to put a *second* task in the queue, so the auto-advance has
+ * somewhere to move to.
+ */
+function seedTask(title: string, estimate: number): void {
+  act(() => {
+    useTaskStore.getState().addTask(title, estimate);
+  });
+}
+
+describe('The working-on strip under the clock', () => {
   beforeEach(() => {
     window.localStorage.clear();
     document.documentElement.classList.remove('dark');
@@ -64,22 +76,38 @@ describe('The active task above the tabs', () => {
   it('says so when there is no active task', () => {
     renderApp();
 
-    const workspace = screen.getByTestId('dashboard-workspace');
-    expect(within(workspace).getByText('No active task')).toBeInTheDocument();
+    const clock = screen.getByTestId('dashboard-clock');
+    expect(within(clock).getByText('No active task')).toBeInTheDocument();
   });
 
-  it('shows the active task without switching tabs', async () => {
+  it('shows the active task in the clock column', async () => {
     const user = userEvent.setup();
     seedActiveTask('Write the report', 3);
 
     renderApp();
 
-    const workspace = screen.getByTestId('dashboard-workspace');
-    expect(within(workspace).getByText('Write the report')).toBeInTheDocument();
+    const clock = screen.getByTestId('dashboard-clock');
+    expect(within(clock).getByText('Write the report')).toBeInTheDocument();
 
-    // The card stays above the tabs, not behind one.
+    // The strip is outside the tab boundary, so it stays on screen.
     await user.click(screen.getByRole('tab', { name: /stats/i }));
-    expect(within(workspace).getByText('Write the report')).toBeInTheDocument();
+    expect(within(clock).getByText('Write the report')).toBeInTheDocument();
+  });
+
+  it('sits below the countdown', () => {
+    seedActiveTask('Write the report', 3);
+
+    renderApp();
+
+    const clock = screen.getByTestId('dashboard-clock');
+    const countdown = screen.getByTestId('timer-countdown');
+    const workingOn = within(clock).getByText('Working on');
+
+    // "Below the clock" is a fact about the document order, not about
+    // pixels.
+    expect(
+      countdown.compareDocumentPosition(workingOn) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
   });
 
   it('shows the progress against the estimate', () => {
@@ -87,21 +115,40 @@ describe('The active task above the tabs', () => {
 
     renderApp();
 
-    const workspace = screen.getByTestId('dashboard-workspace');
-    expect(within(workspace).getByText('0 of 4 focus sessions')).toBeInTheDocument();
+    const clock = screen.getByTestId('dashboard-clock');
+    expect(within(clock).getByText('0/4')).toBeInTheDocument();
   });
 
-  it('sits above the session settings', () => {
+  it('opens the task queue when it is activated', async () => {
+    const user = userEvent.setup();
+    seedActiveTask('Write the report', 3);
+
     renderApp();
 
-    const workspace = screen.getByTestId('dashboard-workspace');
-    const workingOn = within(workspace).getByText('Working on');
-    const settings = within(workspace).getByText('Session settings');
+    await user.click(screen.getByTestId('working-on'));
 
-    // "Above" is a fact about the document order, not about pixels.
-    expect(
-      workingOn.compareDocumentPosition(settings) & Node.DOCUMENT_POSITION_FOLLOWING,
-    ).toBeTruthy();
+    // The strip is a doorway into the queue.
+    expect(screen.getByRole('tab', { name: /tasks/i })).toHaveAttribute('aria-selected', 'true');
+  });
+
+  it('names the next task when the queue is about to move on', () => {
+    seedActiveTask('Write the report', 1);
+    seedTask('Draft the summary', 2);
+
+    renderApp();
+
+    const clock = screen.getByTestId('dashboard-clock');
+    expect(within(clock).getByText('Draft the summary')).toBeInTheDocument();
+  });
+
+  it('names no next task when the queue is not moving on', () => {
+    seedActiveTask('Write the report', 3);
+
+    renderApp();
+
+    const clock = screen.getByTestId('dashboard-clock');
+    // Nothing is promised that the app is not going to do.
+    expect(within(clock).queryByText(/^Next:/)).not.toBeInTheDocument();
   });
 });
 
@@ -120,15 +167,15 @@ describe('The daily goal', () => {
     expect(within(workspace).getByText('0 of 8 focus sessions today')).toBeInTheDocument();
   });
 
-  it('sits directly under the task the user is working on', () => {
+  it('sits above the tabs, so it is true whichever tab is open', () => {
     renderApp();
 
     const workspace = screen.getByTestId('dashboard-workspace');
-    const workingOn = within(workspace).getByText('Working on');
     const goal = within(workspace).getByText('Daily goal');
+    const queue = within(workspace).getByText('Task queue');
 
     expect(
-      workingOn.compareDocumentPosition(goal) & Node.DOCUMENT_POSITION_FOLLOWING,
+      goal.compareDocumentPosition(queue) & Node.DOCUMENT_POSITION_FOLLOWING,
     ).toBeTruthy();
   });
 });

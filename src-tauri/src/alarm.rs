@@ -14,12 +14,28 @@ use std::sync::mpsc::{channel, Receiver, RecvTimeoutError, Sender};
 use std::thread;
 use std::time::Duration;
 
+use serde::Serialize;
 use tauri::{AppHandle, Emitter};
 use tauri_plugin_notification::NotificationExt;
 
 /// The event emitted when the alarm fires, so the frontend can bring the
 /// countdown forward and play its own chime.
 const ALARM_EVENT: &str = "pomodoro://alarm";
+
+/// The payload the alarm event carries.
+///
+/// The deadline travels with the phase because the webview may have been
+/// asleep when the alarm fired: the frontend has to be able to tell that
+/// this alarm is about the phase it is showing, rather than about one that
+/// ended long ago.
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct AlarmSignal {
+  /// The phase that ended.
+  pub phase: String,
+  /// The deadline the alarm was scheduled against, in epoch milliseconds.
+  pub ends_at: i64,
+}
 
 /// How long the thread waits when nothing is scheduled.
 ///
@@ -95,7 +111,7 @@ fn run(app: AppHandle, receiver: Receiver<Request>) {
         if remaining <= 0 {
           // The deadline has already passed. Fire and wait for the next
           // request rather than sleeping for a negative duration.
-          fire(&app, &current.phase);
+          fire(&app, &current.phase, current.ends_at);
           pending = None;
           match receiver.recv() {
             Ok(Request::Set { ends_at, phase }) => {
@@ -131,7 +147,7 @@ fn run(app: AppHandle, receiver: Receiver<Request>) {
       Err(RecvTimeoutError::Timeout) => {
         // The wait elapsed, so the deadline is due.
         if let Some(current) = pending.take() {
-          fire(&app, &current.phase);
+          fire(&app, &current.phase, current.ends_at);
         }
       }
       Err(RecvTimeoutError::Disconnected) => return,
@@ -143,10 +159,17 @@ fn run(app: AppHandle, receiver: Receiver<Request>) {
 ///
 /// The notification text is built here rather than being sent from the
 /// frontend, so the notification is right even if the webview has gone away.
-fn fire(app: &AppHandle, phase: &str) {
+fn fire(app: &AppHandle, phase: &str, ends_at: i64) {
   let (title, body) = describe(phase);
 
-  if let Err(error) = app.notification().builder().title(title).body(body).show() {
+  if let Err(error) = app
+    .notification()
+    .builder()
+    .title(title)
+    .body(body)
+    .sound(NOTIFICATION_SOUND)
+    .show()
+  {
     log::warn!("the notification could not be shown: {error}");
   } else {
     log::info!("the notification for {phase} was shown");
@@ -154,8 +177,27 @@ fn fire(app: &AppHandle, phase: &str) {
 
   // The frontend is told as well, so its own chime and toast still run when
   // the window happens to be visible.
-  let _ = app.emit(ALARM_EVENT, phase.to_string());
+  //
+  // The deadline travels with the phase, because the webview may have been
+  // asleep when the alarm fired: the app has to be able to tell that this
+  // alarm is about the phase it is showing, rather than about one that
+  // ended long ago.
+  let _ = app.emit(
+    ALARM_EVENT,
+    AlarmSignal {
+      phase: phase.to_string(),
+      ends_at,
+    },
+  );
 }
+
+/// The sound the system notification plays.
+///
+/// The notification is the desktop tier's *only* cue when the window is
+/// hidden, so a silent notification is a timer that says nothing. The
+/// sound is one of the names the Windows notification system understands;
+/// it is ignored on the platforms that have no such notion.
+const NOTIFICATION_SOUND: &str = "Reminder";
 
 /// The notification text for a phase.
 fn describe(phase: &str) -> (String, String) {

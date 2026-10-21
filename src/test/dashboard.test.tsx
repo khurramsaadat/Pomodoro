@@ -58,10 +58,13 @@ describe('Dashboard layout', () => {
     expect(screen.getByTestId('dashboard-clock')).toBeInTheDocument();
   });
 
-  it('shows the session settings in the workspace column', () => {
+  it('shows the session settings in the workspace column', async () => {
+    const user = userEvent.setup();
     renderApp();
 
     const workspace = screen.getByTestId('dashboard-workspace');
+
+    await user.click(screen.getByRole('tab', { name: /session/i }));
 
     expect(workspace).toHaveTextContent('Session settings');
   });
@@ -117,6 +120,32 @@ describe('The navigation bar', () => {
     expect(within(nav).getByRole('tab', { name: /tasks/i })).toBeInTheDocument();
     expect(within(nav).getByRole('tab', { name: /stats/i })).toBeInTheDocument();
     expect(within(nav).getByRole('tab', { name: /settings/i })).toBeInTheDocument();
+  });
+
+  it('offers the queue before the session', () => {
+    renderApp();
+
+    const nav = screen.getByTestId('app-nav');
+
+    // The queue is the question the user asks most often, so it comes
+    // first. "Before" is a fact about the document order.
+    const tasks = within(nav).getByRole('tab', { name: /tasks/i });
+    const session = within(nav).getByRole('tab', { name: /session/i });
+
+    expect(
+      tasks.compareDocumentPosition(session) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+  });
+
+  it('opens on the queue', () => {
+    renderApp();
+
+    // The landing workspace is the one that decides what the session is
+    // for.
+    expect(screen.getByRole('tab', { name: /tasks/i })).toHaveAttribute(
+      'aria-selected',
+      'true',
+    );
   });
 
   it('is at the bottom of the window, below the content', () => {

@@ -1,18 +1,21 @@
 import { create } from 'zustand';
 
 import {
-  applyFocusSession,
   createTask,
+  creditFocusSession,
   isOverEstimate,
   markTaskDone,
+  nextOpenTask,
   removeTask,
   reopenTask,
   sortTasks,
   updateTask,
+  willExceedEstimate,
   type Task,
   type TaskPatch,
 } from '@/domain/tasks';
 import { tasksRepository } from '@/storage/tasks';
+import { usePreferencesStore } from './preferences-store';
 
 /**
  * The task queue.
@@ -39,7 +42,13 @@ export interface TaskStore {
   reopenTask: (id: string) => void;
   /** Makes a task the active one. */
   setActiveTask: (id: string | null) => void;
-  /** Records a completed focus session against the active task. */
+  /**
+   * Records a completed focus session against the active task.
+   *
+   * The session is credited and the auto-advance policy is applied in the
+   * same step, so a session can never be banked without the queue being
+   * given the chance to move on. See `creditFocusSession`.
+   */
   recordFocusSession: () => void;
   /**
    * Moves the active task on to the next open one.
@@ -120,13 +129,15 @@ export const useTaskStore = create<TaskStore>()((set, get) => ({
 
   recordFocusSession: () => {
     const { tasks, activeTaskId } = get();
-    if (activeTaskId === null) {
-      return;
-    }
 
-    set({
-      tasks: tasks.map((task) => (task.id === activeTaskId ? applyFocusSession(task) : task)),
-    });
+    // The auto-advance preference is read here rather than being passed in,
+    // so that every path that credits a session gets the same policy. The
+    // preference lives in its own store, and reading it through the store's
+    // own state is what keeps the two from drifting apart.
+    const autoAdvance = usePreferencesStore.getState().preferences.autoAdvanceTask;
+    const credit = creditFocusSession(tasks, activeTaskId, autoAdvance);
+
+    set({ tasks: credit.tasks, activeTaskId: credit.activeTaskId });
   },
 
   advanceToNextTask: () => {
@@ -135,8 +146,7 @@ export const useTaskStore = create<TaskStore>()((set, get) => ({
     // The next task is the first open one that is not the current one, in
     // display order. When the current task is the only open one, the active
     // task is cleared rather than pointing at itself.
-    const candidates = sortTasks(tasks).filter((task) => !task.done && task.id !== activeTaskId);
-    const next = candidates[0];
+    const next = nextOpenTask(tasks, activeTaskId);
 
     set({ activeTaskId: next ? next.id : null });
   },
@@ -182,4 +192,31 @@ export function selectActiveTask(state: TaskStore): Task | null {
 export function selectActiveTaskOverEstimate(state: TaskStore): boolean {
   const task = selectActiveTask(state);
   return task === null ? false : isOverEstimate(task);
+}
+
+/**
+ * The task the queue would move on to, or `null` if it would not move.
+ *
+ * The queue moves when the active task has used up its estimate and the
+ * user has asked for the queue to advance by itself, so the answer is
+ * `null` in every other case. The "next up" line under the clock is drawn
+ * from this, and it is only shown when the move is really going to happen
+ * — a line that names a task the app is not going to switch to would be
+ * worse than no line at all.
+ *
+ * The task is the one the queue would move to *after the next session*,
+ * so a task that is about to run out of budget counts even though it has
+ * not run out of it yet.
+ */
+export function selectNextTask(state: TaskStore, autoAdvance: boolean): Task | null {
+  if (!autoAdvance) {
+    return null;
+  }
+
+  const active = selectActiveTask(state);
+  if (active === null || !willExceedEstimate(active)) {
+    return null;
+  }
+
+  return nextOpenTask(state.tasks, state.activeTaskId);
 }

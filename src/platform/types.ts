@@ -11,7 +11,7 @@
  */
 
 import type { MiniCorner } from '@/domain/mini-mode';
-import type { TimerPhase } from '@/domain/types';
+import type { AlarmSignal, TimerPhase } from '@/domain/types';
 
 /** What the host tier is able to do. */
 export interface PlatformCapabilities {
@@ -197,8 +197,12 @@ export interface PlatformBridge {
    * The native alarm is the host's own timer, so the host can raise a
    * notification even when the webview is not being painted. The handler
    * lets the app react in step with it.
+   *
+   * The signal carries the deadline the alarm was scheduled against, so
+   * the app can tell whether the alarm is still talking about the phase it
+   * is currently showing.
    */
-  onAlarm(handler: (phase: TimerPhase) => void): void;
+  onAlarm(handler: (signal: AlarmSignal) => void): void;
 
   /**
    * Asks the host to show or to hide the mini window.

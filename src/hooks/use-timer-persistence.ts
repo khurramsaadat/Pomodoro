@@ -79,12 +79,21 @@ export function useTimerPersistence(options: UseTimerPersistenceOptions = {}): v
     // The phases that ran while the app was closed were real work, so they
     // are recorded in the history and credited to the active task.
     if (completions.length > 0) {
-      const activeTask = selectActiveTask(useTaskStore.getState());
       const history = useHistoryStore.getState();
 
       for (const completion of completions) {
+        // The task is re-read for every completion, because the queue can
+        // move on between them: the first session may have used up the
+        // active task's estimate, and the second may belong to the next
+        // one. Reading it once for the whole batch would credit every
+        // session to the task that was active when the app was closed.
+        const activeTask = selectActiveTask(useTaskStore.getState());
+
         history.record(completion, activeTask);
         if (completion.phase === 'work') {
+          // Crediting the session and moving the queue on are one step, so
+          // the catch-up gets the same auto-advance behaviour as the live
+          // timer.
           useTaskStore.getState().recordFocusSession();
         }
       }

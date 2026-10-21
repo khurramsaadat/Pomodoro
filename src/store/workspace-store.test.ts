@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 
 import { defaultConfig } from '@/domain/presets';
+import { DEFAULT_PREFERENCES } from '@/domain/preferences';
 import { createInitialState } from '@/domain/timer';
 import { useHistoryStore } from '@/store/history-store';
 import { usePreferencesStore } from '@/store/preferences-store';
@@ -219,5 +220,72 @@ describe('timer and workspace integration', () => {
     expect(entries[0]?.phase).toBe('shortBreak');
     // A break is not focus time, so the task is not credited for it.
     expect(useTaskStore.getState().tasks[0]?.completedPomodoros).toBe(1);
+  });
+});
+
+describe('the auto-advance policy', () => {
+  beforeEach(() => {
+    resetStores();
+  });
+
+  /** Puts the timer into a running focus session that is already over. */
+  function runOutAFocusSession(): void {
+    useTimerStore.setState({
+      state: {
+        ...useTimerStore.getState().state,
+        status: 'running',
+        endsAt: Date.now() - 1000,
+        startedAt: Date.now() - 25 * 60_000,
+      },
+    });
+
+    useTimerStore.getState().complete();
+  }
+
+  it('moves the queue on when a task has used up its estimate', () => {
+    useTaskStore.getState().addTask('Write the report', 1);
+    useTaskStore.getState().addTask('Draft the summary', 2);
+
+    const first = useTaskStore.getState().tasks[0]?.id ?? '';
+    useTaskStore.getState().setActiveTask(first);
+
+    runOutAFocusSession();
+
+    // The first task is over its estimate, so the queue moved on by
+    // itself.
+    const second = useTaskStore.getState().tasks[1]?.id ?? '';
+    expect(useTaskStore.getState().activeTaskId).toBe(second);
+  });
+
+  it('stays on the task while it still has budget', () => {
+    useTaskStore.getState().addTask('Write the report', 3);
+    useTaskStore.getState().addTask('Draft the summary', 2);
+
+    const first = useTaskStore.getState().tasks[0]?.id ?? '';
+    useTaskStore.getState().setActiveTask(first);
+
+    runOutAFocusSession();
+
+    expect(useTaskStore.getState().activeTaskId).toBe(first);
+  });
+
+  it('does not move on when the preference is off', () => {
+    usePreferencesStore.getState().updatePreference('autoAdvanceTask', false);
+
+    useTaskStore.getState().addTask('Write the report', 1);
+    useTaskStore.getState().addTask('Draft the summary', 2);
+
+    const first = useTaskStore.getState().tasks[0]?.id ?? '';
+    useTaskStore.getState().setActiveTask(first);
+
+    runOutAFocusSession();
+
+    expect(useTaskStore.getState().activeTaskId).toBe(first);
+  });
+
+  it('is on by default', () => {
+    // The preference is the user's to change, but the app starts with the
+    // behaviour it wants.
+    expect(DEFAULT_PREFERENCES.autoAdvanceTask).toBe(true);
   });
 });

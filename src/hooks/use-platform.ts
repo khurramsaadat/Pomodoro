@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef } from 'react';
 
 import { platform } from '@/platform';
-import type { TimerPhase } from '@/domain/types';
+import type { AlarmSignal } from '@/domain/types';
 import { usePreferencesStore } from '@/store/preferences-store';
 import { useTimerStore } from '@/store/timer-store';
 import { formatDuration } from '@/lib/time';
@@ -123,15 +123,15 @@ export function usePlatform(): void {
  * The alarm is the host's own timer, so it can fire even when the webview
  * is not being painted. The app uses it to keep the countdown honest.
  */
-export function usePlatformAlarm(handler: (phase: TimerPhase) => void): void {
+export function usePlatformAlarm(handler: (signal: AlarmSignal) => void): void {
   const handlerRef = useRef(handler);
   useEffect(() => {
     handlerRef.current = handler;
   }, [handler]);
 
   useEffect(() => {
-    platform.onAlarm((phase) => {
-      handlerRef.current(phase);
+    platform.onAlarm((signal) => {
+      handlerRef.current(signal);
     });
   }, []);
 }

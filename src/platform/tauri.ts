@@ -11,7 +11,7 @@
  * every call.
  */
 
-import type { TimerPhase } from '@/domain/types';
+import type { AlarmSignal } from '@/domain/types';
 import type {
   MiniWindowPosition,
   PlatformBridge,
@@ -131,7 +131,7 @@ export function createTauriBridge(): PlatformBridge {
   /** The handlers, held so a late subscription still reaches them. */
   const toggleHandlers = new Set<() => void>();
   const showHandlers = new Set<() => void>();
-  const alarmHandlers = new Set<(phase: TimerPhase) => void>();
+  const alarmHandlers = new Set<(signal: AlarmSignal) => void>();
   const movedHandlers = new Set<(position: MiniWindowPosition) => void>();
 
   /** Resolves the modules once. */
@@ -206,8 +206,20 @@ export function createTauriBridge(): PlatformBridge {
   });
 
   subscribe(ALARM_EVENT, (payload) => {
+    // The backend sends the phase and the deadline it was scheduled
+    // against. The deadline is what lets the app tell an alarm about the
+    // phase it is showing from one about a phase that ended long ago.
+    const signal = payload as { phase?: unknown; endsAt?: unknown };
+
+    const phase = signal.phase;
+    if (typeof phase !== 'string') {
+      return;
+    }
+
+    const endsAt = typeof signal.endsAt === 'number' ? signal.endsAt : 0;
+
     for (const handler of alarmHandlers) {
-      handler(payload as TimerPhase);
+      handler({ phase: phase as AlarmSignal['phase'], endsAt });
     }
   });
 
@@ -266,7 +278,7 @@ export function createTauriBridge(): PlatformBridge {
       showHandlers.add(handler);
     },
 
-    onAlarm: (handler: (phase: TimerPhase) => void) => {
+    onAlarm: (handler: (signal: AlarmSignal) => void) => {
       alarmHandlers.add(handler);
     },
 

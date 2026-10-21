@@ -44,6 +44,12 @@ re-propose them.
 | 31 | A mini window the user can actually move | **Fixed** - the drag permission was missing and the drag region could never have matched |
 | 32 | The mini window on a second monitor | **Fixed** - the placement is computed in the virtual desktop |
 | 33 | The workspaces in a bar at the bottom of the window | **Built** - a pinned navigation bar, outside the scrolling area |
+| 34 | The settings icon looked like sliders, not a cog | **Fixed** - `Settings`, not `Settings2` |
+| 35 | What you are working on, under the clock | **Built** - a strip with the title, the progress, and what comes next |
+| 36 | The queue comes first, and the app opens on it | **Built** - Tasks, Session, Stats, Settings |
+| 37 | The auto-advance was not honoured on the catch-up | **Fixed** - one policy, used by both paths |
+| 38 | The cue was a click when the context had been suspended | **Fixed** - the context is resumed before the cue is scheduled |
+| 39 | The native alarm fired into the void | **Fixed** - the alarm plays the cue, and the notification has a sound |
 
 ---
 
@@ -365,6 +371,30 @@ monitor loses that when they open the mini timer and close it again. The
 backend already knows the size — it is one command to save and one to
 restore.
 
+### 43. The cue could follow the phase the way the notification does
+
+A focus session and a break are told apart by *shape* — the break that
+ends gets the next voice along — but the two are not told apart by the
+notification, which says the same thing either way. A break that ends
+could get its own notification text, so a user who is not looking at the
+window can tell what just happened without opening it.
+
+### 44. The strip could offer the next task, not just name it
+
+The strip under the clock names the task the queue will move to, but it
+does not let the user *choose* it. When the queue moves on by itself, the
+user might rather stay on the current task for one more session. A
+control that defers the move — "one more" — would make the auto-advance
+a suggestion rather than a decision, without turning the preference off.
+
+### 45. The auto-advance could work on a *schedule* rather than an estimate
+
+A task estimated at three sessions moves on when the third is banked,
+which assumes the estimate was right. A user who keeps under-running
+their estimate sees the queue stall on a task they have finished, and one
+who over-runs sees it move on too early. The daily goal is a better
+signal of "the day is done" than any single task's estimate.
+
 ---
 
 ## Keep doing
@@ -415,3 +445,22 @@ restore.
   On Windows it is not per-monitor DPI-aware, so it reports one while the
   webview inside it is drawn at one and a half. The side that knows the
   true ratio is the webview, and `devicePixelRatio` is exact.
+- **An event that nobody listens to is a feature that does not exist.**
+  The native alarm was emitting `pomodoro://alarm` for the whole life of
+  the app, and the hook that was written to receive it was never mounted.
+  A seam that is written but not wired fails silently and forever; the
+  only way to notice is to ask what the host sends and who is listening.
+- **One policy, one place.** The auto-advance was implemented twice — once
+  in the live timer and once, differently, in the catch-up — and the two
+  paths drifted. The second implementation was not a bug in itself; it
+  was a bug in having two.
+- **Wait for the promise, and then schedule against the new clock.** The
+  cue was scheduled on a context that had been *asked* to resume but had
+  not, so the whole envelope was laid out in a window that had already
+  passed. The lesson is general: an asynchronous state change means the
+  clock you are reading is not the clock you will be scheduling on.
+- **Prove the old code was wrong, not just that the new code is right.**
+  The suspended-context fix was checked by running the old sequence in
+  the same browser and watching the oscillators start with
+  `state: 'suspended'`. A test that only asserts the new behaviour can
+  pass for the wrong reason.

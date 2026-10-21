@@ -14,7 +14,7 @@
  * handlers that were registered in the meantime so that nothing is lost.
  */
 
-import type { TimerPhase } from '@/domain/types';
+import type { AlarmSignal } from '@/domain/types';
 import type {
   AlarmRequest,
   MiniModeRequest,
@@ -38,7 +38,7 @@ let active: PlatformBridge | null = null;
 /** The handlers registered before the native bridge arrived. */
 const pendingToggles: (() => void)[] = [];
 const pendingShows: (() => void)[] = [];
-const pendingAlarms: ((phase: TimerPhase) => void)[] = [];
+const pendingAlarms: ((signal: AlarmSignal) => void)[] = [];
 const pendingMoved: ((position: MiniWindowPosition) => void)[] = [];
 
 /**
@@ -209,7 +209,7 @@ export const platform: PlatformBridge = {
     pendingShows.push(handler);
   },
 
-  onAlarm: (handler: (phase: TimerPhase) => void) => {
+  onAlarm: (handler: (signal: AlarmSignal) => void) => {
     if (active) {
       active.onAlarm(handler);
       return;

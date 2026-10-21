@@ -12,8 +12,8 @@ import { PreferencesPanel } from '@/components/settings/preferences-panel';
 import { DailyGoal } from '@/components/stats/daily-goal';
 import { HistoryList } from '@/components/stats/history-list';
 import { StatsPanel } from '@/components/stats/stats-panel';
-import { ActiveTask } from '@/components/tasks/active-task';
 import { TaskQueue } from '@/components/tasks/task-queue';
+import { WorkingOn } from '@/components/tasks/working-on';
 import { SessionPlan } from '@/components/timer/session-plan';
 import { SessionSummary } from '@/components/timer/session-summary';
 import { TimerEngineProvider } from '@/components/timer/timer-engine-provider';
@@ -30,7 +30,8 @@ import { platform } from '@/platform';
 import { useHistoryStore } from '@/store/history-store';
 import { useMiniModeStore } from '@/store/mini-mode-store';
 import { usePreferencesStore } from '@/store/preferences-store';
-import { selectActiveTask, useTaskStore } from '@/store/task-store';
+import { selectActiveTask, selectNextTask, useTaskStore } from '@/store/task-store';
+
 import { useTimerStore } from '@/store/timer-store';
 
 /** A human-readable message for each phase completion. */
@@ -43,15 +44,53 @@ function completionMessage(phase: TimerPhase): string {
 /** How often the daily goal re-reads the clock, in milliseconds. */
 const CLOCK_INTERVAL_MS = 60_000;
 
+/**
+ * The workspaces the navigation bar offers.
+ *
+ * The order they are declared in is the order they are offered in, so the
+ * type is the list.
+ */
+type Workspace = 'tasks' | 'session' | 'stats' | 'settings';
+
 export default function App() {
   const miniEnabled = useMiniModeStore((store) => store.enabled);
 
   const activeTask = useTaskStore(selectActiveTask);
   const entries = useHistoryStore((store) => store.entries);
   const dailyGoal = usePreferencesStore((store) => store.preferences.dailyGoal);
+  const autoAdvance = usePreferencesStore((store) => store.preferences.autoAdvanceTask);
+
+  // The task the queue would move on to. It is read through a selector
+  // that takes the preference, because the line is only shown when the
+  // move is really going to happen.
+  const nextTask = useTaskStore((store) => selectNextTask(store, autoAdvance));
 
   const timerState = useTimerStore((store) => store.state);
   const timerConfig = useTimerStore((store) => store.config);
+
+  // The tab root owns the selection, and the "working on" strip under the
+  // clock is a doorway into the queue. The selection is therefore held
+  // here, as controlled state, rather than being left to the root: a
+  // ref would give the DOM element and not the selection.
+  const [workspace, setWorkspace] = useState<Workspace>('tasks');
+
+  /**
+   * Selects a workspace.
+   *
+   * The bar only ever offers the four known workspaces, but the callback
+   * is typed as taking a plain string, so the value is checked rather
+   * than cast: a value that is not a workspace is ignored, and the
+   * current one is kept.
+   */
+  const selectWorkspace = (value: string): void => {
+    if (value === 'tasks' || value === 'session' || value === 'stats' || value === 'settings') {
+      setWorkspace(value);
+    }
+  };
+
+  const openTasks = (): void => {
+    setWorkspace('tasks');
+  };
 
   // The clock lives in state rather than being read during render, so the
   // component stays a pure function of its state. It ticks once a minute,
@@ -115,7 +154,7 @@ export default function App() {
       are laid out as if they were the root's own children, so the shell
       still fills the window and the bar still lands at the bottom.
     */
-    <Tabs defaultValue="session" className="contents">
+    <Tabs value={workspace} onValueChange={selectWorkspace} className="contents">
       <AppShell
         bare={overlayMini}
         nav={<AppNav />}
@@ -142,17 +181,37 @@ export default function App() {
                 <div className="flex flex-col gap-3">
                   <TimerPanel />
                   <SessionSummary />
+
+                  {/*
+                    What the user is working on, directly under the clock.
+
+                    The countdown answers *how long is left*; it does not
+                    answer *on what*. The strip is the answer to the second
+                    question, and it belongs where the eye already is every
+                    time it looks at the time.
+
+                    It is a button because the answer is a doorway: clicking
+                    it opens the queue, which is where the answer is
+                    changed.
+                  */}
+                  <WorkingOn
+                    task={activeTask}
+                    nextTask={nextTask}
+                    onOpen={openTasks}
+                  />
                 </div>
               }
             >
               {/*
-                The task the user is working on and the daily goal sit *above*
-                the tabs, not inside one. Both are true whichever tab is open:
-                the queue moves on by itself, and the day rolls over on its own.
-                Putting them here means the answer is on screen while the
-                settings are being changed, which is when it matters.
+                The daily goal sits *above* the tabs, not inside one: the
+                day rolls over on its own, so the answer is true whichever
+                tab is open.
+
+                The task the user is working on does *not* live here any
+                more. It is under the clock, where the countdown is,
+                because the two are read together: the countdown says how
+                long is left, and the strip says on what.
               */}
-              <ActiveTask task={activeTask} />
               <DailyGoal
                 sessions={progress.sessions}
                 goal={progress.goal}

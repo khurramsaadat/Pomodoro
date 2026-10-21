@@ -1,4 +1,4 @@
-# Plan - stagewise implementation
+﻿# Plan - stagewise implementation
 
 > What was built, in the order it was built, and why that order.
 > Companions: [`input.md`](./input.md) (prompts), [`prd.md`](./prd.md) (requirements),
@@ -225,7 +225,7 @@ them. A button that does nothing is worse than no button.
 the tests, and all three would have shipped:
 
 - **The tray update panicked the app.** The tray icon is created in the
-  setup hook, so a lookup by managed state found nothing — and
+  setup hook, so a lookup by managed state found nothing â€” and
   `state()` panics when it is called before `manage()`. A panic in a
   command handler takes the whole process down, so the app died on its
   first tray update. The icon is now found by its id, and the flags the
@@ -238,13 +238,13 @@ the tests, and all three would have shipped:
   ready.
 - **The service worker cached the native app's shell.** The desktop app
   serves its own assets, and a worker caching the shell would keep
-  serving it after an upgrade — old code against a new backend. The
+  serving it after an upgrade â€” old code against a new backend. The
   worker is now registered only on the web tier.
 
 **The verification was the interesting part.** Driving the real app
-through UI Automation — finding the "Hide to the system tray" button by
+through UI Automation â€” finding the "Hide to the system tray" button by
 its accessible name, invoking it, and checking that the window was hidden
-and the process was still alive — is what proved the flow. The unit
+and the process was still alive â€” is what proved the flow. The unit
 tests could not have caught any of it.
 
 ---
@@ -255,7 +255,7 @@ tests could not have caught any of it.
 
 The dashboard was measured rather than eyeballed. The clock column stood
 1081 pixels tall and the workspace beside it 420, which left roughly 660
-pixels of dead space under "Session settings" — and opening the mini timer
+pixels of dead space under "Session settings" â€” and opening the mini timer
 made it worse, because the widget was drawn *over* a dashboard that was
 still there. Two timers, one of them enormous and irrelevant.
 
@@ -270,7 +270,7 @@ window becomes a small frameless widget, and the dashboard is gone because
 the window that held it is gone. Either way the user sees one timer.
 
 **The decision: the empty space is filled with something worth reading.** The
-session plan — the phases ahead, derived from the configuration — sits below
+session plan â€” the phases ahead, derived from the configuration â€” sits below
 the tabs rather than inside one, because it is true whichever tab is open. The
 clock column's three summary cards were also compacted from stacked blocks
 into single rows, and the countdown ring was reduced, which took the column
@@ -279,7 +279,7 @@ from 1081 pixels to 827.
 **The decision: the host owns the screen.** The native tier's window is moved
 by the operating system, so the placement is the host's business. The
 frontend remembers *which corner* the widget was left in and *how far from
-it*, and the host turns that into a real position — the same corner-and-
+it*, and the host turns that into a real position â€” the same corner-and-
 offset model the web tier already used, so one implementation serves both.
 
 **Two bugs that only a real native run found.** Both were invisible in the
@@ -289,7 +289,7 @@ tests, and neither could have been found there:
   multiplied by the display's scale factor, so a 240-pixel timer arrived on
   screen as 156. The size is now in physical pixels, with no multiplication.
 - **The backend did not know the display's scale factor.** It reported one,
-  while the webview inside it was drawn at one and a half — on Windows the
+  while the webview inside it was drawn at one and a half â€” on Windows the
   desktop process is not per-monitor DPI-aware, so the two disagree. The
   measurements now cross the seam in physical pixels, and the conversion is
   done on the side that knows the true ratio: the webview, whose
@@ -311,15 +311,15 @@ The active task and the daily goal moved out of the clock column and into the
 workspace column, above the tabs, with the daily goal directly under the task.
 
 **Why here:** the request was a layout change, but it exposed a structural
-question the previous stage had left open — which column does the *work* live
+question the previous stage had left open â€” which column does the *work* live
 in? The clock column is the *session*: what is running, and for how long. The
 workspace column is the *work*: the task, the day's progress, the settings.
 The two cards that answer *what am I working on* and *how far have I got
 today* were answers about the work, sitting in the session's column.
 
 **The decision: the pair reads as one.** The daily goal sits under the task
-rather than beside it, because they are the same question asked twice — the
-*what* and the *how far* — and a user reads them together.
+rather than beside it, because they are the same question asked twice â€” the
+*what* and the *how far* â€” and a user reads them together.
 
 **The bug the move exposed.** The `Card` primitive carries its own `py-6`, and
 the cards' content added `py-3` on top of it, so every card was rendering
@@ -328,7 +328,7 @@ pixels instead of 83. The moved cards now cancel the primitive's padding with
 `py-0`, and the two dropped by a third of their height.
 
 **The measurement that settled it.** Moving the plan of the session into the
-clock column balanced the columns too — 840 against 593 — but the clock column
+clock column balanced the columns too â€” 840 against 593 â€” but the clock column
 is *sticky*, and 840 pixels is taller than the viewport of most laptops. A
 sticky column that cannot fit on the screen is not a sticky column. "Up next"
 stayed below the tabs, where it fills the space it was added to fill.
@@ -341,7 +341,7 @@ stayed below the tabs, where it fills the space it was added to fill.
 
 The tray stays; the way the window was hidden to it does not. Closing the
 window now ends the app, and the `KeepAlive` plumbing that made "hide to
-tray" work is gone with it — the flags, the `hide_window` command, the
+tray" work is gone with it â€” the flags, the `hide_window` command, the
 `ExitRequested` handler that prevented the process from ending, and the
 `set_keep_alive` command that turned the whole thing on.
 
@@ -352,7 +352,7 @@ managed state, and a runtime exit handler. Removing the behaviour meant
 removing all of it, not just the button.
 
 **What replaced it:** `set_always_on_top`. It is the same shape as the
-command it replaced — one boolean across the seam — and it is the thing
+command it replaced â€” one boolean across the seam â€” and it is the thing
 that actually helps. A timer the user has to go looking for is a timer
 whose deadline they will miss.
 
@@ -362,8 +362,8 @@ told.** The header button and the preferences switch both write the
 places writing the host's state would be two places that could disagree
 about it.
 
-**The mini window needed a correction.** The widget is always on top — it
-is a floating thing — but the dashboard is not necessarily. So the
+**The mini window needed a correction.** The widget is always on top â€” it
+is a floating thing â€” but the dashboard is not necessarily. So the
 mini-mode request now carries the preference, and leaving mini mode
 restores the window to the state the *user* asked for rather than forcing
 it down. The request is sent in one piece, as it always was, so the host
@@ -381,8 +381,8 @@ only way to prove that the app really ends rather than hiding.
 
 **Commit:** the current commit.
 
-`src/domain/sounds.ts` holds the catalogue — five sounds, each with a name
-and a description — and `src/lib/audio.ts` holds the synthesis. The
+`src/domain/sounds.ts` holds the catalogue â€” five sounds, each with a name
+and a description â€” and `src/lib/audio.ts` holds the synthesis. The
 domain knows *which* sounds exist; the library knows *how* they sound.
 
 **Why here:** the cue was two sine notes, and a two-note sine chime is a
@@ -390,7 +390,7 @@ beep. A beep is easy to ignore, which defeats the purpose of the sound
 entirely.
 
 **The decision: a cue is a stack, not a wave.** Every sound layers a body
-tone, a partial above it, and — for the struck ones — a short burst of
+tone, a partial above it, and â€” for the struck ones â€” a short burst of
 noise that is the *transient*. The noise is what stops them sounding like
 electronic beeps; it is the click of a mallet on wood. The five cues are
 deliberately different in shape and not only in pitch, because a
@@ -418,7 +418,7 @@ session log was the second card in the statistics tab, so it was below the
 fold too. A record nobody can reach stops being a record.
 
 **The decision: the log comes first.** The statistics are derived from the
-log — every number in the panel is recomputed from it — so the thing they
+log â€” every number in the panel is recomputed from it â€” so the thing they
 are derived from should be the thing that is read first. This is the same
 argument that put the active task above the tabs in stage 11.
 
@@ -444,7 +444,7 @@ back in. Both halves of that are domain questions, not interface ones.
 read but is damaged is restored as far as it goes.** The distinction
 matters. A corrupt file is refused outright, because half-reading it would
 leave the workspace in a state the user did not ask for. A file with one
-broken task in it is restored without that task, and *says so* — a silent
+broken task in it is restored without that task, and *says so* â€” a silent
 partial restore is worse than a refusal, because the user would not know
 what did not survive.
 
@@ -466,7 +466,7 @@ recognised and refused rather than half-read.
 The footer, the mini window's drag, and the workspace bar.
 
 **Why here:** the drag was reported as a missing feature and turned out to
-be two defects — a permission that was never granted and an attribute used
+be two defects â€” a permission that was never granted and an attribute used
 in a way that could never have worked. Both were invisible from either
 side of the seam.
 
@@ -480,15 +480,15 @@ keeps a click on them running the control rather than moving the window.
 
 **The decision: the capability file grants `core:window:allow-start-dragging`.**
 The drag script ends in a call to the `start_dragging` plugin command, and
-that command is not in `core:window:default` — so the ACL refused it and
+that command is not in `core:window:default` â€” so the ACL refused it and
 the attribute was a promise the app was not allowed to keep.
 
 **The decision: the placement is computed in the virtual desktop, not the
 monitor.** The anchor is measured from the monitor's top left, but
 `set_position` takes a position in the arrangement of screens. The two are
 the same number on one screen, which is why the bug was invisible until
-there were two. The arithmetic is now a pure function — `screen_position`
-— so it can be tested without a desktop.
+there were two. The arithmetic is now a pure function â€” `screen_position`
+â€” so it can be tested without a desktop.
 
 **The decision: the tab root moves above the shell.** The navigation bar is
 a tab list, so it has to be inside the tab root to know which tab is
@@ -506,6 +506,98 @@ host. Attaching to the running app over the WebView2 debugging port and
 asking the host directly showed the command was denied before the fix and
 allowed after it, and a real Win32 mouse drag moved the window exactly as
 far as the mouse travelled.
+
+---
+## Stage 17 - The cog, the strip under the clock, and the sound
+
+**Commit:** the current commit.
+
+Five requests: a cog, a strip under the clock, auto-advance on, the queue
+first, and the sound.
+
+### The cog
+
+`Settings2` in Lucide is the sliders icon; `Settings` is the cog. Both
+usages were the sliders, and both are now the cog.
+
+### The strip under the clock
+
+The "working on" card moved out of the workspace column and became a
+*strip* in the clock column, directly under the countdown.
+
+**Why a strip and not a card.** The card answered the same question as
+before, in a different column. The strip answers it *together* with the
+countdown â€” the two are read as one thing, because the countdown says
+how long is left and the strip says on what. A card in the workspace
+column asks the eye to travel; a strip under the clock does not.
+
+**Why it is a button.** The answer is a doorway: clicking it opens the
+queue, which is where the answer is changed. That needed the tab
+selection to be *controlled* â€” Radix's root forwards its ref to the DOM
+element, so a ref is no use for changing the selection.
+
+**Why it says what is next.** The queue moves on by itself, and until
+now it did so silently. The strip names the task the queue will move to,
+and only when the move is really going to happen: `selectNextTask` asks
+whether the task will be over budget *after the next session* and whether
+the user has asked for the queue to advance at all. A line that named a
+task the app was not going to switch to would be worse than no line.
+
+### The auto-advance
+
+**The decision: the policy lives in one pure function.** `creditFocusSession`
+in `src/domain/tasks.ts` credits the session and applies the policy, and
+both the live timer and the catch-up on startup call it.
+
+Splitting them is how the two paths came to disagree. The live timer
+credited a session and then advanced; the catch-up credited every session
+that had elapsed while the app was closed but never advanced, and
+credited them all to the same task even when the first one had used up
+its estimate. A user who closed the app mid-session came back to a queue
+that had not moved, and the preference that says it should have was
+quietly not honoured.
+
+The catch-up also re-reads the active task for *every* completion, so a
+second session that elapsed while the app was closed belongs to the task
+the queue moved on to rather than to the one that was active when the app
+was closed.
+
+### The sound
+
+Two defects, and the first is the one that made the cue unreliable.
+
+**The suspended context.** `resume()` is asynchronous. The old code
+called it and carried straight on, so the oscillators were scheduled
+against a frozen `currentTime` and the whole gain envelope was laid out
+in a window that had already passed. The cue was heard as a click, or
+not at all, when the context finally woke up. The context is now
+resumed *first*, and the cue is scheduled against the new clock â€” a
+little in the future, so the attack and the decay both happen while the
+context is rendering.
+
+This was verified in a real browser, by instrumenting `AudioContext`:
+the old code started the oscillators *before* the resume landed, with
+`state: 'suspended'`; the new code starts them after, at `when = 0.05`.
+
+**The alarm nobody listened to.** The desktop tier's alarm was emitting
+`pomodoro://alarm` and nothing consumed it. The cue was played only by
+the page's own tick, so a webview throttled hard enough to miss the
+deadline stayed silent. The alarm now plays the cue as well.
+
+**Why the deadline is the key.** Two independent clocks watch the same
+deadline: the page's tick and the host's alarm. The deadline is the one
+thing they agree on â€” it is the same `endsAt` the countdown is drawn
+from â€” so it is what de-duplicates them. The phase cannot be the key,
+because the phase recurs: the fourth focus session ends a phase called
+`work`, and so does the fifth.
+
+The alarm now carries the deadline as well as the phase, so the app can
+tell an alarm about the phase it is showing from one about a phase that
+ended long ago.
+
+**The system notification has a sound.** The notification is the desktop
+tier's only cue when the window is hidden, so a silent notification is a
+timer that says nothing.
 
 ---
 
@@ -527,7 +619,10 @@ far as the mouse travelled.
 | 14 | 349 / 28 files + 11 Rust | green | green | green | the completed section is a section; the log card measures fully inside a 900-pixel viewport |
 | 15 | 349 / 28 files + 11 Rust | green | green | green | a backup is exported and imported through the real file input; a corrupt file is refused and the workspace is left alone |
 | 16 | 355 / 28 files + 15 Rust | green | green | green | the bar is pinned to the bottom of the window on both widths, with no horizontal scrollbar; the native mini window is dragged with a real mouse and moves with it |
+| 17 | 385 / 28 files + 15 Rust | green | green | green | the cue is scheduled after the context resumes, the alarm plays it too, the queue advances on the catch-up as well as live, and the strip names the next task |
 
-**Current state:** 355 tests across 28 files and 15 Rust tests, typecheck,
+**Current state:** 385 tests across 28 files and 15 Rust tests, typecheck,
 lint, the production build and the native release build all clean.
+
+---
 

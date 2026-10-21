@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 
 import { defaultConfig } from '@/domain/presets';
-import { isOverEstimate } from '@/domain/tasks';
+import { resetCompletionCues } from '@/lib/audio';
 import {
   completePhase,
   createInitialState,
@@ -15,7 +15,6 @@ import {
 } from '@/domain/timer';
 import type { TimerConfig, TimerState } from '@/domain/types';
 import { useHistoryStore } from './history-store';
-import { usePreferencesStore } from './preferences-store';
 import { selectActiveTask, useTaskStore } from './task-store';
 
 export interface TimerStore {
@@ -75,6 +74,9 @@ export const useTimerStore = create<TimerStore>()((set, get) => ({
   },
 
   resetAll: () => {
+    // The cues that have already been played are forgotten, because a reset
+    // starts a new session whose deadlines are new ones.
+    resetCompletionCues();
     set((store) => ({ state: resetSession(store.config) }));
   },
 
@@ -118,20 +120,10 @@ export const useTimerStore = create<TimerStore>()((set, get) => ({
     useHistoryStore.getState().record(completion, activeTask);
 
     if (completion.phase === 'work') {
+      // Crediting the session and moving the queue on are one decision, and
+      // they live in the task store, so the catch-up on startup gets the
+      // same treatment as this live path.
       useTaskStore.getState().recordFocusSession();
-
-      // When the active task has used up its estimate, the queue can move
-      // on by itself — but only if the user asked for that behaviour.
-      //
-      // The task is re-read after the session was recorded, because the
-      // check is against the *updated* count: a task estimated at one
-      // session is only over budget once that session has been banked.
-      const preferences = usePreferencesStore.getState().preferences;
-      const updated = selectActiveTask(useTaskStore.getState());
-
-      if (preferences.autoAdvanceTask && updated !== null && isOverEstimate(updated)) {
-        useTaskStore.getState().advanceToNextTask();
-      }
     }
   },
 

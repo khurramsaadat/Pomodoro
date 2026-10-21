@@ -12,6 +12,11 @@ import { cn } from '@/lib/utils';
  * the workspace column — so the root takes no part in the layout itself:
  * `display: contents` removes it from the flow, and its children are laid
  * out by whatever contains them.
+ *
+ * The selection is *controlled*: the root is given the value rather than
+ * keeping it, because something outside the bar — the "working on" strip
+ * under the clock — has to be able to open a workspace. The root's own
+ * ref is the DOM element, so it is no use for changing the selection.
  */
 function Tabs({ className, ...props }: React.ComponentProps<typeof TabsPrimitive.Root>) {
   return (

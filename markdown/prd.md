@@ -86,7 +86,7 @@ than no timer at all.
 | FR-17 | A task has a title, an estimate in focus sessions, and a completed count | Must |
 | FR-18 | One task is active at a time | Must |
 | FR-19 | A completed focus session is credited to the active task | Must |
-| FR-20 | `autoAdvanceTask` moves to the next open task once an estimate is met | Should |
+| FR-20 | `autoAdvanceTask` moves to the next open task once an estimate is met | Should — **met** |
 
 ### 4.3 History and statistics
 
@@ -116,6 +116,9 @@ than no timer at all.
 | FR-37 | The session log comes before the statistics derived from it | Must — **met** |
 | FR-38 | The whole workspace can be exported to a file and restored from one | Must — **met** |
 | FR-39 | An imported backup is validated; an unreadable one is refused and a damaged one is reported | Must — **met** |
+| FR-40 | The task being worked on is shown under the clock, and it names what comes next | Must — **met** |
+| FR-41 | The queue is the first workspace offered, and the app opens on it | Must — **met** |
+| FR-42 | The completion cue is heard once per deadline, whether the page's tick or the host's alarm notices it | Must — **met** |
 
 ## 5. Non-functional requirements
 
@@ -184,6 +187,44 @@ src-tauri/    Rust backend: commands, tray, alarm, window events
   meaning on a phone.
 
 ## 9. Release notes
+
+**A cog, a strip under the clock, and a sound that is heard**
+
+- **The settings icon is now a cog.** The one in the navigation bar and the
+  one in the preferences header were Lucide's *sliders* icon — a row of
+  lines with knobs on them. Both are now the gear.
+- **What you are working on is shown under the clock.** The answer to *on
+  what* now sits directly under the countdown, which answers *how long is
+  left*. The two are read together, because they are the same moment of
+  attention. The strip carries the task's title, how far through it is,
+  and — when the queue is about to move on — **what comes next**. It is a
+  button: clicking it opens the queue, which is where the answer is
+  changed.
+- **The auto-advance is on, and it is honoured everywhere.** The
+  preference already defaulted to on, but two paths disagreed about what
+  it meant: the live timer credited a session and then advanced the
+  queue, while the catch-up on startup credited the sessions that had
+  elapsed while the app was closed and never advanced. A user who closed
+  the app mid-session came back to a queue that had not moved. Both paths
+  now go through one policy, and the catch-up credits each session to the
+  task that was active *at the time of that session*.
+- **The queue comes first.** The navigation bar offers Tasks, Session,
+  Stats and Settings, and the app opens on Tasks: the queue is the
+  question the user asks most often, and its answer decides what the
+  session is for.
+- **The completion cue is heard when it should be.** A cue scheduled on a
+  *suspended* audio context had its whole envelope laid out in the past,
+  because the resume is asynchronous and the old code did not wait for it
+  — so the sound was a click, or nothing, exactly when it was most
+  needed: after the tab came back from the background. The context is now
+  resumed first and the cue is scheduled against the new clock.
+- **The desktop tier's alarm plays the cue too.** The native alarm was
+  emitting an event that nothing listened to, so a webview throttled hard
+  enough to miss the deadline stayed silent. The alarm and the page's own
+  tick are now de-duplicated by the *deadline*, so the cue is heard once
+  whichever notices it first — and the system notification has a sound of
+  its own, because on the desktop tier it is the only cue when the window
+  is hidden.
 
 **A movable mini window, and a navigation bar at the bottom**
 

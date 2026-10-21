@@ -1,5 +1,5 @@
 import { useId } from 'react';
-import { Settings2 } from 'lucide-react';
+import { Settings } from 'lucide-react';
 
 import { BackupControls } from '@/components/settings/backup-controls';
 import { SoundPicker } from '@/components/settings/sound-picker';
@@ -38,7 +38,7 @@ export function PreferencesPanel({ className }: PreferencesPanelProps) {
     <Card className={className}>
       <CardHeader>
         <CardTitle className="flex items-center gap-2 text-base">
-          <Settings2 className="size-4" />
+          <Settings className="size-4" />
           Preferences
         </CardTitle>
       </CardHeader>

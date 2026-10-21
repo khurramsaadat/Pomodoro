@@ -10,7 +10,7 @@
  * The dynamic import lives in `tauri.ts` and nowhere else.
  */
 
-import type { TimerPhase } from '@/domain/types';
+import type { AlarmSignal } from '@/domain/types';
 import type {
   MiniModeRequest,
   MiniWindowPosition,
@@ -60,7 +60,7 @@ export function createWebBridge(): PlatformBridge {
       // Nothing outside the page can reach it.
     },
 
-    onAlarm: (_handler: (phase: TimerPhase) => void) => {
+    onAlarm: (_handler: (signal: AlarmSignal) => void) => {
       // The page's own deadline drives the countdown.
     },
 

@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import type { TimerPhase } from '@/domain/types';
+import type { AlarmSignal } from '@/domain/types';
 import type { MiniWindowPosition } from './types';
 
 /**
@@ -243,16 +243,19 @@ describe('the Tauri platform bridge', () => {
     expect(handler).toHaveBeenCalledTimes(1);
   });
 
-  it('forwards the native alarm with its phase', async () => {
+  it('forwards the native alarm with its phase and deadline', async () => {
     const bridge = await createBridge();
     await settle();
 
-    const handler = vi.fn<(phase: TimerPhase) => void>();
+    const handler = vi.fn<(signal: AlarmSignal) => void>();
     bridge.onAlarm(handler);
 
-    emit('pomodoro://alarm', 'work');
+    // The backend sends the phase and the deadline it was scheduled
+    // against, so the app can tell an alarm about the phase it is showing
+    // from one about a phase that ended long ago.
+    emit('pomodoro://alarm', { phase: 'work', endsAt: 1_700_000_000_000 });
 
-    expect(handler).toHaveBeenCalledWith('work');
+    expect(handler).toHaveBeenCalledWith({ phase: 'work', endsAt: 1_700_000_000_000 });
   });
 
   it('never throws when the runtime is missing', async () => {

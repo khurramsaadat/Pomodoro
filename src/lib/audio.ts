@@ -116,6 +116,16 @@ export interface ChimeOptions {
   readonly sound: SoundId;
 }
 
+/** A completion cue, addressed by the deadline that reached it. */
+export interface CompletionCueOptions {
+  /** The phase that ended. */
+  readonly phase: TimerPhase;
+  /** The deadline that was reached, in epoch ms. */
+  readonly endsAt: number;
+  /** Which cue the user has chosen. */
+  readonly sound: SoundId;
+}
+
 let sharedContext: AudioContext | null = null;
 
 /**
@@ -140,6 +150,19 @@ function getContext(): AudioContext | null {
   sharedContext ??= new Ctor();
   return sharedContext;
 }
+
+/**
+ * How far ahead of the context's clock a cue is scheduled.
+ *
+ * The margin exists because a context that is resuming does not advance its
+ * clock in step with the wall clock. A cue scheduled at exactly
+ * `currentTime` has its attack in the past by the time the context actually
+ * starts rendering, so the envelope is already decaying — or over — when
+ * the first sample is produced, and the cue is heard as a click.
+ *
+ * Scheduling slightly in the future gives the envelope somewhere to live.
+ */
+const SCHEDULE_MARGIN_S = 0.05;
 
 /**
  * Plays one layer of a cue.
@@ -216,10 +239,6 @@ export function playChime(options: ChimeOptions): void {
       return;
     }
 
-    if (context.state === 'suspended') {
-      void context.resume();
-    }
-
     // An unknown sound falls back to the default rather than being silent:
     // the cue is the one thing that says the phase ended.
     const id = (SOUND_IDS as readonly string[]).includes(options.sound)
@@ -228,17 +247,55 @@ export function playChime(options: ChimeOptions): void {
     const cue = CUES[id];
 
     const volume = Math.min(1, Math.max(0, options.volume));
-    const startAt = context.currentTime;
 
-    for (const layer of cue.layers) {
-      playLayer(context, layer, volume, startAt + layer.offset);
+    // A suspended context has to be resumed *before* the cue is scheduled.
+    //
+    // The old code called `resume()` and carried on. `resume()` is
+    // asynchronous, so the context was still suspended when the layers were
+    // scheduled, and `currentTime` was frozen: the whole envelope was laid
+    // out in a window that had already passed. The cue was then played —
+    // or clipped to a click — when the context finally woke up, which is
+    // why the sound was unreliable exactly when it was most needed: right
+    // after the tab came back from the background.
+    //
+    // Resuming first and scheduling against the *new* clock is what makes
+    // the cue sound the same whether the app was in the foreground or not.
+    if (context.state === 'suspended') {
+      void context
+        .resume()
+        .then(() => {
+          scheduleCue(context, cue, volume);
+        })
+        .catch(() => {
+          // The context could not be resumed, so there is no clock to
+          // schedule against. The cue is lost, but the timer is not
+          // interrupted.
+        });
+      return;
     }
 
-    if (cue.noise) {
-      playNoise(context, volume, startAt, cue.noiseDuration);
-    }
+    scheduleCue(context, cue, volume);
   } catch {
     // Ignore: the AudioContext may be unavailable in some environments.
+  }
+}
+
+/**
+ * Lays a cue out on the context's clock.
+ *
+ * The start time is a little in the future so that the attack and the decay
+ * of the envelope both happen while the context is rendering, rather than
+ * partly before it.
+ */
+function scheduleCue(context: AudioContext, cue: Cue, volume: number): void {
+  const startAt = context.currentTime + SCHEDULE_MARGIN_S;
+
+  for (const layer of cue.layers) {
+    playLayer(context, layer, volume, startAt + layer.offset);
+  }
+
+  if (cue.noise) {
+    playNoise(context, volume, startAt, cue.noiseDuration);
   }
 }
 
@@ -273,4 +330,73 @@ export async function unlockAudio(): Promise<void> {
   } catch {
     // Ignore: unlocking is best-effort.
   }
+}
+
+/** The volume the completion cue is played at. */
+const CUE_VOLUME = 0.6;
+
+/**
+ * The deadlines whose cue has already been played.
+ *
+ * Two independent clocks watch the same deadline: the page's own tick, and
+ * the desktop tier's host alarm. Both of them can notice that a deadline
+ * has passed, and both of them may fire for it — the page's tick first if
+ * the webview is awake, the host's alarm first if it was not.
+ *
+ * The deadline is the key because it is the one thing both clocks agree
+ * on: it is the same `endsAt` the countdown is drawn from. The phase is
+ * not, because the same phase recurs — the fourth focus session ends a
+ * phase called `work`, and so does the fifth.
+ */
+const cuedDeadlines = new Set<number>();
+
+/**
+ * How many deadlines are remembered.
+ *
+ * The set is only there to de-duplicate the two clocks, so it only has to
+ * outlive the gap between them. A bound keeps it from growing for the
+ * lifetime of a long-running timer.
+ */
+const MAX_CUED_DEADLINES = 32;
+
+/**
+ * Plays the completion cue for a deadline that has been reached.
+ *
+ * The cue is played at most once per deadline, whichever clock notices it
+ * first.
+ */
+export function playCompletionCue(options: CompletionCueOptions): void {
+  const { phase, endsAt, sound } = options;
+
+  if (cuedDeadlines.has(endsAt)) {
+    return;
+  }
+
+  cuedDeadlines.add(endsAt);
+
+  // The oldest entry is dropped once the set is full. The set is a
+  // de-duplication device rather than a record, so the order does not
+  // matter; the insertion order is simply the cheapest way to find one.
+  if (cuedDeadlines.size > MAX_CUED_DEADLINES) {
+    const oldest = cuedDeadlines.values().next();
+    if (!oldest.done) {
+      cuedDeadlines.delete(oldest.value);
+    }
+  }
+
+  playChime({
+    volume: CUE_VOLUME,
+    sound: chimeForPhase(phase, sound),
+  });
+}
+
+/**
+ * Forgets the cues that have already been played.
+ *
+ * It is called when the session is reset: the deadlines after a reset are
+ * different deadlines, but a timer that was reset and restarted inside the
+ * same millisecond would otherwise be silenced.
+ */
+export function resetCompletionCues(): void {
+  cuedDeadlines.clear();
 }

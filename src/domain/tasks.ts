@@ -92,9 +92,91 @@ export function isOverEstimate(task: Task): boolean {
   return task.completedPomodoros >= task.estimatedPomodoros;
 }
 
+/**
+ * Whether the task will have used up its estimate after one more session.
+ *
+ * This is the question the "next up" line under the clock is really
+ * asking: not *has this task run out of time* but *will the queue move on
+ * when the next session ends*. A task estimated at one session that has
+ * not been started yet is not over budget, but it will be the moment its
+ * first session is banked — so the queue is about to move.
+ */
+export function willExceedEstimate(task: Task): boolean {
+  return task.completedPomodoros + 1 >= task.estimatedPomodoros;
+}
+
 /** Records a completed focus session against the task. */
 export function applyFocusSession(task: Task): Task {
   return { ...task, completedPomodoros: task.completedPomodoros + 1 };
+}
+
+/**
+ * The task the queue would move on to.
+ *
+ * It is the first open task in display order that is not the current one.
+ * When the current task is the only open one, there is nothing to move to.
+ */
+export function nextOpenTask(tasks: readonly Task[], currentId: string | null): Task | null {
+  return sortTasks(tasks).find((task) => !task.done && task.id !== currentId) ?? null;
+}
+
+/** The outcome of crediting a focus session to the queue. */
+export interface SessionCredit {
+  /** The queue, with the session credited against the active task. */
+  readonly tasks: Task[];
+  /** The task that is active afterwards. */
+  readonly activeTaskId: string | null;
+  /** Whether the queue moved on to a different task. */
+  readonly advanced: boolean;
+}
+
+/**
+ * Credits a completed focus session and applies the auto-advance policy.
+ *
+ * Both halves live in one function because they are one decision: the
+ * session belongs to the task that was active while it ran, and if that task
+ * has now used up its estimate, the queue moves on by itself.
+ *
+ * Splitting them is how the two paths came to disagree. The live timer
+ * credited a session and then advanced; the catch-up on startup credited
+ * every session that had elapsed while the app was closed but never
+ * advanced, and credited them all to the *same* task even when the first
+ * one had used up its estimate. A user who closed the app mid-session came
+ * back to a queue that had not moved, and the preference that says it should
+ * have was quietly not honoured.
+ *
+ * The function is pure, so both paths can share it and the policy can be
+ * tested without a store.
+ */
+export function creditFocusSession(
+  tasks: readonly Task[],
+  activeTaskId: string | null,
+  autoAdvance: boolean,
+): SessionCredit {
+  if (activeTaskId === null) {
+    return { tasks: [...tasks], activeTaskId: null, advanced: false };
+  }
+
+  const credited = tasks.map((task) =>
+    task.id === activeTaskId ? applyFocusSession(task) : task,
+  );
+
+  // The task is re-read from the *credited* queue, because the check is
+  // against the updated count: a task estimated at one session is only over
+  // budget once that session has been banked.
+  const active = credited.find((task) => task.id === activeTaskId) ?? null;
+
+  if (!autoAdvance || active === null || !isOverEstimate(active)) {
+    return { tasks: credited, activeTaskId, advanced: false };
+  }
+
+  const next = nextOpenTask(credited, activeTaskId);
+
+  return {
+    tasks: credited,
+    activeTaskId: next ? next.id : null,
+    advanced: next !== null,
+  };
 }
 
 /** Marks the task as done. */
