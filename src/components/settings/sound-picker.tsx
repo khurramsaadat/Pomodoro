@@ -20,8 +20,10 @@ const PREVIEW_VOLUME = 0.6;
  * The sound picker.
  *
  * A sound the user has never heard is a sound they cannot choose between,
- * so every option can be *played* rather than merely read. The preview is
- * what turns a list of names into a decision.
+ * so every option is *played* the moment it is chosen rather than merely
+ * read. The preview is what turns a list of names into a decision, and
+ * playing it on selection is what removes the need for a separate preview
+ * button: the sound you hear is the sound you picked.
  *
  * The sound is a preference rather than a fact about the timer, so it lives
  * with the other preferences and is persisted with them.
@@ -34,6 +36,9 @@ export function SoundPicker({ className }: SoundPickerProps) {
 
   const choose = (sound: SoundId): void => {
     updatePreference('completionSound', sound);
+    // The choice is played as it is made, so the user hears the sound they
+    // have just picked rather than the one they are about to pick.
+    playChime({ volume: PREVIEW_VOLUME, sound });
   };
 
   return (
@@ -65,24 +70,10 @@ export function SoundPicker({ className }: SoundPickerProps) {
         })}
       </div>
 
-      <div className="flex items-center justify-between gap-3">
-        <span className="text-muted-foreground text-xs">
-          {SOUND_OPTIONS.find((option) => option.id === completionSound)?.description ??
-            'A soft two-note chime.'}
-        </span>
-
-        <Button
-          type="button"
-          variant="ghost"
-          size="sm"
-          onClick={() => {
-            playChime({ volume: PREVIEW_VOLUME, sound: completionSound });
-          }}
-          className="h-7 shrink-0 text-xs"
-        >
-          Preview
-        </Button>
-      </div>
+      <span className="text-muted-foreground text-xs">
+        {SOUND_OPTIONS.find((option) => option.id === completionSound)?.description ??
+          'A soft two-note chime.'}
+      </span>
     </div>
   );
 }

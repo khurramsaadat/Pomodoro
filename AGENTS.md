@@ -195,3 +195,17 @@ before testing the *code*.
 - Icons come from `lucide-react`.
 - All user-facing strings are plain text; the UI is English-only.
 - Comments explain *why*, not *what*.
+
+## Committing
+
+- **One short sentence.** The commit message is a single line that says what
+  the change did, in the imperative and without a period. "A cog, a strip
+  under the clock, and a sound that is heard" — not a paragraph, not a
+  changelog. The records in `markdown/` carry the detail; the commit
+  message points at them.
+- **One commit per completed task.** A correctness fix and a feature are
+  different kinds of change and are committed separately, so the review of
+  the first does not have to carry the second.
+- **Nothing temporary.** Log files, screenshots, and preview servers are
+  cleaned up before the commit. A file that is not part of the change must
+  not be in it.

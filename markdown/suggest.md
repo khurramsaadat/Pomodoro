@@ -37,7 +37,7 @@ re-propose them.
 | 24 | "Working on" above the session settings | **Built** - the task and the daily goal moved above the tabs |
 | 25 | The window can be kept above the others | **Built** - a persisted preference, in the header and in the settings |
 | 26 | No more hiding the app from its own close button | **Built** - closing the window ends the app; the tray stays as a control panel |
-| 27 | Completion sounds the user can choose | **Built** - five layered cues, with a preview |
+| 27 | Completion sounds the user can choose | **Built** - four layered cues, played as they are chosen |
 | 28 | The completed tasks are visible | **Built** - a section of their own, not a tail of the queue |
 | 29 | The recent sessions are easy to find | **Built** - the log comes before the statistics derived from it |
 | 30 | Import and export | **Built** - a versioned file, validated on the way back in |
@@ -46,10 +46,18 @@ re-propose them.
 | 33 | The workspaces in a bar at the bottom of the window | **Built** - a pinned navigation bar, outside the scrolling area |
 | 34 | The settings icon looked like sliders, not a cog | **Fixed** - `Settings`, not `Settings2` |
 | 35 | What you are working on, under the clock | **Built** - a strip with the title, the progress, and what comes next |
-| 36 | The queue comes first, and the app opens on it | **Built** - Tasks, Session, Stats, Settings |
+| 36 | The queue comes first, and the app opens on it | **Built** - the queue leads the bar and the app opens on it |
 | 37 | The auto-advance was not honoured on the catch-up | **Fixed** - one policy, used by both paths |
 | 38 | The cue was a click when the context had been suspended | **Fixed** - the context is resumed before the cue is scheduled |
 | 39 | The native alarm fired into the void | **Fixed** - the alarm plays the cue, and the notification has a sound |
+| 40 | The app had no mark of its own | **Built** - one icon for the header, the favicon, the manifest and the desktop icons |
+| 41 | The Session tab held a single card | **Built** - the session settings moved into the Settings tab |
+| 42 | The keyboard shortcuts were hidden in a corner icon | **Built** - the same list is in the settings panel |
+| 43 | The sound had to be chosen and then previewed | **Built** - choosing a sound plays it |
+| 44 | The desktop window opened at a fixed size | **Built** - it opens maximized, and the state survives mini mode |
+| 45 | The daily goal sat above the task queue | **Built** - the queue comes first |
+| 46 | The dashboard came back at the widget's size | **Fixed** - the widget and the dashboard have their own bounds |
+| 47 | The remembered maximized state could overwrite itself | **Fixed** - the capture is a transition, and it is tested without a window |
 
 ---
 
@@ -340,14 +348,14 @@ is in, and the guess is a better one than "always" or "never".
 
 ### 39. The sound catalogue could grow
 
-Five cues is enough to choose between and few enough to remember. A user
+Four cues is enough to choose between and few enough to remember. A user
 who wants a sound of their own would need an upload path, which is a
 different feature with a different risk: a file the app plays is a file the
 app has to trust.
 
 ### 40. The navigation bar could carry a badge
 
-The bar now holds the four workspaces permanently, which makes it the one
+The bar now holds the three workspaces permanently, which makes it the one
 piece of chrome that is always on screen. That is a good place for a
 count: how many tasks are open, or how far the daily goal is. The daily
 goal bar is already in the workspace column and is the sort of number a
@@ -394,6 +402,39 @@ which assumes the estimate was right. A user who keeps under-running
 their estimate sees the queue stall on a task they have finished, and one
 who over-runs sees it move on too early. The daily goal is a better
 signal of "the day is done" than any single task's estimate.
+
+### 48. The maximized state should survive a restart, not just a mini-mode trip
+
+The window now opens maximized, and the maximized state is remembered
+across the mini-mode transition — but it is not remembered across a
+*restart*. A user who maximized the window once has to maximize it again
+every morning, and the app does not know the difference between "I want
+this maximized" and "it happened to be maximized".
+
+The same shape as the always-on-top preference, and the same solution: a
+persisted preference the user can see and change, rather than a host
+state the app infers.
+
+### 49. The shortcuts could be discoverable by pressing a key
+
+The shortcut list is now in two places, which answers "what keys exist".
+It does not answer "what does this key do", which is the question a user
+has when they press it and nothing happens — most often because the
+focus was in a text field, where the shortcuts are deliberately ignored.
+
+Showing a brief hint of the pending action when a shortcut is pressed
+but ignored would turn a dead key press into a signpost. It is a small
+affordance and it needs a place to live that does not fight the countdown
+for attention.
+
+### 50. The window could remember its size, and the maximized state with it
+
+The dashboard is restored to a fixed 1180 by 820 when mini mode ends, and
+the window is centred. A user who has resized the window to fit a second
+monitor loses that when they open the mini timer and close it again. This
+is suggestion 42, unchanged — but it is now cheaper to implement, because
+the Rust side already has to remember the maximized state for the
+mini-mode transition and is already in that code.
 
 ---
 
@@ -464,3 +505,25 @@ signal of "the day is done" than any single task's estimate.
   the same browser and watching the oscillators start with
   `state: 'suspended'`. A test that only asserts the new behaviour can
   pass for the wrong reason.
+- **Prove the old code was wrong, not just that the new code is right.**
+  The suspended-context fix was checked by running the old sequence in
+  the same browser and watching the oscillators start with
+  `state: 'suspended'`. A test that only asserts the new behaviour can
+  pass for the wrong reason.
+- **A bound named for one thing must not guard another.** The widget's
+  maximum size was also clamping the dashboard's, so the dashboard came
+  back at 640 by 640 instead of the 1180 by 820 it asked for — and the
+  bug was invisible because the number in the code looked like a
+  sensible limit. A constant's *name* is a claim about what it guards,
+  and a second use of it is a second claim.
+- **Global state needs an isolated test, not a shared one.** The
+  maximized state is a `static Mutex`, and the first version of the test
+  read and wrote it directly. Rust runs the tests in parallel, so two
+  tests fought over the same flag and both failed. The rule now lives in
+  a struct that each test owns, and the static holds only the one
+  instance the application uses.
+- **A transition is not an event.** The maximized state was captured on
+  every request to enter mini mode, and a request is not a transition:
+  the second one saw a widget, which reports itself as not maximized.
+  Capturing on the *change* rather than on the *request* is the
+  difference between remembering the state and overwriting it.

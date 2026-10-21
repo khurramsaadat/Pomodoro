@@ -12,6 +12,8 @@
 //! mean a second webview, a second copy of the engine, and two countdowns
 //! that could disagree.
 
+use std::sync::Mutex;
+
 use serde::{Deserialize, Serialize};
 use tauri::{
   AppHandle, Emitter, Manager, PhysicalPosition, PhysicalSize, Runtime,
@@ -34,6 +36,17 @@ pub const MAX_MINI_WIDTH: f64 = 640.0;
 
 /// The largest height the mini window may be given, in physical pixels.
 pub const MAX_MINI_HEIGHT: f64 = 640.0;
+
+/// The largest width the dashboard may be restored to, in physical pixels.
+///
+/// The widget's own bound is far too small for the dashboard: the window
+/// configuration asks for 1180 by 820, and clamping the restore to the
+/// widget's 640 would leave the dashboard in a corner of the screen the
+/// user had filled.
+pub const MAX_DASHBOARD_WIDTH: f64 = 4096.0;
+
+/// The largest height the dashboard may be restored to, in physical pixels.
+pub const MAX_DASHBOARD_HEIGHT: f64 = 4096.0;
 
 /// The gap kept between the mini window and the edge of the work area.
 const MINI_MARGIN: f64 = 16.0;
@@ -103,6 +116,99 @@ fn main_window<R: Runtime>(app: &AppHandle<R>) -> Option<tauri::WebviewWindow<R>
   app
     .get_webview_window("main")
     .or_else(|| app.webview_windows().into_values().next())
+}
+
+/// The window's maximized state, remembered across a mini-mode transition.
+///
+/// The app starts full-size, which means *maximized* rather than merely
+/// large. When the window shrinks into the widget it has to leave the
+/// maximized state behind — a maximized window cannot be resized — and
+/// when the dashboard comes back it has to be maximized again, or the user
+/// is left with a window in the corner of a screen they had filled.
+///
+/// The state is held in a mutex rather than in managed state because the
+/// window commands are called from the command handlers, and a `Mutex` is
+/// the simplest thing that can be shared with them without threading a
+/// handle through every call.
+static STATE: Mutex<MiniState> = Mutex::new(MiniState::new());
+
+/// The state the mini-mode transition carries between the two halves.
+#[derive(Debug, Clone, Copy)]
+struct MiniState {
+  /// Whether the window was maximized before it became the widget.
+  was_maximized: bool,
+
+  /// Whether the window is currently the widget rather than the dashboard.
+  ///
+  /// This is what makes the remembered maximized state trustworthy: it is
+  /// captured on the *transition* into mini mode, and a repeated request to
+  /// enter mini mode is not a transition, so it must not capture anything.
+  is_mini: bool,
+}
+
+impl MiniState {
+  /// The state before anything has happened: a dashboard that was not
+  /// maximized, and a window that is not the widget.
+  const fn new() -> Self {
+    Self {
+      was_maximized: false,
+      is_mini: false,
+    }
+  }
+
+  /// Captures the maximized state on the way into mini mode.
+  ///
+  /// The capture happens only on a genuine transition, so a repeated
+  /// request cannot overwrite a remembered `true` with the `false` that a
+  /// widget reports for itself, and a user who un-maximizes the dashboard
+  /// by hand is still remembered as they left it.
+  fn capture(&mut self, maximized: bool) {
+    if self.is_mini {
+      return;
+    }
+
+    self.was_maximized = maximized;
+    self.is_mini = true;
+  }
+
+  /// Marks the window as the dashboard again, so the next entry into mini
+  /// mode captures the maximized state afresh.
+  fn clear(&mut self) {
+    self.is_mini = false;
+  }
+
+  /// Whether the dashboard should come back maximized.
+  fn was_maximized(&self) -> bool {
+    self.was_maximized
+  }
+}
+
+/// Whether the window is currently maximized.
+///
+/// A window that cannot answer is assumed *not* to be maximized, because
+/// the restore path is the safe one: a window that is merely large is
+/// perfectly usable, while a maximized widget is a bug.
+fn is_maximized<R: Runtime>(window: &tauri::WebviewWindow<R>) -> bool {
+  window.is_maximized().unwrap_or(false)
+}
+
+/// Captures the maximized state on the way into mini mode.
+fn capture_maximized<R: Runtime>(window: &tauri::WebviewWindow<R>) {
+  if let Ok(mut state) = STATE.lock() {
+    state.capture(is_maximized(window));
+  }
+}
+
+/// Marks the window as the dashboard again.
+fn clear_maximized() {
+  if let Ok(mut state) = STATE.lock() {
+    state.clear();
+  }
+}
+
+/// Whether the dashboard should come back maximized.
+fn was_maximized() -> bool {
+  STATE.lock().map(|state| state.was_maximized()).unwrap_or(false)
 }
 
 /// The work area of the screen the window is on, in *physical* pixels.
@@ -232,6 +338,16 @@ pub fn apply<R: Runtime>(app: &AppHandle<R>, request: &MiniModeRequest) -> Resul
   let width = request.width.clamp(1.0, MAX_MINI_WIDTH);
   let height = request.height.clamp(1.0, MAX_MINI_HEIGHT);
 
+  // The maximized state is captured *before* the window is unmaximized,
+  // because a maximized window cannot be resized, and the dashboard is
+  // expected to come back the way the user had it.
+  capture_maximized(&window);
+  if is_maximized(&window) {
+    window
+      .unmaximize()
+      .map_err(|error| error.to_string())?;
+  }
+
   window
     .set_decorations(false)
     .map_err(|error| error.to_string())?;
@@ -305,13 +421,29 @@ fn leave<R: Runtime>(
   // frontend is the side that knows the display's scale factor. The window
   // is centred again: a widget that was in the bottom right corner must
   // not leave the dashboard stranded there.
-  let width = request.restore_width.clamp(1.0, MAX_MINI_WIDTH);
-  let height = request.restore_height.clamp(1.0, MAX_MINI_HEIGHT);
+  let width = request.restore_width.clamp(1.0, MAX_DASHBOARD_WIDTH);
+  let height = request.restore_height.clamp(1.0, MAX_DASHBOARD_HEIGHT);
 
   window
     .set_size(PhysicalSize::new(width as u32, height as u32))
     .map_err(|error| error.to_string())?;
   window.center().map_err(|error| error.to_string())?;
+
+  // The dashboard comes back maximized if it was maximized before, because
+  // the app starts full-size and the user expects the window they had.
+  //
+  // The size is set *first* and the maximization second: maximizing
+  // overrides the size, so the other order would leave the window filling
+  // the screen anyway, but the centering would be the last thing to
+  // happen and the window would land slightly off-centre.
+  if was_maximized() {
+    window.maximize().map_err(|error| error.to_string())?;
+  }
+
+  // The window is the dashboard again, so the next entry into mini mode
+  // captures the maximized state afresh rather than reusing this one.
+  clear_maximized();
+
   window.show().map_err(|error| error.to_string())?;
   window.set_focus().map_err(|error| error.to_string())?;
 
@@ -372,6 +504,86 @@ mod tests {
   fn the_default_corner_is_the_bottom_right() {
     // The bottom right is the corner that is out of the way.
     assert_eq!(MiniCorner::default(), MiniCorner::BottomRight);
+  }
+
+  #[test]
+  fn the_dashboard_is_not_clamped_to_the_widgets_bounds() {
+    // The widget is at most 640 wide, but the dashboard is 1180 by 820 and
+    // must be restored at that size. Clamping the restore to the widget's
+    // bound would leave the dashboard in a corner of the screen the user
+    // had filled.
+    assert!(MAX_DASHBOARD_WIDTH > MAX_MINI_WIDTH);
+    assert!(MAX_DASHBOARD_HEIGHT > MAX_MINI_HEIGHT);
+
+    let width = 1180.0_f64.clamp(1.0, MAX_DASHBOARD_WIDTH);
+    let height = 820.0_f64.clamp(1.0, MAX_DASHBOARD_HEIGHT);
+
+    assert_eq!(width, 1180.0);
+    assert_eq!(height, 820.0);
+  }
+
+  #[test]
+  fn the_dashboard_is_still_bounded() {
+    // The bound exists to stop a malformed request from producing a window
+    // nobody can use, so it still applies to the dashboard.
+    let width = 100_000.0_f64.clamp(1.0, MAX_DASHBOARD_WIDTH);
+    let height = 100_000.0_f64.clamp(1.0, MAX_DASHBOARD_HEIGHT);
+
+    assert_eq!(width, MAX_DASHBOARD_WIDTH);
+    assert_eq!(height, MAX_DASHBOARD_HEIGHT);
+  }
+
+  #[test]
+  fn the_maximized_state_is_remembered_across_the_transition() {
+    // The capture is a transition: it happens on the way *into* mini mode
+    // and is cleared on the way out, so the dashboard comes back the way the
+    // user had it.
+    let mut state = MiniState::new();
+    assert!(!state.was_maximized());
+
+    // A dashboard that was maximized comes back maximized.
+    state.capture(true);
+    assert!(state.was_maximized());
+
+    // The window is the dashboard again, so the next entry captures the
+    // state afresh.
+    state.clear();
+    state.capture(false);
+    assert!(!state.was_maximized());
+  }
+
+  #[test]
+  fn a_dashboard_that_was_not_maximized_does_not_come_back_maximized() {
+    let mut state = MiniState::new();
+
+    state.capture(false);
+    assert!(!state.was_maximized());
+  }
+
+  #[test]
+  fn a_repeated_entry_does_not_overwrite_the_remembered_state() {
+    // The window is already a widget when a second request arrives, and a
+    // widget reports itself as not maximized. If that were captured, the
+    // dashboard would come back smaller than the user had it.
+    let mut state = MiniState::new();
+    state.capture(true);
+
+    // The second capture is ignored because the window is already the
+    // widget.
+    state.capture(false);
+    assert!(state.was_maximized());
+  }
+
+  #[test]
+  fn a_user_who_unmaximizes_by_hand_is_remembered_as_they_left_it() {
+    // The window is the dashboard again, so the next capture is a genuine
+    // transition and does reflect what the user did.
+    let mut state = MiniState::new();
+    state.capture(true);
+    state.clear();
+
+    state.capture(false);
+    assert!(!state.was_maximized());
   }
 
   #[test]

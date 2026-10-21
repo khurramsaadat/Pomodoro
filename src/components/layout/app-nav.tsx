@@ -1,10 +1,10 @@
-import { BarChart3, ListTodo, Settings, Timer } from 'lucide-react';
+import { BarChart3, ListTodo, Settings } from 'lucide-react';
 
 import { TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { cn } from '@/lib/utils';
 
 /**
- * The navigation bar: the four workspaces, pinned to the bottom of the
+ * The navigation bar: the three workspaces, pinned to the bottom of the
  * window.
  *
  * **The bar is a tab list, not a set of links.** The workspaces are
@@ -18,8 +18,8 @@ import { cn } from '@/lib/utils';
  * scrolls under the bar rather than pushing it away.
  *
  * The labels are hidden on a narrow screen and the icons carry the
- * meaning, because a phone-width bar has room for four icons and not for
- * four words. The accessible name is still there either way — the label is
+ * meaning, because a phone-width bar has room for three icons and not for
+ * three words. The accessible name is still there either way — the label is
  * in the DOM, not merely painted.
  */
 export function AppNav() {
@@ -42,15 +42,6 @@ export function AppNav() {
         <ListTodo />
         <span className="hidden sm:inline">Tasks</span>
         <span className="sr-only sm:hidden">Tasks</span>
-      </TabsTrigger>
-
-      <TabsTrigger
-        value="session"
-        className="text-muted-foreground data-[state=active]:text-primary data-[state=active]:bg-accent flex-col gap-1 rounded-lg px-2 py-1.5 text-xs"
-      >
-        <Timer />
-        <span className="hidden sm:inline">Session</span>
-        <span className="sr-only sm:hidden">Session</span>
       </TabsTrigger>
 
       <TabsTrigger

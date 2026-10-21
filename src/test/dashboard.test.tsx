@@ -58,14 +58,17 @@ describe('Dashboard layout', () => {
     expect(screen.getByTestId('dashboard-clock')).toBeInTheDocument();
   });
 
-  it('shows the session settings in the workspace column', async () => {
+  it('shows the session settings in the settings workspace', async () => {
     const user = userEvent.setup();
     renderApp();
 
     const workspace = screen.getByTestId('dashboard-workspace');
 
-    await user.click(screen.getByRole('tab', { name: /session/i }));
+    await user.click(screen.getByRole('tab', { name: /settings/i }));
 
+    // The session settings are part of the settings rather than a
+    // workspace of their own, so they are found where the user goes to
+    // look for settings.
     expect(workspace).toHaveTextContent('Session settings');
   });
 
@@ -111,18 +114,27 @@ describe('The navigation bar', () => {
     resetTimerStore();
   });
 
-  it('holds the four workspaces', () => {
+  it('holds the three workspaces', () => {
     renderApp();
 
     const nav = screen.getByTestId('app-nav');
 
-    expect(within(nav).getByRole('tab', { name: /session/i })).toBeInTheDocument();
     expect(within(nav).getByRole('tab', { name: /tasks/i })).toBeInTheDocument();
     expect(within(nav).getByRole('tab', { name: /stats/i })).toBeInTheDocument();
     expect(within(nav).getByRole('tab', { name: /settings/i })).toBeInTheDocument();
   });
 
-  it('offers the queue before the session', () => {
+  it('has no session workspace', () => {
+    renderApp();
+
+    const nav = screen.getByTestId('app-nav');
+
+    // The session settings moved into the settings workspace, so the
+    // bar no longer offers a tab of its own for them.
+    expect(within(nav).queryByRole('tab', { name: /session/i })).not.toBeInTheDocument();
+  });
+
+  it('offers the queue before the statistics', () => {
     renderApp();
 
     const nav = screen.getByTestId('app-nav');
@@ -130,10 +142,10 @@ describe('The navigation bar', () => {
     // The queue is the question the user asks most often, so it comes
     // first. "Before" is a fact about the document order.
     const tasks = within(nav).getByRole('tab', { name: /tasks/i });
-    const session = within(nav).getByRole('tab', { name: /session/i });
+    const stats = within(nav).getByRole('tab', { name: /stats/i });
 
     expect(
-      tasks.compareDocumentPosition(session) & Node.DOCUMENT_POSITION_FOLLOWING,
+      tasks.compareDocumentPosition(stats) & Node.DOCUMENT_POSITION_FOLLOWING,
     ).toBeTruthy();
   });
 

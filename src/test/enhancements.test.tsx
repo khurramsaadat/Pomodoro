@@ -1,15 +1,27 @@
 import { act, render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { beforeEach, describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import App from '@/App';
 import { ThemeProvider } from '@/components/layout/theme-provider';
 import { defaultConfig } from '@/domain/presets';
 import { createInitialState } from '@/domain/timer';
+import { playChime } from '@/lib/audio';
 import { useHistoryStore } from '@/store/history-store';
 import { usePreferencesStore } from '@/store/preferences-store';
 import { useTaskStore } from '@/store/task-store';
 import { useTimerStore } from '@/store/timer-store';
+
+// The audio is mocked because jsdom has no Web Audio API, and because the
+// picker playing the chosen sound is exactly what these tests are about.
+vi.mock('@/lib/audio', async (importOriginal) => {
+  const actual = await importOriginal<Record<string, unknown>>();
+
+  return {
+    ...actual,
+    playChime: vi.fn(),
+  };
+});
 
 /**
  * These tests cover the enhancements built on top of the working app: the
@@ -26,6 +38,8 @@ function renderApp() {
 }
 
 function resetStores(): void {
+  vi.mocked(playChime).mockClear();
+
   useTimerStore.setState({
     state: createInitialState(defaultConfig()),
     config: defaultConfig(),
@@ -135,7 +149,7 @@ describe('The sound picker', () => {
     await user.click(screen.getByRole('tab', { name: /settings/i }));
 
     const group = screen.getByRole('radiogroup', { name: 'Completion sound' });
-    expect(within(group).getAllByRole('radio')).toHaveLength(5);
+    expect(within(group).getAllByRole('radio')).toHaveLength(4);
   });
 
   it('records the chosen sound', async () => {
@@ -146,6 +160,20 @@ describe('The sound picker', () => {
     await user.click(screen.getByRole('radio', { name: 'Bell' }));
 
     expect(usePreferencesStore.getState().preferences.completionSound).toBe('bell');
+  });
+
+  it('plays the sound as soon as it is chosen', async () => {
+    const user = userEvent.setup();
+    renderApp();
+    await user.click(screen.getByRole('tab', { name: /settings/i }));
+
+    // The preview used to be a separate button. Choosing a sound now
+    // plays it, so the user hears the choice rather than reading it.
+    expect(screen.queryByRole('button', { name: /preview/i })).not.toBeInTheDocument();
+
+    await user.click(screen.getByRole('radio', { name: 'Bell' }));
+
+    expect(playChime).toHaveBeenCalledWith(expect.objectContaining({ sound: 'bell' }));
   });
 
   it('is hidden when the sound is turned off', async () => {

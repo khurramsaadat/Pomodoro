@@ -167,15 +167,18 @@ describe('The daily goal', () => {
     expect(within(workspace).getByText('0 of 8 focus sessions today')).toBeInTheDocument();
   });
 
-  it('sits above the tabs, so it is true whichever tab is open', () => {
+  it('sits below the task queue, so the work comes before the progress', () => {
     renderApp();
 
     const workspace = screen.getByTestId('dashboard-workspace');
     const goal = within(workspace).getByText('Daily goal');
     const queue = within(workspace).getByText('Task queue');
 
+    // The queue is *what* the user is working on and the goal is *how far*
+    // they have got, so the progress bar answers a question about the work
+    // and therefore comes after it.
     expect(
-      goal.compareDocumentPosition(queue) & Node.DOCUMENT_POSITION_FOLLOWING,
+      queue.compareDocumentPosition(goal) & Node.DOCUMENT_POSITION_FOLLOWING,
     ).toBeTruthy();
   });
 });
@@ -372,6 +375,19 @@ describe('The keyboard shortcuts', () => {
     const dialog = await screen.findByRole('dialog');
     expect(dialog).toHaveTextContent('Keyboard shortcuts');
     expect(dialog).toHaveTextContent('Start or pause the timer');
+  });
+
+  it('is listed in the settings panel', async () => {
+    const user = userEvent.setup();
+    renderApp();
+
+    await user.click(screen.getByRole('tab', { name: /settings/i }));
+
+    // The settings tab is where a user goes to find out what the app can
+    // do, so the shortcuts are listed there as well as in the dialog.
+    const workspace = screen.getByTestId('dashboard-workspace');
+    expect(workspace).toHaveTextContent('Keyboard shortcuts');
+    expect(workspace).toHaveTextContent('Start or pause the timer');
   });
 });
 

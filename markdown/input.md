@@ -334,6 +334,71 @@ to miss the deadline stayed silent. The alarm now plays the cue too, and
 the two are de-duplicated by the *deadline*, which is the one thing they
 agree on.
 
+---
+
+## 15. The brand, the navigation, the settings, the sound, the window
+
+> "remove the session tab and the session header. move the session settings
+> into the settings tab before the sound selection and expose the keyboard
+> shortcuts there."
+
+> "remove marimba and immediately preview the selected completion sound."
+
+> "start the tauri app full-size while preserving the runtime mini-mode
+> transitions and their persistence."
+
+> "show the task queue before the daily goal on the dashboard."
+
+> "use the app icon for the favicon, the navbar, the web manifest and the
+> regenerated tauri icons."
+
+Six requests, and they are one request: the app should look like a
+finished product rather than a collection of parts.
+
+**The brand.** The app had a tomato drawing in `public/app-icon.svg` and a
+generic clock glyph in the header. The drawing is now *the* mark — the
+favicon, the header, the manifest and the regenerated Tauri icons all come
+from it — so the browser tab, the taskbar entry and the installed
+application are recognisably the same thing.
+
+**The navigation.** The Session tab held a single card, which made it a
+destination the user had to *learn* in order to find a setting. It is gone,
+and the session settings are the first card in Settings, above the sound
+picker, where the user already goes looking for settings. The bar is now
+Tasks, Stats and Settings.
+
+**The shortcuts.** The list was only in a small icon in the corner of the
+header. It is now in the settings panel as well, drawn by the same
+component, because a shortcut the user cannot discover is a shortcut they
+will never use.
+
+**The sound.** The *Preview* button asked the user to do a second thing
+after making a choice. Choosing a sound now plays it, so the sound they
+hear is the sound they picked — and the separate button is gone. Marimba
+went with it: the catalogue is Chime, Bell, Pulse and Digital.
+
+**The window.** The desktop app opened at a fixed size in the middle of the
+screen. It now opens maximized, and the maximized state is remembered
+across the mini-mode transition — a maximized window cannot be resized, so
+without that the widget could not have been created and the dashboard could
+not have come back the way the user had it.
+
+Two defects turned up in the code this touched, and they are worth
+recording because neither would have been visible in a browser. The
+dashboard was being restored at the *widget's* maximum size — 640 by 640
+instead of the 1180 by 820 it asked for — because both were clamped by
+the same constant, whose name says it guards the widget. And the
+maximized state was captured on every request to enter mini mode, so a
+second request saw a widget, which reports itself as not maximized, and
+replaced a remembered *yes* with a *no*. A request is not a transition;
+capturing on the change is the difference between remembering the state
+and overwriting it.
+
+**The dashboard.** The daily goal moved below the task queue. The queue is
+*what* the user is working on and the goal is *how far* they have got, so
+the progress bar answers a question about the work and therefore belongs
+after it.
+
 
 
 

@@ -1,6 +1,7 @@
 import { useId } from 'react';
-import { Settings } from 'lucide-react';
+import { Keyboard, Settings } from 'lucide-react';
 
+import { ShortcutList } from '@/components/layout/shortcut-list';
 import { BackupControls } from '@/components/settings/backup-controls';
 import { SoundPicker } from '@/components/settings/sound-picker';
 import { Button } from '@/components/ui/button';
@@ -88,6 +89,27 @@ export function PreferencesPanel({ className }: PreferencesPanelProps) {
           that will not be played is a setting that does nothing.
         */}
         {preferences.soundEnabled ? <SoundPicker /> : null}
+
+        {/*
+          The shortcuts are a *reference*, not a control, but they are
+          listed here as well as in the header's dialog: the settings tab
+          is where a user goes to find out what the app can do, and a
+          shortcut that is only in a small icon in the corner is a shortcut
+          most people never find.
+        */}
+        <div className="flex flex-col gap-2 border-t pt-4">
+          <div className="flex flex-col gap-0.5">
+            <h3 className="flex items-center gap-2 text-sm font-medium">
+              <Keyboard className="size-3.5" aria-hidden="true" />
+              Keyboard shortcuts
+            </h3>
+            <span className="text-muted-foreground text-xs">
+              The shortcuts are ignored while you are typing in a field.
+            </span>
+          </div>
+
+          <ShortcutList />
+        </div>
 
         {/*
           The always-on-top control is native-only. A browser tab has no

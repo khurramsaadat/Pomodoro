@@ -62,7 +62,8 @@ than no timer at all.
 | FR-15 | The mini timer's corner and offset survive a reload and a resize | Must |
 | FR-16 | The footer is a single line and carries `© 2006 Pomodoro by Khurram` | Must |
 | FR-50 | The mini window can be moved by the user, on the desktop tier | Must — **met** |
-| FR-51 | The four workspaces sit in a bar pinned to the bottom of the window | Must — **met** |
+| FR-51 | The three workspaces sit in a bar pinned to the bottom of the window | Must — **met** |
+| FR-52 | The desktop window opens full-size, and the mini-mode transition still works | Must — **met** |
 
 ### 4.1a The native tier
 
@@ -106,12 +107,15 @@ than no timer at all.
 | FR-26 | `showCompletedTasks` controls queue visibility | Must |
 | FR-27 | `confirmBeforeClearing` guards the destructive actions | Must |
 | FR-28 | `autoAdvanceTask` has a settings toggle | Should — **met** |
-| FR-30 | The active task and the daily goal sit above the tabs, the daily goal under the task | Must — **met** |
+| FR-30 | The active task sits under the clock, and the daily goal sits under the task queue | Must — **met** |
 | FR-31 | A task's title and estimate can be edited after it is added | Should — **met** |
 | FR-32 | The session log is visible in the UI | Should — **met** |
 | FR-33 | The timer has keyboard shortcuts | Should — **met** |
 | FR-34 | The web build installs and works offline | Should — **met** |
-| FR-35 | The completion sound is chosen from a catalogue, and each one can be previewed | Must — **met** |
+| FR-35 | The completion sound is chosen from a catalogue, and choosing one plays it | Must — **met** |
+| FR-53 | The session settings live in the settings workspace, not one of their own | Must — **met** |
+| FR-54 | The keyboard shortcuts are listed in the settings panel as well as the dialog | Must — **met** |
+| FR-55 | The app's own mark is the favicon, the header brand, and the desktop icon | Must — **met** |
 | FR-36 | The completed tasks are a section of their own, not a tail of the queue | Must — **met** |
 | FR-37 | The session log comes before the statistics derived from it | Must — **met** |
 | FR-38 | The whole workspace can be exported to a file and restored from one | Must — **met** |
@@ -188,6 +192,46 @@ src-tauri/    Rust backend: commands, tray, alarm, window events
 
 ## 9. Release notes
 
+**One brand, one settings tab, and a window that fills the screen**
+
+- **The app has a mark of its own.** `public/app-icon.svg` — a tomato in
+  the app's teal, with gold leaves — is now the favicon, the header brand,
+  the web manifest icon and the desktop icon. The Tauri icons are
+  regenerated from it, so the installed application, the taskbar entry
+  and the browser tab are all recognisably the same thing. The generic
+  clock glyph in the header is gone.
+- **The Session tab is gone.** The session settings are now the first
+  card in the **Settings** tab, above the sound picker. A tab that held
+  a single card was a destination the user had to learn in order to find
+  a setting, and the settings tab is where they already go looking for
+  it. The navigation bar is now Tasks, Stats and Settings.
+- **The keyboard shortcuts are in the settings panel** as well as in the
+  header's dialog. The list is the same one, drawn by the same component:
+  a shortcut the user cannot discover is a shortcut they will never use,
+  and the settings panel is where a user goes to find out what the app can
+  do.
+- **Choosing a sound plays it.** The separate *Preview* button is gone,
+  because the sound you hear is now the sound you picked. **Marimba** has
+  been removed from the catalogue, leaving Chime, Bell, Pulse and
+  Digital.
+- **The desktop window opens full-size.** It is maximized on start-up,
+  and the maximized state is remembered across the mini-mode transition,
+  so the widget still replaces the dashboard and the dashboard comes back
+  the way the user had it.
+- **The dashboard comes back at its own size.** Leaving mini mode
+  restored the window at the *widget's* maximum — 640 by 640 — rather
+  than the 1180 by 820 the dashboard asks for, because the two sizes were
+  clamped by the same bound. They have their own bounds now, and a test
+  pins the fact.
+- **The remembered maximized state cannot overwrite itself.** It was
+  captured on every request to enter mini mode, and a widget reports
+  itself as not maximized, so a second request would have replaced a
+  remembered *yes* with a *no*. The capture is now a transition.
+- **The task queue comes before the daily goal.** The queue is *what* the
+  user is working on and the goal is *how far* they have got, so the
+  progress bar answers a question about the work and therefore comes
+  after it.
+
 **A cog, a strip under the clock, and a sound that is heard**
 
 - **The settings icon is now a cog.** The one in the navigation bar and the
@@ -208,10 +252,9 @@ src-tauri/    Rust backend: commands, tray, alarm, window events
   the app mid-session came back to a queue that had not moved. Both paths
   now go through one policy, and the catch-up credits each session to the
   task that was active *at the time of that session*.
-- **The queue comes first.** The navigation bar offers Tasks, Session,
-  Stats and Settings, and the app opens on Tasks: the queue is the
-  question the user asks most often, and its answer decides what the
-  session is for.
+- **The queue comes first.** The navigation bar leads with the queue, and
+  the app opens on it: the queue is the question the user asks most often,
+  and its answer decides what the session is for.
 - **The completion cue is heard when it should be.** A cue scheduled on a
   *suspended* audio context had its whole envelope laid out in the past,
   because the resume is asynchronous and the old code did not wait for it
@@ -239,7 +282,7 @@ src-tauri/    Rust backend: commands, tray, alarm, window events
   measured from the *monitor's* top left, but the operating system wants a
   position in the *virtual desktop*. The two are the same number on one
   screen, which is why the bug only appeared with two.
-- **The four workspaces move to a bar pinned to the bottom of the window**,
+- **The workspaces move to a bar pinned to the bottom of the window**,
   the way a phone's navigation bar is. The bar is outside the scrolling
   area, so the content scrolls under it rather than pushing it away. On a
   narrow screen it shows icons; the labels are still in the DOM, so the
@@ -268,11 +311,11 @@ src-tauri/    Rust backend: commands, tray, alarm, window events
 
 - The completion cue is no longer a fixed two-note chime. It is a **stack** —
   a body tone, a partial above it, and, for the struck sounds, a short
-  burst of noise that is the *transient* — in **five distinct shapes**:
-  Chime, Bell, Marimba, Pulse and Digital.
-- The sound is a **preference**, chosen in the settings panel, and every
-  option can be **previewed**. A sound the user has never heard is a sound
-  they cannot choose between.
+  burst of noise that is the *transient* — in **four distinct shapes**:
+  Chime, Bell, Pulse and Digital.
+- The sound is a **preference**, chosen in the settings panel, and choosing
+  an option **plays it**. A sound the user has never heard is a sound they
+  cannot choose between.
 - A finished **break** plays the next voice along from the chosen one, so
   the two phases are audibly different without a second setting.
 

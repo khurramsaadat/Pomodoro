@@ -73,17 +73,6 @@ export const CUES: Record<SoundId, Cue> = {
     noiseDuration: 0.06,
   },
 
-  // A short wooden mallet: quick, woody, and gone before it can grate.
-  marimba: {
-    layers: [
-      { wave: 'sine', frequency: 783.99, offset: 0, duration: 0.35, gain: 0.42 },
-      { wave: 'sine', frequency: 1174.66, offset: 0, duration: 0.2, gain: 0.14 },
-      { wave: 'sine', frequency: 1567.98, offset: 0.08, duration: 0.3, gain: 0.2 },
-    ],
-    noise: true,
-    noiseDuration: 0.04,
-  },
-
   // A muted electronic blip: a square wave with a quick fall.
   pulse: {
     layers: [

@@ -14,7 +14,7 @@
  */
 
 /** The identifier of a completion sound. */
-export type SoundId = 'chime' | 'bell' | 'marimba' | 'pulse' | 'digital';
+export type SoundId = 'chime' | 'bell' | 'pulse' | 'digital';
 
 /** One of the sounds the user can choose from. */
 export interface SoundOption {
@@ -36,11 +36,6 @@ export const SOUND_OPTIONS: readonly SoundOption[] = [
     id: 'bell',
     label: 'Bell',
     description: 'A struck bell with a long decay.',
-  },
-  {
-    id: 'marimba',
-    label: 'Marimba',
-    description: 'A short wooden mallet.',
   },
   {
     id: 'pulse',

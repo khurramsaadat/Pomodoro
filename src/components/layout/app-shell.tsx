@@ -1,4 +1,3 @@
-import { Timer } from 'lucide-react';
 import type * as React from 'react';
 
 import { ThemeToggle } from '@/components/layout/theme-toggle';
@@ -49,13 +48,19 @@ export function AppShell({ children, actions, nav, bare = false }: AppShellProps
         )}
       >
         <div className="mx-auto flex h-14 w-full max-w-7xl items-center gap-3 px-4 sm:px-6">
+          {/*
+            The brand is the app's own mark rather than a generic clock
+            glyph, so the window, the favicon and the installed desktop
+            icon are all recognisably the same thing.
+          */}
           <div className="flex items-center gap-2.5">
-            <span
-              className="bg-primary/10 text-primary flex size-8 items-center justify-center rounded-lg"
-              aria-hidden="true"
-            >
-              <Timer className="size-4.5" />
-            </span>
+            <img
+              src="/app-icon.svg"
+              alt=""
+              width={28}
+              height={28}
+              className="size-7 shrink-0 rounded-md"
+            />
             <span className="text-foreground text-base font-semibold tracking-tight">Pomodoro</span>
           </div>
 

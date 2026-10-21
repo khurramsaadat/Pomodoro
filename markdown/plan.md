@@ -600,6 +600,101 @@ tier's only cue when the window is hidden, so a silent notification is a
 timer that says nothing.
 
 ---
+---
+
+## Stage 18 - One brand, one settings tab, and a window that fills the screen
+
+**Commit:** the current commit.
+
+Six requests: the brand, the navigation, the session settings, the
+shortcuts, the sound, the maximized window, and the dashboard order.
+
+### The brand
+
+`public/app-icon.svg` was already the mark — a tomato in the app's teal,
+with gold leaves — but the header showed Lucide's generic clock glyph,
+the favicon was a second drawing (`public/favicon.svg`), and the Tauri
+icons were whatever the last build had produced.
+
+**One source, four consumers.** The favicon, the header, the web
+manifest and the service worker's cache list now all point at
+`public/app-icon.svg`, and the Tauri icons are regenerated from it. The
+old `public/favicon.svg` is deleted rather than left as a second,
+competing mark.
+
+**Why the header matters.** The header's glyph is the app's face in the
+one place the user looks at all times. A generic clock says "a timer";
+the tomato says "this timer".
+
+### The navigation
+
+The Session tab is gone. It held a single card, which made it a
+destination the user had to *learn* in order to find a setting — the
+worst kind of tab, because a tab that always exists is a promise that
+there is something in it.
+
+The session settings are now the first card in **Settings**, above the
+sound picker, and the bar offers Tasks, Stats and Settings. The session
+card and the settings card are separate components, so the move was a
+matter of where they are rendered, not of what they are.
+
+### The shortcuts in two places
+
+The shortcut list was only in a small icon in the corner of the header.
+It is now in the settings panel as well.
+
+**One component, two homes.** `ShortcutList` draws the list, and both
+the header dialog and the settings panel render it. The global shortcut
+(`Ctrl+Shift+Space`) is only listed where the host supports it, so the web
+tier does not advertise a key that does nothing.
+
+### The sound
+
+The *Preview* button asked the user to make a choice and then to make a
+second one. Choosing an option now plays it, so the sound the user hears
+is the sound they picked, and the button is gone. **Marimba** is removed
+from the catalogue, leaving Chime, Bell, Pulse and Digital.
+
+### The maximized window
+
+The desktop window opens maximized (`"maximized": true` in
+`tauri.conf.json`).
+
+**Why this needed the Rust side.** A maximized window cannot be resized,
+so `set_size` for the mini mode would have been refused by the host.
+`src-tauri/src/mini.rs` now unmaximizes *before* resizing into the
+widget, remembers whether the window was maximized, and restores that
+state when the dashboard comes back. The transition is unchanged; only
+the precondition is.
+
+**Two defects surfaced while doing it.** Both were in the code the
+change touched, and neither would have shown up in the browser.
+
+*The dashboard was restored at the widget's size.* The restore clamped
+the requested size with `MAX_MINI_WIDTH` and `MAX_MINI_HEIGHT` — the
+*widget's* bounds, 640 by 640 — so a dashboard asking for 1180 by 820
+came back 640 by 640. The two bounds now exist separately
+(`MAX_DASHBOARD_WIDTH` and `MAX_DASHBOARD_HEIGHT`), and a test pins the
+fact that the dashboard is restored at the size it asked for.
+
+*The remembered state could be overwritten by itself.* The maximized
+state was captured on every request to enter mini mode, but a widget
+reports itself as *not* maximized, so a second request would have
+replaced a remembered `true` with a `false` and the dashboard would have
+come back smaller than the user had it. The capture is now a
+*transition* — it happens when the window actually changes from the
+dashboard into the widget — and the rule lives in a `MiniState` struct
+that can be tested without a real window.
+
+### The dashboard order
+
+The daily goal moved below the task queue. The queue is *what* the user
+is working on; the goal is *how far* they have got. A progress bar
+answers a question about the work, so it belongs after the work.
+
+---
+
+
 
 | Stage | Tests | Typecheck | Lint | Build | Browser |
 |-------|-------|-----------|------|-------|---------|
@@ -620,8 +715,10 @@ timer that says nothing.
 | 15 | 349 / 28 files + 11 Rust | green | green | green | a backup is exported and imported through the real file input; a corrupt file is refused and the workspace is left alone |
 | 16 | 355 / 28 files + 15 Rust | green | green | green | the bar is pinned to the bottom of the window on both widths, with no horizontal scrollbar; the native mini window is dragged with a real mouse and moves with it |
 | 17 | 385 / 28 files + 15 Rust | green | green | green | the cue is scheduled after the context resumes, the alarm plays it too, the queue advances on the catch-up as well as live, and the strip names the next task |
+| 18 | 388 / 28 files + 21 Rust | green | green | green | the brand is the app's own mark in the header, the manifest and the favicon; the bar offers three workspaces; the settings panel carries the session settings and the shortcuts; choosing a sound plays it |
 
-**Current state:** 385 tests across 28 files and 15 Rust tests, typecheck,
+
+**Current state:** 388 tests across 28 files and 21 Rust tests, typecheck,
 lint, the production build and the native release build all clean.
 
 ---

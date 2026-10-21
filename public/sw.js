@@ -18,7 +18,7 @@
 const CACHE_NAME = 'pomodoro-v1';
 
 /** The shell that must be available for the app to start at all. */
-const SHELL = ['/', '/index.html', '/manifest.webmanifest', '/favicon.svg'];
+const SHELL = ['/', '/index.html', '/manifest.webmanifest', '/app-icon.svg'];
 
 self.addEventListener('install', (event) => {
   event.waitUntil(

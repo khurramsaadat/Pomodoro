@@ -50,7 +50,7 @@ const CLOCK_INTERVAL_MS = 60_000;
  * The order they are declared in is the order they are offered in, so the
  * type is the list.
  */
-type Workspace = 'tasks' | 'session' | 'stats' | 'settings';
+type Workspace = 'tasks' | 'stats' | 'settings';
 
 export default function App() {
   const miniEnabled = useMiniModeStore((store) => store.enabled);
@@ -83,7 +83,7 @@ export default function App() {
    * current one is kept.
    */
   const selectWorkspace = (value: string): void => {
-    if (value === 'tasks' || value === 'session' || value === 'stats' || value === 'settings') {
+    if (value === 'tasks' || value === 'stats' || value === 'settings') {
       setWorkspace(value);
     }
   };
@@ -203,34 +203,34 @@ export default function App() {
               }
             >
               {/*
-                The daily goal sits *above* the tabs, not inside one: the
-                day rolls over on its own, so the answer is true whichever
-                tab is open.
-
-                The task the user is working on does *not* live here any
-                more. It is under the clock, where the countdown is,
-                because the two are read together: the countdown says how
-                long is left, and the strip says on what.
-              */}
-              <DailyGoal
-                sessions={progress.sessions}
-                goal={progress.goal}
-                met={progress.met}
-              />
-
-              {/*
                 The tab *content* stays in the workspace column, and the tab
                 *list* has moved to the navigation bar at the bottom of the
                 window. Radix does not require the two to be siblings in
                 the DOM: the context is what connects them, and the context
                 is above both.
               */}
-              <TabsContent value="session" className="flex flex-col gap-4">
-                <TimerSettings />
-              </TabsContent>
-
               <TabsContent value="tasks" className="flex flex-col gap-4">
                 <TaskQueue />
+
+                {/*
+                  The queue comes first and the goal second.
+
+                  The queue is *what* the user is working on and the goal is
+                  *how far* they have got, so the second answers a question
+                  about the first. Putting the progress bar above the work
+                  would answer "how far have I got?" before the user has
+                  been told "doing what?".
+
+                  The task the user is working on does *not* live here any
+                  more. It is under the clock, where the countdown is,
+                  because the two are read together: the countdown says how
+                  long is left, and the strip says on what.
+                */}
+                <DailyGoal
+                  sessions={progress.sessions}
+                  goal={progress.goal}
+                  met={progress.met}
+                />
               </TabsContent>
 
               {/*
@@ -248,6 +248,18 @@ export default function App() {
               </TabsContent>
 
               <TabsContent value="settings" className="flex flex-col gap-4">
+                {/*
+                  The session settings live here rather than in a workspace
+                  of their own. A fourth tab for a single card was a
+                  destination the user had to learn in order to find a
+                  setting, and the settings tab is where they already go
+                  looking for it.
+
+                  They come *first* in the tab, because the session lengths
+                  are the settings that change what the app does, and the
+                  sound that follows is a preference about how it says so.
+                */}
+                <TimerSettings />
                 <PreferencesPanel />
               </TabsContent>
 
