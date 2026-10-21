@@ -41,6 +41,9 @@ re-propose them.
 | 28 | The completed tasks are visible | **Built** - a section of their own, not a tail of the queue |
 | 29 | The recent sessions are easy to find | **Built** - the log comes before the statistics derived from it |
 | 30 | Import and export | **Built** - a versioned file, validated on the way back in |
+| 31 | A mini window the user can actually move | **Fixed** - the drag permission was missing and the drag region could never have matched |
+| 32 | The mini window on a second monitor | **Fixed** - the placement is computed in the virtual desktop |
+| 33 | The workspaces in a bar at the bottom of the window | **Built** - a pinned navigation bar, outside the scrolling area |
 
 ---
 
@@ -335,6 +338,32 @@ Five cues is enough to choose between and few enough to remember. A user
 who wants a sound of their own would need an upload path, which is a
 different feature with a different risk: a file the app plays is a file the
 app has to trust.
+
+### 40. The navigation bar could carry a badge
+
+The bar now holds the four workspaces permanently, which makes it the one
+piece of chrome that is always on screen. That is a good place for a
+count: how many tasks are open, or how far the daily goal is. The daily
+goal bar is already in the workspace column and is the sort of number a
+badge would duplicate — so this is a suggestion, not a defect, and it is
+only worth doing if the workspace column ever stops showing the goal.
+
+### 41. The mini window could remember which screen it is on
+
+The position is now stored as a corner plus an offset, which is anchored to
+a *screen* but does not name it. A user with two monitors who drags the
+widget to the second one will find it back on the first after a restart,
+because the anchor is resolved against whichever screen the window is on
+when mini mode starts. Storing the screen's identity alongside the corner
+would make the placement mean what the user meant by it.
+
+### 42. The window could remember its size
+
+The dashboard is restored to a fixed 1180 by 820 when mini mode ends, and
+the window is centred. A user who has resized the window to fit a second
+monitor loses that when they open the mini timer and close it again. The
+backend already knows the size — it is one command to save and one to
+restore.
 
 ---
 

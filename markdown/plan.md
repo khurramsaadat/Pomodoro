@@ -459,6 +459,56 @@ recognised and refused rather than half-read.
 
 ---
 
+## Stage 16 - A movable mini window, and a navigation bar
+
+**Commit:** the current commit.
+
+The footer, the mini window's drag, and the workspace bar.
+
+**Why here:** the drag was reported as a missing feature and turned out to
+be two defects — a permission that was never granted and an attribute used
+in a way that could never have worked. Both were invisible from either
+side of the seam.
+
+**The decision: the bar is a `deep` drag region, and the controls opt out
+explicitly.** Tauri's drag script walks the click's composed path and stops
+at the first clickable element that is not itself a drag region. A bare
+attribute matches only the element carrying it, so in a bar made of
+buttons the drag could never have started. `deep` makes the whole subtree
+draggable, and `data-tauri-drag-region="false"` on the two control buttons
+keeps a click on them running the control rather than moving the window.
+
+**The decision: the capability file grants `core:window:allow-start-dragging`.**
+The drag script ends in a call to the `start_dragging` plugin command, and
+that command is not in `core:window:default` — so the ACL refused it and
+the attribute was a promise the app was not allowed to keep.
+
+**The decision: the placement is computed in the virtual desktop, not the
+monitor.** The anchor is measured from the monitor's top left, but
+`set_position` takes a position in the arrangement of screens. The two are
+the same number on one screen, which is why the bug was invisible until
+there were two. The arithmetic is now a pure function — `screen_position`
+— so it can be tested without a desktop.
+
+**The decision: the tab root moves above the shell.** The navigation bar is
+a tab list, so it has to be inside the tab root to know which tab is
+selected; the tab content has to stay in the workspace column. Radix
+connects them through context, not through the DOM, so the root now sits
+above the shell with `display: contents` and takes no part in the layout.
+
+**The shell became a fixed-height flex column** with a scrolling `main`,
+which is what lets the bar be *outside* the scroll area and therefore
+pinned to the bottom of the window.
+
+**What only a real native run found.** The unit tests could not see the
+ACL: `start_dragging` is refused or allowed by the host, and jsdom has no
+host. Attaching to the running app over the WebView2 debugging port and
+asking the host directly showed the command was denied before the fix and
+allowed after it, and a real Win32 mouse drag moved the window exactly as
+far as the mouse travelled.
+
+---
+
 | Stage | Tests | Typecheck | Lint | Build | Browser |
 |-------|-------|-----------|------|-------|---------|
 | 1 | green | green | green | green | shell renders |
@@ -476,8 +526,8 @@ recognised and refused rather than half-read.
 | 13 | 349 / 28 files + 11 Rust | green | green | green | the picker lists five sounds, the preview plays, and the cue shapes are asserted to be distinct |
 | 14 | 349 / 28 files + 11 Rust | green | green | green | the completed section is a section; the log card measures fully inside a 900-pixel viewport |
 | 15 | 349 / 28 files + 11 Rust | green | green | green | a backup is exported and imported through the real file input; a corrupt file is refused and the workspace is left alone |
+| 16 | 355 / 28 files + 15 Rust | green | green | green | the bar is pinned to the bottom of the window on both widths, with no horizontal scrollbar; the native mini window is dragged with a real mouse and moves with it |
 
-**Current state:** 349 tests across 28 files and 11 Rust tests, typecheck,
-lint, the production build, the native release build, and the installers
-(NSIS + MSI) all clean.
+**Current state:** 355 tests across 28 files and 15 Rust tests, typecheck,
+lint, the production build and the native release build all clean.
 

@@ -60,7 +60,9 @@ than no timer at all.
 | FR-13 | A draggable mini timer can dock in a viewport corner | Must |
 | FR-14 | The mini timer shares the one timer — it holds no countdown of its own | Must |
 | FR-15 | The mini timer's corner and offset survive a reload and a resize | Must |
-| FR-16 | The footer is a single line and carries `© 2006 Khurram` | Must |
+| FR-16 | The footer is a single line and carries `© 2006 Pomodoro by Khurram` | Must |
+| FR-50 | The mini window can be moved by the user, on the desktop tier | Must — **met** |
+| FR-51 | The four workspaces sit in a bar pinned to the bottom of the window | Must — **met** |
 
 ### 4.1a The native tier
 
@@ -182,6 +184,27 @@ src-tauri/    Rust backend: commands, tray, alarm, window events
   meaning on a phone.
 
 ## 9. Release notes
+
+**A movable mini window, and a navigation bar at the bottom**
+
+- **The mini window can now actually be moved.** It had a drag region and
+  looked draggable, but it was not, and there were two reasons. The
+  capability file did not grant Tauri's `start_dragging` command, so the
+  host refused the drag; and the drag region was *bare*, which only ever
+  matches a click on the element carrying it, so the buttons in the bar
+  swallowed the drag before it started. The bar is now a `deep` region and
+  the two control buttons opt out of it explicitly.
+- **A second monitor is handled.** The window was placed at an anchor
+  measured from the *monitor's* top left, but the operating system wants a
+  position in the *virtual desktop*. The two are the same number on one
+  screen, which is why the bug only appeared with two.
+- **The four workspaces move to a bar pinned to the bottom of the window**,
+  the way a phone's navigation bar is. The bar is outside the scrolling
+  area, so the content scrolls under it rather than pushing it away. On a
+  narrow screen it shows icons; the labels are still in the DOM, so the
+  controls keep their accessible names.
+- **The footer is now one line and one sentence**: `© 2006 Pomodoro by
+  Khurram`.
 
 **Always on top, and the end of hide-to-tray**
 

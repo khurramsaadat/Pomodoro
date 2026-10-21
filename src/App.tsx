@@ -1,9 +1,9 @@
 import { useEffect, useState } from 'react';
 import { Toaster, toast } from 'sonner';
-import { BarChart3, ListTodo, Settings2, Timer } from 'lucide-react';
 
-import { AppShell } from '@/components/layout/app-shell';
 import { AlwaysOnTopToggle } from '@/components/layout/always-on-top-toggle';
+import { AppNav } from '@/components/layout/app-nav';
+import { AppShell } from '@/components/layout/app-shell';
 import { Dashboard } from '@/components/layout/dashboard';
 import { ShortcutsDialog } from '@/components/layout/shortcuts-dialog';
 import { MiniModeToggle } from '@/components/mini/mini-mode-toggle';
@@ -19,7 +19,7 @@ import { SessionSummary } from '@/components/timer/session-summary';
 import { TimerEngineProvider } from '@/components/timer/timer-engine-provider';
 import { TimerPanel } from '@/components/timer/timer-panel';
 import { TimerSettings } from '@/components/timer/timer-settings';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Tabs, TabsContent } from '@/components/ui/tabs';
 import { dailyProgress } from '@/domain/history';
 import type { TimerPhase } from '@/domain/types';
 import { useMiniMode } from '@/hooks/use-mini-mode';
@@ -105,68 +105,67 @@ export default function App() {
   const overlayMini = miniEnabled;
 
   return (
-    <AppShell
-      bare={overlayMini}
-      actions={
-        <>
-          <ShortcutsDialog />
-          <AlwaysOnTopToggle />
-          <MiniModeToggle />
-        </>
-      }
-    >
-      {/*
-        The engine sits above the tabs on purpose. Radix unmounts the
-        content of an inactive tab, so hosting it inside the Focus panel
-        would stop the countdown whenever the user looked at the task
-        queue — and the mini widget would have nothing to show.
-      */}
-      <TimerEngineProvider onPhaseComplete={handlePhaseComplete}>
-        <h1 className="sr-only">Pomodoro timer</h1>
+    /*
+      The tab root sits *above* the shell, because the navigation bar has
+      to be inside the tab root to know which tab is selected — and the
+      bar is drawn at the bottom of the window, while the tab content is
+      in the workspace column.
 
-        {overlayMini ? null : (
-          <Dashboard
-            clock={
-              <div className="flex flex-col gap-3">
-                <TimerPanel />
-                <SessionSummary />
-              </div>
-            }
-          >
-            {/*
-              The task the user is working on and the daily goal sit *above*
-              the tabs, not inside one. Both are true whichever tab is open:
-              the queue moves on by itself, and the day rolls over on its own.
-              Putting them here means the answer is on screen while the
-              settings are being changed, which is when it matters.
-            */}
-            <ActiveTask task={activeTask} />
-            <DailyGoal
-              sessions={progress.sessions}
-              goal={progress.goal}
-              met={progress.met}
-            />
+      `display: contents` makes the root a no-op for layout: its children
+      are laid out as if they were the root's own children, so the shell
+      still fills the window and the bar still lands at the bottom.
+    */
+    <Tabs defaultValue="session" className="contents">
+      <AppShell
+        bare={overlayMini}
+        nav={<AppNav />}
+        actions={
+          <>
+            <ShortcutsDialog />
+            <AlwaysOnTopToggle />
+            <MiniModeToggle />
+          </>
+        }
+      >
+        {/*
+          The engine sits above the tabs on purpose. Radix unmounts the
+          content of an inactive tab, so hosting it inside the Focus panel
+          would stop the countdown whenever the user looked at the task
+          queue — and the mini widget would have nothing to show.
+        */}
+        <TimerEngineProvider onPhaseComplete={handlePhaseComplete}>
+          <h1 className="sr-only">Pomodoro timer</h1>
 
-            <Tabs defaultValue="session">
-              <TabsList className="w-full">
-                <TabsTrigger value="session">
-                  <Timer />
-                  Session
-                </TabsTrigger>
-                <TabsTrigger value="tasks">
-                  <ListTodo />
-                  Tasks
-                </TabsTrigger>
-                <TabsTrigger value="stats">
-                  <BarChart3 />
-                  Stats
-                </TabsTrigger>
-                <TabsTrigger value="settings">
-                  <Settings2 />
-                  Settings
-                </TabsTrigger>
-              </TabsList>
+          {overlayMini ? null : (
+            <Dashboard
+              clock={
+                <div className="flex flex-col gap-3">
+                  <TimerPanel />
+                  <SessionSummary />
+                </div>
+              }
+            >
+              {/*
+                The task the user is working on and the daily goal sit *above*
+                the tabs, not inside one. Both are true whichever tab is open:
+                the queue moves on by itself, and the day rolls over on its own.
+                Putting them here means the answer is on screen while the
+                settings are being changed, which is when it matters.
+              */}
+              <ActiveTask task={activeTask} />
+              <DailyGoal
+                sessions={progress.sessions}
+                goal={progress.goal}
+                met={progress.met}
+              />
 
+              {/*
+                The tab *content* stays in the workspace column, and the tab
+                *list* has moved to the navigation bar at the bottom of the
+                window. Radix does not require the two to be siblings in
+                the DOM: the context is what connects them, and the context
+                is above both.
+              */}
               <TabsContent value="session" className="flex flex-col gap-4">
                 <TimerSettings />
               </TabsContent>
@@ -192,32 +191,32 @@ export default function App() {
               <TabsContent value="settings" className="flex flex-col gap-4">
                 <PreferencesPanel />
               </TabsContent>
-            </Tabs>
 
-            {/*
-              The plan sits *below* the tabs rather than inside one, because
-              it is true whichever tab is open: it is the session the
-              current configuration describes, and the user wants to know
-              when the next break is due at the same time as they are
-              looking at the task queue.
-            */}
-            <SessionPlan state={timerState} config={timerConfig} />
-          </Dashboard>
-        )}
+              {/*
+                The plan sits *below* the tabs rather than inside one, because
+                it is true whichever tab is open: it is the session the
+                current configuration describes, and the user wants to know
+                when the next break is due at the same time as they are
+                looking at the task queue.
+              */}
+              <SessionPlan state={timerState} config={timerConfig} />
+            </Dashboard>
+          )}
 
-        {/*
-          The widget reads the shared engine, so it lives inside the
-          provider. On the web tier it is drawn over the page; on the
-          native tier the window itself is the widget, so the page draws
-          it edge to edge and nothing else.
-        */}
-        {miniEnabled ? (
-          <MiniTimer variant={hostOwnsTheWindow ? 'filling' : 'floating'} />
-        ) : null}
-      </TimerEngineProvider>
+          {/*
+            The widget reads the shared engine, so it lives inside the
+            provider. On the web tier it is drawn over the page; on the
+            native tier the window itself is the widget, so the page draws
+            it edge to edge and nothing else.
+          */}
+          {miniEnabled ? (
+            <MiniTimer variant={hostOwnsTheWindow ? 'filling' : 'floating'} />
+          ) : null}
+        </TimerEngineProvider>
 
-      <Toaster position="bottom-right" richColors closeButton />
-    </AppShell>
+        <Toaster position="bottom-right" richColors closeButton />
+      </AppShell>
+    </Tabs>
   );
 }
 

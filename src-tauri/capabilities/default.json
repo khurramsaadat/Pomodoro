@@ -9,6 +9,7 @@
     "core:default",
     "notification:default",
     "global-shortcut:default",
+    "core:window:allow-start-dragging",
     "allow-platform-info",
     "allow-set-alarm",
     "allow-clear-alarm",

@@ -129,6 +129,21 @@ pub fn work_area<R: Runtime>(window: &tauri::WebviewWindow<R>) -> WorkArea {
   }
 }
 
+/// Where the screen the window is on begins, in *physical* pixels.
+///
+/// This is the monitor's own position in the virtual desktop. It is the
+/// difference between "the top left of this screen" and "the top left of
+/// everything", and the two are very different numbers on a multi-monitor
+/// setup: a second monitor to the left of the first has a *negative* x.
+pub fn monitor_origin<R: Runtime>(window: &tauri::WebviewWindow<R>) -> PhysicalPosition<i32> {
+  window
+    .current_monitor()
+    .ok()
+    .flatten()
+    .map(|monitor| *monitor.position())
+    .unwrap_or(PhysicalPosition::new(0, 0))
+}
+
 /// The top-left corner of the mini window when it is anchored to `corner`.
 ///
 /// The right and bottom corners are measured from the far edge of the work
@@ -155,6 +170,37 @@ pub fn corner_anchor(
   };
 
   (x, y)
+}
+
+/// Where the window goes, in the coordinates the operating system wants.
+///
+/// The anchor is measured from the *monitor's* top left, but
+/// `set_position` takes a position in the *virtual desktop* — the whole
+/// arrangement of screens. On a single monitor the two are the same
+/// number, which is why this only ever goes wrong on a second screen: a
+/// monitor to the left of the primary one has a negative x, and a monitor
+/// above it has a negative y, and the widget would land off the edge of
+/// the desktop entirely.
+///
+/// The offset is applied before the origin is added, so a widget the user
+/// has nudged away from the corner comes back where they put it.
+pub fn screen_position(
+  corner: MiniCorner,
+  area_width: f64,
+  area_height: f64,
+  width: f64,
+  height: f64,
+  offset_x: f64,
+  offset_y: f64,
+  origin_x: i32,
+  origin_y: i32,
+) -> (i32, i32) {
+  let (x, y) = corner_anchor(corner, area_width, area_height, width, height);
+
+  let final_x = (x + offset_x).max(0.0) + origin_x as f64;
+  let final_y = (y + offset_y).max(0.0) + origin_y as f64;
+
+  (final_x as i32, final_y as i32)
 }
 
 /// Enters or leaves mini mode.
@@ -199,15 +245,32 @@ pub fn apply<R: Runtime>(app: &AppHandle<R>, request: &MiniModeRequest) -> Resul
     .set_size(PhysicalSize::new(width as u32, height as u32))
     .map_err(|error| error.to_string())?;
 
-  let (x, y) = corner_anchor(request.corner, area.width, area.height, width, height);
-
   // The offset from the corner is applied here, so a widget the user has
   // nudged away from the corner comes back where they put it.
-  let final_x = (x + request.offset_x).max(0.0);
-  let final_y = (y + request.offset_y).max(0.0);
+  //
+  // The anchor is measured from the *monitor's* top left, but
+  // `set_position` takes a position in the *virtual desktop* — the whole
+  // arrangement of screens. On a single monitor the two are the same
+  // number, which is why this bug only ever shows up on a second screen:
+  // a monitor to the left of the primary one has a negative x, and a
+  // monitor above it has a negative y, and the widget would land off the
+  // edge of the desktop entirely.
+  let origin = monitor_origin(&window);
+
+  let (final_x, final_y) = screen_position(
+    request.corner,
+    area.width,
+    area.height,
+    width,
+    height,
+    request.offset_x,
+    request.offset_y,
+    origin.x,
+    origin.y,
+  );
 
   window
-    .set_position(PhysicalPosition::new(final_x as i32, final_y as i32))
+    .set_position(PhysicalPosition::new(final_x, final_y))
     .map_err(|error| error.to_string())?;
 
   window.show().map_err(|error| error.to_string())?;
@@ -280,19 +343,18 @@ pub fn report_position<R: Runtime>(app: &AppHandle<R>) {
   // relative to the work area rather than to the screen as a whole. On a
   // multi-monitor setup the two are very different numbers.
   //
+  // This is the same frame of reference the placement uses — the anchor
+  // is measured from the monitor's top left too — so an offset reported
+  // here and an offset applied there mean the same thing.
+  //
   // Everything here is in *physical* pixels, which is what the frontend
   // needs: it is the side that knows the display's scale factor, and it
   // converts the numbers to logical ones itself.
-  let monitor_origin = window
-    .current_monitor()
-    .ok()
-    .flatten()
-    .map(|monitor| *monitor.position())
-    .unwrap_or(PhysicalPosition::new(0, 0));
+  let origin = monitor_origin(&window);
 
   let payload = MiniWindowPosition {
-    x: (position.x - monitor_origin.x) as f64,
-    y: (position.y - monitor_origin.y) as f64,
+    x: (position.x - origin.x) as f64,
+    y: (position.y - origin.y) as f64,
     area_width: area.width,
     area_height: area.height,
     width: size.width as f64,
@@ -326,6 +388,88 @@ mod tests {
 
     assert_eq!(x, 1000.0 - 240.0 - MINI_MARGIN);
     assert_eq!(y, 800.0 - 150.0 - MINI_MARGIN);
+  }
+
+  #[test]
+  fn the_window_lands_in_the_anchor_on_a_single_monitor() {
+    // With no other screen in the arrangement, the monitor's origin is the
+    // origin of the desktop, so the two frames of reference agree.
+    let (x, y) = screen_position(
+      MiniCorner::TopLeft,
+      1000.0,
+      800.0,
+      240.0,
+      150.0,
+      0.0,
+      0.0,
+      0,
+      0,
+    );
+
+    assert_eq!(x, MINI_MARGIN as i32);
+    assert_eq!(y, MINI_MARGIN as i32);
+  }
+
+  #[test]
+  fn the_window_lands_on_the_monitor_it_was_placed_on() {
+    // A second monitor to the left of the primary one has a negative x.
+    // The position the operating system wants is in the virtual desktop,
+    // so the window has to be placed at the monitor's own origin.
+    let (x, y) = screen_position(
+      MiniCorner::TopLeft,
+      1000.0,
+      800.0,
+      240.0,
+      150.0,
+      0.0,
+      0.0,
+      -1920,
+      0,
+    );
+
+    assert_eq!(x, -1920 + MINI_MARGIN as i32);
+    assert_eq!(y, MINI_MARGIN as i32);
+  }
+
+  #[test]
+  fn the_offset_is_measured_from_the_anchor_not_from_the_screen() {
+    // The offset is the distance from the *corner*, so it is added before
+    // the monitor's origin. Adding it afterwards would push the widget
+    // the wrong way on a monitor that is not at the origin.
+    let (x, y) = screen_position(
+      MiniCorner::TopLeft,
+      1000.0,
+      800.0,
+      240.0,
+      150.0,
+      30.0,
+      40.0,
+      -1920,
+      -100,
+    );
+
+    assert_eq!(x, -1920 + MINI_MARGIN as i32 + 30);
+    assert_eq!(y, -100 + MINI_MARGIN as i32 + 40);
+  }
+
+  #[test]
+  fn a_negative_offset_cannot_pull_the_window_past_the_anchor() {
+    // The offset is clamped at the anchor rather than at the edge of the
+    // virtual desktop: the window has to stay on its own screen.
+    let (x, y) = screen_position(
+      MiniCorner::TopLeft,
+      1000.0,
+      800.0,
+      240.0,
+      150.0,
+      -1000.0,
+      -1000.0,
+      0,
+      0,
+    );
+
+    assert_eq!(x, 0);
+    assert_eq!(y, 0);
   }
 
   #[test]

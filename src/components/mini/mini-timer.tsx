@@ -298,9 +298,21 @@ export function MiniTimer({ variant = 'floating' }: MiniTimerProps = {}) {
       role="region"
       aria-label="Mini timer"
     >
+      {/*
+        The bar is the widget's handle, and on the native tier it is what
+        the operating system drags.
+
+        `deep` is the important part. Tauri's drag script walks the click's
+        composed path and stops at the first *clickable* element that does
+        not carry the attribute — and every button in this bar is
+        clickable. A bare attribute only ever matches a click on the bar
+        itself, so the empty space between the buttons would drag the
+        window and the buttons would not. `deep` makes the whole subtree
+        draggable, and the buttons opt back out below.
+      */}
       <div
         className="bg-muted/40 flex items-center gap-1 border-b px-1.5 py-1"
-        data-tauri-drag-region
+        data-tauri-drag-region="deep"
       >
         <button
           type="button"
@@ -308,6 +320,12 @@ export function MiniTimer({ variant = 'floating' }: MiniTimerProps = {}) {
           onPointerMove={onPointerMove}
           onPointerUp={onPointerUp}
           onPointerCancel={onPointerUp}
+          // The handle is itself a drag region: it carries the attribute
+          // explicitly, so it is allowed to drag even though it is a
+          // button. It is `deep` rather than bare, because the grip is an
+          // SVG icon — and a click on the icon is not a click on the
+          // button, so a bare attribute would never match it.
+          data-tauri-drag-region="deep"
           className="text-muted-foreground hover:text-foreground flex cursor-grab touch-none items-center gap-1 px-1 py-0.5 text-[11px] font-medium active:cursor-grabbing"
           aria-label="Drag the mini timer"
           title="Drag to move"
@@ -328,6 +346,9 @@ export function MiniTimer({ variant = 'floating' }: MiniTimerProps = {}) {
             aria-label={isRunning ? 'Pause the mini timer' : 'Start the mini timer'}
             title={isRunning ? 'Pause' : 'Start'}
             className="size-6"
+            // The controls are *not* handles: a click on them must run
+            // the control, not move the window.
+            data-tauri-drag-region="false"
           >
             {isRunning ? <Pause className="size-3.5" /> : <Play className="size-3.5" />}
           </Button>
@@ -339,6 +360,7 @@ export function MiniTimer({ variant = 'floating' }: MiniTimerProps = {}) {
             aria-label="Close the mini timer"
             title="Close"
             className="text-muted-foreground size-6"
+            data-tauri-drag-region="false"
           >
             <X className="size-3.5" />
           </Button>

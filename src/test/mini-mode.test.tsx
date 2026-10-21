@@ -202,6 +202,43 @@ describe('Mini timer', () => {
     expect(useMiniModeStore.getState().position.corner).toBe('topRight');
   });
 
+  it('marks the bar as a drag region the host can grab', () => {
+    renderApp();
+
+    act(() => {
+      useMiniModeStore.getState().setEnabled(true);
+    });
+
+    const widget = screen.getByTestId('mini-timer');
+    const bar = widget.querySelector('[data-tauri-drag-region]');
+
+    // The bar is the widget's handle on the native tier: the host drags
+    // the *window*, and it only does that for a region it recognises.
+    expect(bar).not.toBeNull();
+
+    // `deep`, because every button in the bar is clickable, and Tauri's
+    // drag script stops at the first clickable element that is not itself
+    // a drag region. A bare attribute would only ever match a click on
+    // the bar itself, and the bar's children are all buttons.
+    expect(bar?.getAttribute('data-tauri-drag-region')).toBe('deep');
+  });
+
+  it('keeps the controls out of the drag region', () => {
+    renderApp();
+
+    act(() => {
+      useMiniModeStore.getState().setEnabled(true);
+    });
+
+    // A click on the play or close button has to run the control, not
+    // move the window. They opt out of the region explicitly.
+    const start = screen.getByRole('button', { name: /start the mini timer/i });
+    const close = screen.getByRole('button', { name: /close the mini timer/i });
+
+    expect(start.getAttribute('data-tauri-drag-region')).toBe('false');
+    expect(close.getAttribute('data-tauri-drag-region')).toBe('false');
+  });
+
   it('records the offset from the anchor when dropped away from the corner', () => {
     renderApp();
 

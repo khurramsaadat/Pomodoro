@@ -3,11 +3,21 @@ import type * as React from 'react';
 
 import { cn } from '@/lib/utils';
 
+/**
+ * The tab root.
+ *
+ * The root holds the *selected* tab, which is what connects the
+ * navigation bar to the tab content. Those two now live in different
+ * parts of the DOM — the bar at the bottom of the window, the content in
+ * the workspace column — so the root takes no part in the layout itself:
+ * `display: contents` removes it from the flow, and its children are laid
+ * out by whatever contains them.
+ */
 function Tabs({ className, ...props }: React.ComponentProps<typeof TabsPrimitive.Root>) {
   return (
     <TabsPrimitive.Root
       data-slot="tabs"
-      className={cn('flex flex-col gap-4', className)}
+      className={cn('contents', className)}
       {...props}
     />
   );

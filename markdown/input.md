@@ -212,4 +212,60 @@ should be the thing that is read first.
 in. A backup that cannot be restored is not a backup, and a backup that is
 restored *partly* without saying so is worse than one that is refused.
 
+---
+
+## 13. The footer, a movable mini window, and a bottom navigation bar
+
+> "replace footer "© 2006 Khurram · Focus deliberately. Break fully. · Tauri v2"
+> with © 2006 Pomodoro by Khurram"
+
+> "mini app: user can not move it on the screen. let user move it's location
+> on the screen."
+
+> "move this bar at the bottom of the window - fixed like navbar - session
+> tasks stats settings"
+
+Three changes, and the middle one turned out to be a defect rather than a
+feature.
+
+**The footer.** One line, one sentence, and no link: `© 2006 Pomodoro by
+Khurram`.
+
+**The mini window could not be moved.** It had a `data-tauri-drag-region`
+attribute and looked draggable, but it was not — and there were *two*
+reasons, either of which alone would have been enough.
+
+The first was the capability file. Tauri's drag script ends in a call to
+the `start_dragging` plugin command, and that command is not part of
+`core:window:default`, so the ACL refused it. The attribute was a promise
+the app was not allowed to keep.
+
+The second was the attribute itself. Tauri's script walks the click's
+composed path and stops at the first *clickable* element that is not itself
+a drag region — and every control in the bar is a button. A bare attribute
+only ever matches a click on the element that carries it, so the only
+thing that could have dragged the window was the bare space between the
+buttons.
+
+The bar is now a `deep` region, so the whole of it drags, and the two
+control buttons opt out with `data-tauri-drag-region="false"` so that a
+click on them still runs them.
+
+**A second monitor.** The window was placed using an anchor measured from
+the *monitor's* top left, but the operating system's `set_position` wants
+a position in the *virtual desktop*. On one screen the two are the same
+number, which is why the bug was invisible until there were two.
+
+**The navigation bar.** The four workspaces move to a bar pinned to the
+bottom of the window, the way a phone's navigation bar is. The bar is
+*outside* the scrolling area, so the content scrolls under it rather than
+pushing it away.
+
+That needed the tab root to move: the bar is a tab list, so it has to be
+inside the tab root to know which tab is selected, and the tab content has
+to stay in the workspace column. Radix does not require the two to be
+siblings in the DOM — the context is what connects them — so the root now
+sits above the shell and takes no part in the layout.
+
+
 
