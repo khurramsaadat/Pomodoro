@@ -399,6 +399,46 @@ and overwriting it.
 the progress bar answers a question about the work and therefore belongs
 after it.
 
+---
+
+## 16. The deprecation that was going to break the build
+
+> "Option 'baseUrl' is deprecated and will stop functioning in TypeScript
+> 7.0. Specify compilerOption '\"ignoreDeprecations\": \"6.0\"' to silence
+> this error."
+
+The error names two ways out. One of them is wrong.
+
+**`ignoreDeprecations` is the wrong fix.** It silences the warning in
+TypeScript 6 and does nothing at all in TypeScript 7, where the option is
+not deprecated but *removed*. Installing TypeScript 7.0.2 and compiling
+the project with `baseUrl` still in place gives:
+
+```
+error TS5102: Option 'baseUrl' has been removed. Please remove it from
+your configuration. Use '"paths": {"*": ["./*"]}' instead.
+```
+
+So the escape hatch would have bought a quiet build that fails the moment
+the toolchain is upgraded. The option is gone, not on notice.
+
+**`baseUrl` was never needed.** It is set to `.` in both `tsconfig.app.json`
+and `tsconfig.node.json`, and its only job there is to be the base that
+`paths` is resolved against. Since TypeScript 4.1, `paths` is resolved
+relative to the *tsconfig file* when there is no `baseUrl`, so the option
+is redundant as well as deprecated.
+
+The proof that nothing depended on it: every bare specifier in `src` is a
+real package — `clsx`, `react`, `react-dom/client`, `sonner`,
+`tailwind-merge`, `vitest`, `zustand` — and the 176 `@/…` imports all go
+through `paths`. There is no import anywhere that relies on `baseUrl` to
+find a file.
+
+**What was done.** `baseUrl` is removed from both tsconfigs and nothing
+else changes. The project compiles cleanly under the installed TypeScript
+5.9.3 *and* under TypeScript 7.0.2, with all 388 tests, the lint, and
+the production build green.
+
 
 
 

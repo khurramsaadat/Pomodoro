@@ -129,6 +129,7 @@ than no timer at all.
 | ID | Requirement | How it is met |
 |----|-------------|---------------|
 | NFR-1 | No `any`, no non-null assertions outside tests | `strict`, `noUncheckedIndexedAccess`, `exactOptionalPropertyTypes` |
+| NFR-9 | The project compiles under the current TypeScript *and* the next one | No deprecated compiler options; `baseUrl` removed, `paths` resolved relative to the tsconfig |
 | NFR-2 | The domain layer is pure — no React, DOM, or Tauri imports | `src/domain/**` is plain functions over plain data, exhaustively unit-tested |
 | NFR-3 | The web build contains no Tauri code | `@tauri-apps/api` may only be imported dynamically inside `src/platform/tauri.ts` |
 | NFR-4 | A corrupt or outdated payload can never crash the app | Every payload carries a schema version and is validated on read |
@@ -191,6 +192,22 @@ src-tauri/    Rust backend: commands, tray, alarm, window events
   meaning on a phone.
 
 ## 9. Release notes
+
+**The build no longer depends on a removed compiler option**
+
+- **`baseUrl` is gone from both tsconfigs.** TypeScript deprecated it in
+  6.0 and *removed* it in 7.0, where it is a hard error rather than a
+  warning. The escape hatch the compiler suggests — `"ignoreDeprecations":
+  "6.0"` — silences the message in 6.0 and does nothing in 7.0, so it
+  would have bought a quiet build that fails on the next toolchain
+  upgrade.
+- **Nothing depended on it.** `baseUrl` was set to `.` purely as the base
+  for `paths`, and since TypeScript 4.1 `paths` is resolved relative to
+  the tsconfig file when there is no `baseUrl`. Every bare import in the
+  source is a real package; the `@/…` alias goes through `paths`.
+- **Verified against both compilers.** The project compiles cleanly under
+  the installed TypeScript 5.9.3 and under TypeScript 7.0.2, with the
+  388 tests, the lint and the production build all green.
 
 **One brand, one settings tab, and a window that fills the screen**
 

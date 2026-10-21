@@ -694,6 +694,48 @@ answers a question about the work, so it belongs after the work.
 
 ---
 
+## Stage 19 - A compiler option that was going to break the build
+
+**Commit:** the current commit.
+
+The editor reported that `baseUrl` is deprecated and would stop working
+in TypeScript 7.0, and offered `ignoreDeprecations` as the way to
+silence it.
+
+**The suggested fix is the wrong fix.** `ignoreDeprecations` is a
+suppression flag, and it suppresses the *message*, not the problem. The
+option is removed in TypeScript 7.0, where it is a hard error:
+
+```
+error TS5102: Option 'baseUrl' has been removed. Please remove it from
+your configuration.
+```
+
+That was verified rather than assumed: TypeScript 7.0.2 was installed
+into a scratch directory and run against the project with `baseUrl` still
+present. Suppressing the warning would have produced a build that is
+quiet today and broken the day the toolchain is upgraded.
+
+**The option was redundant anyway.** `baseUrl` was set to `.` in both
+`tsconfig.app.json` and `tsconfig.node.json`, and its only purpose was
+to be the base that `paths` resolves against. Since TypeScript 4.1,
+`paths` is resolved relative to the *tsconfig file* when `baseUrl` is
+absent, so the two lines were doing nothing that the `paths` block does
+not already do.
+
+**What was checked before removing it.** Every bare specifier in `src`
+is a real package — `clsx`, `react`, `react-dom/client`, `sonner`,
+`tailwind-merge`, `vitest`, `zustand` — and the 176 `@/…` imports all
+go through `paths`. Nothing anywhere in the tree resolves a file through
+`baseUrl`.
+
+**The result.** `baseUrl` is removed from both tsconfigs and nothing
+else changes. The project compiles under the installed TypeScript 5.9.3
+and under TypeScript 7.0.2, with the 388 tests, the lint and the
+production build all green.
+
+---
+
 
 
 | Stage | Tests | Typecheck | Lint | Build | Browser |
@@ -716,6 +758,7 @@ answers a question about the work, so it belongs after the work.
 | 16 | 355 / 28 files + 15 Rust | green | green | green | the bar is pinned to the bottom of the window on both widths, with no horizontal scrollbar; the native mini window is dragged with a real mouse and moves with it |
 | 17 | 385 / 28 files + 15 Rust | green | green | green | the cue is scheduled after the context resumes, the alarm plays it too, the queue advances on the catch-up as well as live, and the strip names the next task |
 | 18 | 388 / 28 files + 21 Rust | green | green | green | the brand is the app's own mark in the header, the manifest and the favicon; the bar offers three workspaces; the settings panel carries the session settings and the shortcuts; choosing a sound plays it |
+| 19 | 388 / 28 files + 21 Rust | green | green | green | the project compiles under TypeScript 5.9.3 and under 7.0.2, with no deprecated compiler option left behind |
 
 
 **Current state:** 388 tests across 28 files and 21 Rust tests, typecheck,

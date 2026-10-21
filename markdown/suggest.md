@@ -58,6 +58,7 @@ re-propose them.
 | 45 | The daily goal sat above the task queue | **Built** - the queue comes first |
 | 46 | The dashboard came back at the widget's size | **Fixed** - the widget and the dashboard have their own bounds |
 | 47 | The remembered maximized state could overwrite itself | **Fixed** - the capture is a transition, and it is tested without a window |
+| 48 | `baseUrl` was a compiler option waiting to be removed | **Fixed** - removed; the project compiles under TypeScript 5.9.3 and 7.0.2 |
 
 ---
 
@@ -527,3 +528,15 @@ mini-mode transition and is already in that code.
   the second one saw a widget, which reports itself as not maximized.
   Capturing on the *change* rather than on the *request* is the
   difference between remembering the state and overwriting it.
+- **A deprecation warning is a claim about the future; read it.** The
+  compiler offered `ignoreDeprecations` as the way to silence the
+  `baseUrl` warning, and that flag suppresses the *message* rather than
+  the problem — the option is *removed* in TypeScript 7.0, where it is
+  a hard error. Installing the next version and reading what it actually
+  says takes ten minutes and is the difference between a build that is
+  quiet and a build that works.
+- **A suppression flag is not a fix.** It buys silence. The question to
+  ask is what the option was *for*, and whether the thing that needed it
+  still needs it — here, `baseUrl` was only ever the base for `paths`,
+  and `paths` has resolved relative to the tsconfig file since
+  TypeScript 4.1.
