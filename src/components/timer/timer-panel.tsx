@@ -10,6 +10,9 @@ import { useBreathing } from '@/hooks/use-reduced-motion';
 import { phaseColor } from '@/lib/phase';
 import { formatDuration } from '@/lib/time';
 import { cn } from '@/lib/utils';
+import { Target } from 'lucide-react';
+
+import { selectActiveTask, useTaskStore } from '@/store/task-store';
 import { useTimerStore } from '@/store/timer-store';
 
 export interface TimerPanelProps {
@@ -28,6 +31,7 @@ export interface TimerPanelProps {
 export function TimerPanel({ className }: TimerPanelProps) {
   const state = useTimerStore((store) => store.state);
   const config = useTimerStore((store) => store.config);
+  const activeTask = useTaskStore(selectActiveTask);
 
   const remaining = useRemaining();
   const { toggle, reset, skip } = useTimerEngine();
@@ -96,6 +100,34 @@ export function TimerPanel({ className }: TimerPanelProps) {
           onSkip={skip}
           accentColor={color}
         />
+
+        {/*
+          The task being worked on is a *mention*, not a card: one line
+          under the controls, where the eye already is when it starts or
+          pauses the session. The clock answers *how long is left*; this
+          line answers *on what*, and it does so without taking a strip of
+          the workspace to say it.
+        */}
+        <p
+          className="text-muted-foreground flex max-w-full min-w-0 items-center justify-center gap-1.5 text-xs"
+          data-testid="working-on"
+        >
+          <Target className="size-3.5 shrink-0" aria-hidden="true" />
+
+          {activeTask === null ? (
+            <span>No active task</span>
+          ) : (
+            <>
+              <span className="shrink-0">Working on</span>
+              <span
+                className="text-foreground max-w-[16rem] truncate font-medium"
+                title={activeTask.title}
+              >
+                {activeTask.title}
+              </span>
+            </>
+          )}
+        </p>
 
         <CycleIndicator total={cycle.total} completed={cycle.completed} color={color} />
       </CardContent>

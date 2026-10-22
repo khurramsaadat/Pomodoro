@@ -478,3 +478,19 @@ Delivered in the current commit.
 > please commit and push to my repo https://github.com/khurramsaadat/Pomodoro.git"
 
 Delivered in the current commit.
+
+---
+
+## 19. "Working on" moves to the workspace
+
+> "move the "working on" to the right pane above Daily goal. and show me in the loacalhost"
+
+Delivered in the working tree, shown on `http://localhost:3100/`.
+
+---
+
+## 20. The task line under the timer controls
+
+> "how about we remove the working on from the right pane and just mention it in the clock it self. below the play button."
+
+Delivered in the working tree, shown on `http://localhost:3100/`.

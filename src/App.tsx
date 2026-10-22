@@ -13,7 +13,6 @@ import { DailyGoal } from '@/components/stats/daily-goal';
 import { HistoryList } from '@/components/stats/history-list';
 import { StatsPanel } from '@/components/stats/stats-panel';
 import { TaskQueue } from '@/components/tasks/task-queue';
-import { WorkingOn } from '@/components/tasks/working-on';
 import { SessionSummary } from '@/components/timer/session-summary';
 import { TimerEngineProvider } from '@/components/timer/timer-engine-provider';
 import { TimerPanel } from '@/components/timer/timer-panel';
@@ -29,7 +28,6 @@ import { platform } from '@/platform';
 import { useHistoryStore } from '@/store/history-store';
 import { useMiniModeStore } from '@/store/mini-mode-store';
 import { usePreferencesStore } from '@/store/preferences-store';
-import { selectActiveTask, selectNextTask, useTaskStore } from '@/store/task-store';
 
 /** A human-readable message for each phase completion. */
 function completionMessage(phase: TimerPhase): string {
@@ -52,15 +50,8 @@ type Workspace = 'tasks' | 'stats' | 'settings';
 export default function App() {
   const miniEnabled = useMiniModeStore((store) => store.enabled);
 
-  const activeTask = useTaskStore(selectActiveTask);
   const entries = useHistoryStore((store) => store.entries);
   const dailyGoal = usePreferencesStore((store) => store.preferences.dailyGoal);
-  const autoAdvance = usePreferencesStore((store) => store.preferences.autoAdvanceTask);
-
-  // The task the queue would move on to. It is read through a selector
-  // that takes the preference, because the line is only shown when the
-  // move is really going to happen.
-  const nextTask = useTaskStore((store) => selectNextTask(store, autoAdvance));
 
   // The tab root owns the selection, and the "working on" strip under the
   // clock is a doorway into the queue. The selection is therefore held
@@ -80,10 +71,6 @@ export default function App() {
     if (value === 'tasks' || value === 'stats' || value === 'settings') {
       setWorkspace(value);
     }
-  };
-
-  const openTasks = (): void => {
-    setWorkspace('tasks');
   };
 
   // The clock lives in state rather than being read during render, so the
@@ -175,24 +162,6 @@ export default function App() {
                 <div className="flex flex-col gap-3">
                   <TimerPanel />
                   <SessionSummary />
-
-                  {/*
-                    What the user is working on, directly under the clock.
-
-                    The countdown answers *how long is left*; it does not
-                    answer *on what*. The strip is the answer to the second
-                    question, and it belongs where the eye already is every
-                    time it looks at the time.
-
-                    It is a button because the answer is a doorway: clicking
-                    it opens the queue, which is where the answer is
-                    changed.
-                  */}
-                  <WorkingOn
-                    task={activeTask}
-                    nextTask={nextTask}
-                    onOpen={openTasks}
-                  />
                 </div>
               }
             >
@@ -214,11 +183,6 @@ export default function App() {
                   about the first. Putting the progress bar above the work
                   would answer "how far have I got?" before the user has
                   been told "doing what?".
-
-                  The task the user is working on does *not* live here any
-                  more. It is under the clock, where the countdown is,
-                  because the two are read together: the countdown says how
-                  long is left, and the strip says on what.
                 */}
                 <DailyGoal
                   sessions={progress.sessions}

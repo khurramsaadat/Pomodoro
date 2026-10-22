@@ -58,19 +58,7 @@ function seedActiveTask(title: string, estimate: number): void {
   });
 }
 
-/**
- * Adds a task to the queue without making it the active one.
- *
- * It is used to put a *second* task in the queue, so the auto-advance has
- * somewhere to move to.
- */
-function seedTask(title: string, estimate: number): void {
-  act(() => {
-    useTaskStore.getState().addTask(title, estimate);
-  });
-}
-
-describe('The working-on strip under the clock', () => {
+describe('The task line under the timer controls', () => {
   beforeEach(() => {
     window.localStorage.clear();
     document.documentElement.classList.remove('dark');
@@ -84,75 +72,31 @@ describe('The working-on strip under the clock', () => {
     expect(within(clock).getByText('No active task')).toBeInTheDocument();
   });
 
-  it('shows the active task in the clock column', async () => {
-    const user = userEvent.setup();
+  it('names the active task in the clock, below the controls', () => {
     seedActiveTask('Write the report', 3);
 
     renderApp();
 
     const clock = screen.getByTestId('dashboard-clock');
-    expect(within(clock).getByText('Write the report')).toBeInTheDocument();
+    const workingOn = within(clock).getByTestId('working-on');
 
-    // The strip is outside the tab boundary, so it stays on screen.
-    await user.click(screen.getByRole('tab', { name: /stats/i }));
-    expect(within(clock).getByText('Write the report')).toBeInTheDocument();
-  });
+    expect(within(workingOn).getByText('Write the report')).toBeInTheDocument();
 
-  it('sits below the countdown', () => {
-    seedActiveTask('Write the report', 3);
-
-    renderApp();
-
-    const clock = screen.getByTestId('dashboard-clock');
-    const countdown = screen.getByTestId('timer-countdown');
-    const workingOn = within(clock).getByText('Working on');
-
-    // "Below the clock" is a fact about the document order, not about
-    // pixels.
+    // "Below the play button" is a fact about document order, not pixels.
+    const start = within(clock).getByRole('button', { name: /start timer/i });
     expect(
-      countdown.compareDocumentPosition(workingOn) & Node.DOCUMENT_POSITION_FOLLOWING,
+      start.compareDocumentPosition(workingOn) & Node.DOCUMENT_POSITION_FOLLOWING,
     ).toBeTruthy();
   });
 
-  it('shows the progress against the estimate', () => {
-    seedActiveTask('Write the report', 4);
-
-    renderApp();
-
-    const clock = screen.getByTestId('dashboard-clock');
-    expect(within(clock).getByText('0/4')).toBeInTheDocument();
-  });
-
-  it('opens the task queue when it is activated', async () => {
-    const user = userEvent.setup();
+  it('is no longer shown in the workspace', () => {
     seedActiveTask('Write the report', 3);
 
     renderApp();
 
-    await user.click(screen.getByTestId('working-on'));
-
-    // The strip is a doorway into the queue.
-    expect(screen.getByRole('tab', { name: /tasks/i })).toHaveAttribute('aria-selected', 'true');
-  });
-
-  it('names the next task when the queue is about to move on', () => {
-    seedActiveTask('Write the report', 1);
-    seedTask('Draft the summary', 2);
-
-    renderApp();
-
-    const clock = screen.getByTestId('dashboard-clock');
-    expect(within(clock).getByText('Draft the summary')).toBeInTheDocument();
-  });
-
-  it('names no next task when the queue is not moving on', () => {
-    seedActiveTask('Write the report', 3);
-
-    renderApp();
-
-    const clock = screen.getByTestId('dashboard-clock');
-    // Nothing is promised that the app is not going to do.
-    expect(within(clock).queryByText(/^Next:/)).not.toBeInTheDocument();
+    // The mention lives in the clock now; the right pane does not carry it.
+    const workspace = screen.getByTestId('dashboard-workspace');
+    expect(within(workspace).queryByTestId('working-on')).not.toBeInTheDocument();
   });
 });
 

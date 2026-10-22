@@ -67,6 +67,7 @@ re-propose them.
 | 54 | The data controls in one row | **Built** - export, import, both clears, and About |
 | 55 | Where the app keeps its data | **Built** - the About dialog, answered by the host rather than guessed |
 | 56 | The footer the desktop window never showed | **Fixed** - it is chrome now, a strip above the navigation bar, outside the scroll container |
+| 57 | "Working on" above the daily goal | **Superseded** - the card was replaced by a one-line mention under the timer controls |
 
 ---
 
@@ -565,6 +566,15 @@ mini-mode transition and is already in that code.
   "The end of the page" is a place the user has to travel to, and a
   dashboard is taller than a window. Chrome belongs outside the scroll
   area; only content belongs inside it.
+- **Moving a thing into a tab makes it the tab's thing.** The working-on
+  strip used to be permanent because it was outside the tab boundary; in
+  the workspace it was visible only on the Tasks tab. That is the
+  placement that was asked for, and it is worth saying out loud rather
+  than letting the user discover it on the statistics tab.
+- **If a status needs moving twice, it was probably a line.** The working-on
+  card carried a title, a count, a progress bar and a next-task line, and
+  every placement looked wrong because the thing was too big for its job.
+  One line under the controls says the only part that was missed.
 - **A bound named for one thing must not guard another.** The widget's
   maximum size was also clamping the dashboard's, so the dashboard came
   back at 640 by 640 instead of the 1180 by 820 it asked for — and the

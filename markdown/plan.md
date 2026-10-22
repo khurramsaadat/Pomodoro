@@ -874,6 +874,37 @@ not move.
 
 ---
 
+## Stage 22 - The task line under the timer controls
+
+**Commit:** the working tree (shown on the dev server at the user's request).
+
+Two requests, one outcome. First the working-on strip moved out of the clock
+and into the workspace, above the daily goal; then the user asked for it to
+be *removed* from the right pane and "just mentioned in the clock itself,
+below the play button". The second request is the one that shipped.
+
+**The decision: a mention, not a card.** The clock answers *how long is
+left*; the one thing it was missing is *on what*. A single line under the
+controls — the target glyph, the words *Working on*, and the task's title —
+answers it without taking a strip of the workspace to say it. The title
+truncates with the full value in `title`, so a long task cannot push the
+controls around.
+
+**What went with the card.** The progress bar, the *n/m* count and the
+"Next: …" line were part of the old strip, and they leave with it. The
+queue is one click away and already shows all three; repeating them in the
+clock was what made the strip large enough to be moved twice.
+
+**The consequence, stated plainly.** The line is inside the clock column,
+so it is permanent again — visible on every tab, like the countdown above
+it — which is the property the workspace placement had lost.
+
+**The tests pin the geometry.** The line is inside the clock, it comes after
+the controls in document order, it is absent from the workspace, and it
+says "No active task" when there is none.
+
+---
+
 | Stage | Tests | Typecheck | Lint | Build | Browser |
 |-------|-------|-----------|------|-------|---------|
 | 1 | green | green | green | green | shell renders |
@@ -897,10 +928,12 @@ not move.
 | 19 | 388 / 28 files + 21 Rust | green | green | green | the project compiles under TypeScript 5.9.3 and under 7.0.2, with no deprecated compiler option left behind |
 | 20 | 417 / 32 files + 21 Rust | green | green | green | the picker lists six sounds plus None, the five data controls share one row, the session plan is gone; in the built desktop app both switches persist, About resolves the data folder, and a minimised window's deadline flashes with no notification when notifications are off |
 | 21 | 418 / 32 files + 21 Rust | green | green | green | in the built desktop app the footer measures y 720–757 in an 821-pixel window, the nav begins at 757, and the scroll container is taller than its viewport — the content scrolls under a footer that never moves |
+| 22 | 414 / 32 files + 21 Rust | green | green | green | the task line sits under the timer controls inside the clock, the right pane carries only the queue and the goal, and the line says "No active task" when the queue has none |
 
 
-**Current state:** 418 tests across 32 files and 21 Rust tests, typecheck,
-lint, the production build and the native release build all clean.
+**Current state:** 414 tests across 32 files and 21 Rust tests, typecheck,
+lint and the production build all clean. The native release build is
+unchanged by this stage — the layout is the same code on both tiers.
 
 ---
 

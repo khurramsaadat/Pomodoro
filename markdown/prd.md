@@ -120,7 +120,7 @@ than no timer at all.
 | FR-37 | The session log comes before the statistics derived from it | Must — **met** |
 | FR-38 | The whole workspace can be exported to a file and restored from one | Must — **met** |
 | FR-39 | An imported backup is validated; an unreadable one is refused and a damaged one is reported | Must — **met** |
-| FR-40 | The task being worked on is shown under the clock, and it names what comes next | Must — **met** |
+| FR-40 | The task being worked on is mentioned under the timer controls | Must — **met** |
 | FR-41 | The queue is the first workspace offered, and the app opens on it | Must — **met** |
 | FR-42 | The completion cue is heard once per deadline, whether the page's tick or the host's alarm notices it | Must — **met** |
 
@@ -206,6 +206,18 @@ src-tauri/    Rust backend: commands, tray, alarm, window events
   meaning on a phone.
 
 ## 9. Release notes
+
+**Working on is a line under the clock**
+
+- **The card is gone.** The task being worked on is now a single line under
+  the timer controls — the target glyph, *Working on*, and the title —
+  inside the clock column. It is read with the countdown, and it is on
+  screen on every workspace.
+- **The detail it carried moved to the queue.** The progress bar, the *n/m*
+  count and the "Next: …" line leave with the card; the queue shows all
+  three, one click away.
+- **The right pane is the work again.** It carries the task queue and the
+  daily goal, in that order, and nothing else.
 
 **The footer is on screen**
 
