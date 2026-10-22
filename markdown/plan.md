@@ -814,6 +814,32 @@ driven in the built web app: the ambience picker lists all six sounds plus
 None and remembers the choice, the notification switch is present, and the
 five data controls — including About — sit in one row.
 
+**The desktop verification went further.** Both installers were built, and
+the release app was driven through the WebView2 debugging port — the same
+window the user sees, not a browser standing in for it:
+
+- **About resolved the real path**, `C:\Users\Khurram\AppData\Local\com.khurram.pomodoro`,
+  which is the folder the host names and the dialog asks for. Before the
+  handler was registered it would have said "Unknown", and no browser test
+  could have caught that.
+- **The two switches are independent.** Notifications off left the taskbar
+  flash on; each toggled, persisted, and survived a read-back from the
+  stored payload.
+- **The alarm fired with the window minimised.** The log records
+  `the notification for longBreak was shown` and `the window asked for
+  attention` at the deadline, with no failure line — the exact background
+  case the feature exists for.
+- **Turning notifications off silenced the next deadline** — zero show
+  lines — while the attention request was still made. The two preferences
+  travel separately and take effect separately.
+
+The verification also exposed two things the tests could not. The attention
+request left no trace when it succeeded, so "it flashed" could only be
+taken on trust; it now logs, like the notification. And every line was
+written to the log file twice: the logger's defaults already include all
+the targets, and two were added on top of them. Both were fixed and the
+installers rebuilt before the run above.
+
 ---
 
 | Stage | Tests | Typecheck | Lint | Build | Browser |
@@ -837,7 +863,7 @@ five data controls — including About — sit in one row.
 | 17 | 385 / 28 files + 15 Rust | green | green | green | the cue is scheduled after the context resumes, the alarm plays it too, the queue advances on the catch-up as well as live, and the strip names the next task |
 | 18 | 388 / 28 files + 21 Rust | green | green | green | the brand is the app's own mark in the header, the manifest and the favicon; the bar offers three workspaces; the settings panel carries the session settings and the shortcuts; choosing a sound plays it |
 | 19 | 388 / 28 files + 21 Rust | green | green | green | the project compiles under TypeScript 5.9.3 and under 7.0.2, with no deprecated compiler option left behind |
-| 20 | 417 / 32 files + 21 Rust | green | green | green | the picker lists six sounds plus None, the choice is remembered, the notification switch is present, the five data controls share one row, and the session plan is gone |
+| 20 | 417 / 32 files + 21 Rust | green | green | green | the picker lists six sounds plus None, the five data controls share one row, the session plan is gone; in the built desktop app both switches persist, About resolves the data folder, and a minimised window's deadline flashes with no notification when notifications are off |
 
 
 **Current state:** 417 tests across 32 files and 21 Rust tests, typecheck,

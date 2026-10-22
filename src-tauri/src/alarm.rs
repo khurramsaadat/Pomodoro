@@ -244,8 +244,9 @@ fn fire(app: &AppHandle, phase: &str, ends_at: i64, notify: bool, attention: boo
       // parameter is the request to make, and the only way to ask for
       // attention is to name a kind of it. Informational is the gentle one
       // — the taskbar button flashes and the window stays where it is.
-      if let Err(error) = window.request_user_attention(Some(UserAttentionType::Informational)) {
-        log::warn!("the window could not ask for attention: {error}");
+      match window.request_user_attention(Some(UserAttentionType::Informational)) {
+        Ok(()) => log::info!("the window asked for attention"),
+        Err(error) => log::warn!("the window could not ask for attention: {error}"),
       }
     }
   }

@@ -295,6 +295,10 @@ pub fn run() {
       // that happen before it arrives.
       tauri_plugin_log::Builder::default()
         .level(log::LevelFilter::Info)
+        // The builder's defaults already include every target, so naming
+        // two of them without clearing the rest writes every line twice —
+        // once by the default target and once by the named one.
+        .clear_targets()
         .target(tauri_plugin_log::Target::new(
           tauri_plugin_log::TargetKind::Stdout,
         ))

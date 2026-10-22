@@ -556,6 +556,10 @@ mini-mode transition and is already in that code.
 - **An `Option` argument is not a volume knob.** `request_user_attention(None)`
   reads as "ask gently" and means "cancel". Name the request, and check the
   signature's meaning rather than the type it accepts.
+- **A success that leaves no trace cannot be verified.** The notification
+  logged when it was shown; the attention request logged only its failure,
+  so "it flashed" was a claim about code rather than about the app. Log the
+  success too, then check the log at a real deadline.
 - **A bound named for one thing must not guard another.** The widget's
   maximum size was also clamping the dashboard's, so the dashboard came
   back at 640 by 640 instead of the 1180 by 820 it asked for — and the
