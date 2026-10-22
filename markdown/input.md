@@ -469,3 +469,12 @@ the production build green.
 > update the app for web and PC and then commit."
 
 Delivered in the current commit.
+
+---
+
+## 18. The footer the desktop window never showed
+
+> "When the desktop app opens, i should see the whole UI including footer as now footer does not show.
+> please commit and push to my repo https://github.com/khurramsaadat/Pomodoro.git"
+
+Delivered in the current commit.

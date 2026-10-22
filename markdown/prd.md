@@ -136,6 +136,7 @@ than no timer at all.
 | FR-61 | Export backup, Import backup, Clear task queue, Clear history and About sit in one row | Must — **met** |
 | FR-62 | About states the version, the author, and where this host keeps the app's data | Must — **met** |
 | FR-63 | The session plan is not shown; the clock and the workspace carry the app | Must — **met** |
+| FR-64 | The footer is visible without scrolling, at every window size | Must — **met** |
 
 ## 5. Non-functional requirements
 
@@ -205,6 +206,18 @@ src-tauri/    Rust backend: commands, tray, alarm, window events
   meaning on a phone.
 
 ## 9. Release notes
+
+**The footer is on screen**
+
+- **The copyright is chrome now.** It sat at the end of the scrolling
+  column, which is where a page footer belongs and where this one was
+  never seen: the desktop window opens over a dashboard taller than the
+  viewport, so the end of the scroll container was a place the user had to
+  travel to. It is a one-line strip above the navigation bar and outside
+  the scroll container, so it is there the moment the window opens.
+- **A test pins the placement.** The footer must not be a descendant of
+  the scroll container, and it must come before the navigation bar, so a
+  later tidy-up cannot put it back below the fold.
 
 **A background sound, two notification switches, and a settings row that fits**
 

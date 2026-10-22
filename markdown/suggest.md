@@ -66,6 +66,7 @@ re-propose them.
 | 53 | The session plan below the tabs | **Removed** - at the user's request; the clock and the workspace carry the app |
 | 54 | The data controls in one row | **Built** - export, import, both clears, and About |
 | 55 | Where the app keeps its data | **Built** - the About dialog, answered by the host rather than guessed |
+| 56 | The footer the desktop window never showed | **Fixed** - it is chrome now, a strip above the navigation bar, outside the scroll container |
 
 ---
 
@@ -560,6 +561,10 @@ mini-mode transition and is already in that code.
   logged when it was shown; the attention request logged only its failure,
   so "it flashed" was a claim about code rather than about the app. Log the
   success too, then check the log at a real deadline.
+- **A footer at the end of a scroll container is a footer nobody sees.**
+  "The end of the page" is a place the user has to travel to, and a
+  dashboard is taller than a window. Chrome belongs outside the scroll
+  area; only content belongs inside it.
 - **A bound named for one thing must not guard another.** The widget's
   maximum size was also clamping the dashboard's, so the dashboard came
   back at 640 by 640 instead of the 1180 by 820 it asked for — and the

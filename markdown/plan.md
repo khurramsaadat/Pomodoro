@@ -842,6 +842,38 @@ installers rebuilt before the run above.
 
 ---
 
+## Stage 21 - The footer the desktop window never showed
+
+**Commit:** the current commit.
+
+The report was one sentence: the desktop app opens without the footer. The
+cause was the layout's own cleverness. The copyright was placed at the *end*
+of the scrolling column so that it would not compete with the navigation bar
+for the bottom of the window — the right place for a page footer and the
+wrong place for this one, because a maximised desktop window shows a
+dashboard taller than the viewport and the end of the scroll container is a
+place the user has to travel to.
+
+**The decision: the footer is chrome, not content.** It is a `shrink-0`
+strip between the scrolling column and the navigation bar, outside the scroll
+container. The content column is the only thing that gives way, so the
+footer is on screen at any window size and any scroll position, and the bar
+stays the last thing in the window.
+
+**The regression test.** It asserts the footer is not a descendant of
+`main` and that it precedes the navigation bar in document order. Both are
+layout facts jsdom can check without a screenshot, and they are the two
+things that would have to be true for this bug to come back.
+
+**Verified in the built app.** At the dashboard's 1180 by 821 window, the
+footer's box is 37 pixels tall at y 720–757, the navigation bar starts at
+exactly 757, and the scroll container is 718 pixels of content in 664
+pixels of space. `footerInScrollArea: false`, `scrollTop: 0`, and the
+footer inside the viewport — the content scrolls under a footer that does
+not move.
+
+---
+
 | Stage | Tests | Typecheck | Lint | Build | Browser |
 |-------|-------|-----------|------|-------|---------|
 | 1 | green | green | green | green | shell renders |
@@ -864,9 +896,10 @@ installers rebuilt before the run above.
 | 18 | 388 / 28 files + 21 Rust | green | green | green | the brand is the app's own mark in the header, the manifest and the favicon; the bar offers three workspaces; the settings panel carries the session settings and the shortcuts; choosing a sound plays it |
 | 19 | 388 / 28 files + 21 Rust | green | green | green | the project compiles under TypeScript 5.9.3 and under 7.0.2, with no deprecated compiler option left behind |
 | 20 | 417 / 32 files + 21 Rust | green | green | green | the picker lists six sounds plus None, the five data controls share one row, the session plan is gone; in the built desktop app both switches persist, About resolves the data folder, and a minimised window's deadline flashes with no notification when notifications are off |
+| 21 | 418 / 32 files + 21 Rust | green | green | green | in the built desktop app the footer measures y 720–757 in an 821-pixel window, the nav begins at 757, and the scroll container is taller than its viewport — the content scrolls under a footer that never moves |
 
 
-**Current state:** 417 tests across 32 files and 21 Rust tests, typecheck,
+**Current state:** 418 tests across 32 files and 21 Rust tests, typecheck,
 lint, the production build and the native release build all clean.
 
 ---

@@ -105,6 +105,21 @@ describe('Footer', () => {
     // One line: the footer holds a single row of content.
     expect(footer.querySelectorAll('p, h1, h2, h3, h4, h5, h6')).toHaveLength(0);
   });
+
+  it('is outside the scrolling area, so it is always on screen', () => {
+    renderApp();
+
+    const footer = screen.getByRole('contentinfo');
+    const main = screen.getByRole('main');
+
+    // A footer at the end of the scroll container is a footer the user has
+    // to scroll to reach. On a maximised desktop window it was never seen
+    // at all, which is the defect this pins.
+    expect(main.contains(footer)).toBe(false);
+
+    const nav = screen.getByTestId('app-nav');
+    expect(footer.compareDocumentPosition(nav) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  });
 });
 
 describe('The navigation bar', () => {

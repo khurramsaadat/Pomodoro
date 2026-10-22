@@ -29,14 +29,20 @@ export interface AppShellProps {
 }
 
 /**
- * The application chrome: a header, a scrolling content column, and a
- * navigation bar pinned to the bottom of the window.
+ * The application chrome: a header, a scrolling content column, a one-line
+ * footer, and a navigation bar pinned to the bottom of the window.
  *
  * The shell is a fixed-height flex column rather than a growing page. That
- * is what makes the navigation bar possible: the bar is *outside* the
- * scrolling area, so it stays where the user put it however far the
- * content scrolls, and the content scrolls under it rather than pushing
- * it away.
+ * is what makes the chrome possible: the footer and the bar are *outside*
+ * the scrolling area, so they stay where the user can see them however far
+ * the content scrolls, and the content scrolls under them rather than
+ * pushing them away.
+ *
+ * **The footer is chrome, not content.** It used to sit at the end of the
+ * scroll container, which is the natural place for a page footer and the
+ * wrong place for this one: a maximised desktop window never reached it,
+ * so the copyright existed without ever being seen. A one-line strip is a
+ * small price for a footer that is actually there.
  */
 export function AppShell({ children, actions, nav, bare = false }: AppShellProps) {
   return (
@@ -75,11 +81,6 @@ export function AppShell({ children, actions, nav, bare = false }: AppShellProps
         The scroll container is the full width of the window, and the width
         cap is an inner element, so the scrollbar sits against the edge of
         the window rather than against the edge of the content.
-
-        The copyright sits at the *end* of the scrollable content rather
-        than in a strip of its own: the bottom of the window belongs to the
-        navigation bar, and a second fixed strip above it would take the
-        space the bar was meant to give back.
       */}
       <main
         className={cn(
@@ -95,23 +96,21 @@ export function AppShell({ children, actions, nav, bare = false }: AppShellProps
         >
           {children}
         </div>
-
-        {/*
-          A single line, so the footer never competes with the dashboard for
-          vertical space. It wraps rather than truncating on a narrow
-          screen. The role is stated explicitly because the element is no
-          longer a direct child of the body, and a `contentinfo` landmark
-          has to stay at the top level to mean what it says.
-        */}
-        <footer
-          role="contentinfo"
-          className={cn('border-t', bare && 'hidden')}
-        >
-          <div className="text-muted-foreground mx-auto flex w-full max-w-7xl flex-wrap items-center justify-center gap-x-2 gap-y-1 px-4 py-3 text-xs sm:px-6">
-            <span>© 2006 Pomodoro by Khurram</span>
-          </div>
-        </footer>
       </main>
+
+      {/*
+        A single line, so the footer never competes with the dashboard for
+        vertical space. It wraps rather than truncating on a narrow screen,
+        and it is `shrink-0` so the scrolling column is the only thing that
+        gives way. The role is stated explicitly because the element is not
+        a direct child of the body, and a `contentinfo` landmark has to stay
+        at the top level to mean what it says.
+      */}
+      <footer role="contentinfo" className={cn('shrink-0 border-t', bare && 'hidden')}>
+        <div className="text-muted-foreground mx-auto flex w-full max-w-7xl flex-wrap items-center justify-center gap-x-2 gap-y-1 px-4 py-2.5 text-xs sm:px-6">
+          <span>© 2006 Pomodoro by Khurram</span>
+        </div>
+      </footer>
 
       {/*
         The navigation bar is the last thing in the window, the way a
