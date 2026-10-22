@@ -59,6 +59,13 @@ re-propose them.
 | 46 | The dashboard came back at the widget's size | **Fixed** - the widget and the dashboard have their own bounds |
 | 47 | The remembered maximized state could overwrite itself | **Fixed** - the capture is a transition, and it is tested without a window |
 | 48 | `baseUrl` was a compiler option waiting to be removed | **Fixed** - removed; the project compiles under TypeScript 5.9.3 and 7.0.2 |
+| 49 | A background sound the user can choose | **Built** - six ambiences plus silence, each synthesised, with a volume of its own |
+| 50 | Notifications that can be turned off | **Built** - and the switch follows the permission it asks for |
+| 51 | The taskbar flash | **Built** - native-only, and it asks to be noticed without stealing focus |
+| 52 | A ring that breathes | **Built** - an eight-second rhythm drawn from the phase, still under reduced motion |
+| 53 | The session plan below the tabs | **Removed** - at the user's request; the clock and the workspace carry the app |
+| 54 | The data controls in one row | **Built** - export, import, both clears, and About |
+| 55 | Where the app keeps its data | **Built** - the About dialog, answered by the host rather than guessed |
 
 ---
 
@@ -169,9 +176,11 @@ the timer's own deadline and runs on its own thread, so a phase that ends
 while the window is hidden still notifies *on time* rather than whenever the
 user brings the window forward.
 
-What is still missing on the web tier is a first-class answer rather than a
-workaround: the browser cannot promise a notification, and the app should
-not pretend otherwise.
+**Now built on both tiers, as a preference.** The notification can be
+switched off, and the desktop alarm carries the flag into its own thread so
+a window that is not being painted still obeys it. On the web the switch asks
+for permission and only stays on if the browser grants it — the app no longer
+pretends to promise something the browser can refuse.
 
 ### 25. Begin Phase 5 - the Tauri native tier
 
@@ -382,11 +391,11 @@ restore.
 
 ### 43. The cue could follow the phase the way the notification does
 
-A focus session and a break are told apart by *shape* — the break that
-ends gets the next voice along — but the two are not told apart by the
-notification, which says the same thing either way. A break that ends
-could get its own notification text, so a user who is not looking at the
-window can tell what just happened without opening it.
+**Now built.** The notification speaks in the phase's own words: *Focus
+session complete* with an invitation to take a break, or *Break over* with
+an invitation back to work. The wording lives in `src/lib/notify.ts` beside
+the de-duplication, so the toast, the system notification and the cue
+cannot drift apart.
 
 ### 44. The strip could offer the next task, not just name it
 
@@ -427,6 +436,29 @@ Showing a brief hint of the pending action when a shortcut is pressed
 but ignored would turn a dead key press into a signpost. It is a small
 affordance and it needs a place to live that does not fight the countdown
 for attention.
+
+### 51. The ambience could be scoped to focus, breaks, or both
+
+The ambience now follows the timer, which means it also plays through a
+break. For a user who chose rain to work under, that is the wrong half of
+the session: a break is when the room should come back. One setting —
+*ambience: focus / breaks / both* — would say which phases it plays in,
+and the engine already knows the phase at every moment.
+
+### 52. The About dialog could open the folder it names
+
+It now *says* where the data lives. The next step is to let the user
+*reach* it: a button that asks the host to open that directory in the
+operating system's file manager. It is one more method on the seam, and it
+is the difference between a path the user reads and a path they can use.
+
+### 53. The taskbar flash should stop when the window is looked at
+
+The flash is a `request_user_attention` for the deadline, and on Windows it
+keeps flashing until the window comes to the foreground. A user who
+notices it and clicks the window has answered the request; the flash should
+end there rather than asking until it is dismissed. It is a small piece of
+state: flash on the alarm, cancel on focus.
 
 ### 50. The window could remember its size, and the maximized state with it
 
@@ -506,11 +538,24 @@ mini-mode transition and is already in that code.
   the same browser and watching the oscillators start with
   `state: 'suspended'`. A test that only asserts the new behaviour can
   pass for the wrong reason.
-- **Prove the old code was wrong, not just that the new code is right.**
-  The suspended-context fix was checked by running the old sequence in
-  the same browser and watching the oscillators start with
-  `state: 'suspended'`. A test that only asserts the new behaviour can
-  pass for the wrong reason.
+- **A switch must follow the permission, not the click.** The notification
+  toggle stayed on after the browser had refused, which is a setting that
+  promises a thing the app cannot do. The switch now follows the answer,
+  and says so when the answer is no.
+- **A command the host cannot call is a command that does not exist.**
+  `storage_location` had a capability, a permission entry and a command
+  body, and no line in the `invoke_handler` — so the About dialog would
+  have answered "Unknown" for ever. Only Rust's dead-code warning noticed.
+- **A file nobody imports is not a feature.** Two components from a first
+  pass were written, tested by nothing, and wired to nothing. Delete them:
+  dead code reads as finished work to the next person.
+- **A sound has to be stoppable, not just startable.** The interface asked
+  a session for a `release` and the builder never supplied one, so a fire's
+  pending crack outlived the fire. Anything that schedules work for later
+  has to hand back the means to cancel it.
+- **An `Option` argument is not a volume knob.** `request_user_attention(None)`
+  reads as "ask gently" and means "cancel". Name the request, and check the
+  signature's meaning rather than the type it accepts.
 - **A bound named for one thing must not guard another.** The widget's
   maximum size was also clamping the dashboard's, so the dashboard came
   back at 640 by 640 instead of the 1180 by 820 it asked for — and the

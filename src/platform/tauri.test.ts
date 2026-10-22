@@ -85,11 +85,23 @@ describe('the Tauri platform bridge', () => {
     const bridge = await createBridge();
     await settle();
 
-    bridge.scheduleAlarm({ endsAt: 1_700_000_000_000, phase: 'work' });
+    bridge.scheduleAlarm({
+      endsAt: 1_700_000_000_000,
+      phase: 'work',
+      notify: true,
+      attention: false,
+    });
     await settle();
 
+    // The notification and attention flags travel with the request, because
+    // the alarm thread fires long after the page could have been asked.
     expect(invoke).toHaveBeenCalledWith('set_alarm', {
-      payload: { endsAt: 1_700_000_000_000, phase: 'work' },
+      payload: {
+        endsAt: 1_700_000_000_000,
+        phase: 'work',
+        notify: true,
+        attention: false,
+      },
     });
   });
 
@@ -268,7 +280,7 @@ describe('the Tauri platform bridge', () => {
     await settle();
 
     expect(() => {
-      bridge.scheduleAlarm({ endsAt: 1, phase: 'work' });
+      bridge.scheduleAlarm({ endsAt: 1, phase: 'work', notify: true, attention: true });
       bridge.clearAlarm();
       bridge.updateTray({ phase: 'work', remaining: '25:00', running: true });
       bridge.setAlwaysOnTop(true);

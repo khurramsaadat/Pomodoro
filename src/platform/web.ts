@@ -14,6 +14,7 @@ import type { AlarmSignal } from '@/domain/types';
 import type {
   MiniModeRequest,
   MiniWindowPosition,
+  NotificationRequest,
   PlatformBridge,
   TrayStatus,
   WorkArea,
@@ -83,6 +84,47 @@ export function createWebBridge(): PlatformBridge {
       // where it was dropped through the same channel, so the app only has
       // to remember the position in one place.
       movedHandlers.add(handler);
+    },
+
+    showNotification: (request: NotificationRequest) => {
+      // The browser's Notification API is the web tier's equivalent of a
+      // system toast. It is only usable once the user has granted
+      // permission, so the permission is checked rather than assumed — a
+      // call without it is a console error, not a notification.
+      if (typeof Notification === 'undefined' || Notification.permission !== 'granted') {
+        return;
+      }
+
+      try {
+        new Notification(request.title, { body: request.body });
+      } catch {
+        // A browser that refuses to construct a notification is not an
+        // error worth breaking the timer over.
+      }
+    },
+
+    requestNotificationPermission: async (): Promise<boolean> => {
+      // The browser only allows this from a user gesture. The app asks for
+      // it at the moment the user turns the preference on, which is exactly
+      // such a gesture.
+      if (typeof Notification === 'undefined') {
+        return false;
+      }
+
+      try {
+        const permission = await Notification.requestPermission();
+        return permission === 'granted';
+      } catch {
+        return false;
+      }
+    },
+
+    storageLocation: (): Promise<string> => {
+      // The browser keeps the data in its own storage for this site, and
+      // the folder it uses is the user's to clear but not to browse.
+      const origin = typeof window === 'undefined' ? 'this site' : window.location.origin;
+
+      return Promise.resolve(`Browser storage for ${origin} (cleared with the site's data)`);
     },
   };
 }

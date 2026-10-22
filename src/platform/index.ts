@@ -86,6 +86,7 @@ const fallbackCapabilities: PlatformCapabilities = isNative()
       supportsNotifications: true,
       supportsMiniWindow: true,
       supportsAlwaysOnTop: true,
+      supportsAttention: true,
     }
   : WEB_CAPABILITIES;
 
@@ -241,6 +242,27 @@ export const platform: PlatformBridge = {
       return;
     }
     pendingMoved.push(handler);
+  },
+
+  showNotification: (request) => {
+    // A notification is a moment, not a deadline: it cannot be replayed
+    // later, so it is dropped if the bridge is not ready yet rather than
+    // being held and shown out of context.
+    active?.showNotification(request);
+  },
+
+  requestNotificationPermission: async () => {
+    if (active) {
+      return active.requestNotificationPermission();
+    }
+    return false;
+  },
+
+  storageLocation: async () => {
+    if (active) {
+      return active.storageLocation();
+    }
+    return 'Unknown';
   },
 };
 

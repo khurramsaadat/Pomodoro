@@ -22,7 +22,7 @@ describe('the web platform bridge', () => {
     // The point of the web bridge is that a caller never has to ask which
     // tier it is on. Every method must be safe to call.
     expect(() => {
-      bridge.scheduleAlarm({ endsAt: 1_000, phase: 'work' });
+      bridge.scheduleAlarm({ endsAt: 1_000, phase: 'work', notify: true, attention: true });
       bridge.clearAlarm();
       bridge.updateTray({ phase: 'work', remaining: '25:00', running: true });
       bridge.setAlwaysOnTop(true);

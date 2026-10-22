@@ -9,6 +9,7 @@ fn main() {
         "set_always_on_top",
         "set_mini_window",
         "work_area",
+        "storage_location",
       ]),
     ),
   )

@@ -39,6 +39,16 @@ export interface PlatformCapabilities {
    * on top — so only a desktop host can honour the request.
    */
   readonly supportsAlwaysOnTop: boolean;
+  /**
+   * Whether the window can ask the operating system for the user's
+   * attention.
+   *
+   * A browser tab has no taskbar entry to flash, so only a desktop host can
+   * do this. The native tier flashes the taskbar button rather than
+   * bringing the window forward, because a timer that steals focus is a
+   * timer that interrupts the work it was set up to protect.
+   */
+  readonly supportsAttention: boolean;
 }
 
 /** The capabilities of a tier that can do nothing native. */
@@ -49,6 +59,7 @@ export const WEB_CAPABILITIES: PlatformCapabilities = {
   supportsNotifications: false,
   supportsMiniWindow: false,
   supportsAlwaysOnTop: false,
+  supportsAttention: false,
 };
 
 /** The area of the screen a window may be placed in, in logical pixels. */
@@ -131,6 +142,31 @@ export interface AlarmRequest {
   readonly endsAt: number;
   /** The phase that is ending. */
   readonly phase: TimerPhase;
+  /**
+   * Whether a notification should be shown when the deadline is reached.
+   *
+   * The alarm is scheduled with the user's preference rather than being
+   * read at the moment it fires, because the alarm fires on the host's own
+   * thread: by then the page may not be able to answer the question.
+   */
+  readonly notify: boolean;
+  /**
+   * Whether the host should ask for the user's attention when the deadline
+   * is reached.
+   *
+   * This is the taskbar flash, and it is separate from the notification: a
+   * user may want the window to be noticed without a toast covering the
+   * screen, or a toast without the taskbar jumping.
+   */
+  readonly attention: boolean;
+}
+
+/** A notification the app asks the host to show. */
+export interface NotificationRequest {
+  /** The notification's title. */
+  readonly title: string;
+  /** The notification's body. */
+  readonly body: string;
 }
 
 /** The state the tray shows for the timer. */
@@ -231,4 +267,45 @@ export interface PlatformBridge {
    * the position can be remembered for next time.
    */
   onMiniWindowMoved(handler: (position: MiniWindowPosition) => void): void;
+
+  /**
+   * Shows a notification right now.
+   *
+   * The browser tier shows it through the Notification API, which the
+   * browser only allows once the user has granted permission — so the app
+   * asks through `requestNotificationPermission` first.
+   *
+   * The desktop tier's completion notification is raised by the *host's*
+   * alarm, on its own thread, because that is the only way it survives a
+   * window that is not being painted. Raising a second one from here would
+   * show the user two toasts, so the desktop tier does nothing.
+   *
+   * A tier that cannot show a notification does nothing rather than
+   * throwing, so the caller never has to ask which tier it is on.
+   */
+  showNotification(request: NotificationRequest): void;
+
+  /**
+   * Asks the user for permission to show notifications.
+   *
+   * The browser only grants this from a user gesture, so the app calls it
+   * when the user turns the preference on — which is a gesture, and is the
+   * only moment at which the question is worth asking.
+   *
+   * The desktop tier needs no permission and answers `true`.
+   */
+  requestNotificationPermission(): Promise<boolean>;
+
+  /**
+   * Where the host keeps the app's data.
+   *
+   * The desktop tier answers with the resolved path of its app-data
+   * directory. The browser tier answers with a description of where the
+   * browser keeps it, which is a folder the user cannot browse but can
+   * clear.
+   *
+   * The answer is a promise because the desktop tier has to ask the
+   * operating system.
+   */
+  storageLocation(): Promise<string>;
 }

@@ -47,6 +47,26 @@ pub struct AlarmPayload {
   pub ends_at: i64,
   /// The phase that is ending, as `work`, `shortBreak` or `longBreak`.
   pub phase: String,
+  /// Whether a notification should be shown when the deadline is reached.
+  ///
+  /// The preference travels with the alarm rather than being read at the
+  /// moment it fires, because the alarm runs on its own thread: by then the
+  /// page may not be able to answer the question.
+  #[serde(default)]
+  pub notify: bool,
+  /// Whether the window should ask for the user's attention at the deadline.
+  #[serde(default)]
+  pub attention: bool,
+}
+
+/// A notification the frontend asks the host to show.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct NotificationRequest {
+  /// The notification's title.
+  pub title: String,
+  /// The notification's body.
+  pub body: String,
 }
 
 /// What the frontend can learn about the tier it is running on.
@@ -65,6 +85,8 @@ pub struct PlatformInfo {
   pub supports_mini_window: bool,
   /// Whether the host can keep the window above the others.
   pub supports_always_on_top: bool,
+  /// Whether the host can ask for the user's attention.
+  pub supports_attention: bool,
 }
 
 /// The name the notification system shows for the app.
@@ -123,6 +145,7 @@ fn platform_info() -> PlatformInfo {
     supports_global_shortcut: cfg!(not(any(target_os = "android", target_os = "ios"))),
     supports_mini_window: cfg!(not(any(target_os = "android", target_os = "ios"))),
     supports_always_on_top: cfg!(not(any(target_os = "android", target_os = "ios"))),
+    supports_attention: cfg!(not(any(target_os = "android", target_os = "ios"))),
   }
 }
 
@@ -161,8 +184,27 @@ fn work_area(app: AppHandle) -> WorkArea {
 #[tauri::command]
 fn set_alarm(app: AppHandle, payload: AlarmPayload) -> Result<(), String> {
   log::info!("alarm scheduled for {}", payload.ends_at);
-  app.state::<Alarm>().set(payload.ends_at, payload.phase);
+  app.state::<Alarm>().set(
+    payload.ends_at,
+    payload.phase,
+    payload.notify,
+    payload.attention,
+  );
   Ok(())
+}
+
+/// Reports where the app keeps its data.
+///
+/// The path is resolved by the operating system, so the answer is whatever
+/// the user actually has on disk rather than a guess.
+#[tauri::command]
+fn storage_location(app: AppHandle) -> Result<String, String> {
+  let path = app
+    .path()
+    .app_local_data_dir()
+    .map_err(|error| error.to_string())?;
+
+  Ok(path.to_string_lossy().to_string())
 }
 
 /// Cancels the native alarm.
@@ -298,7 +340,8 @@ pub fn run() {
       set_tray_state,
       set_always_on_top,
       set_mini_window,
-      work_area
+      work_area,
+      storage_location
     ])
     .build(tauri::generate_context!())
     .expect("error while building tauri application")

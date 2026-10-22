@@ -1,7 +1,10 @@
 import { useId } from 'react';
+import { toast } from 'sonner';
 import { Keyboard, Settings } from 'lucide-react';
 
+import { AboutDialog } from '@/components/layout/about-dialog';
 import { ShortcutList } from '@/components/layout/shortcut-list';
+import { AmbiencePicker } from '@/components/settings/ambience-picker';
 import { BackupControls } from '@/components/settings/backup-controls';
 import { SoundPicker } from '@/components/settings/sound-picker';
 import { Button } from '@/components/ui/button';
@@ -89,6 +92,90 @@ export function PreferencesPanel({ className }: PreferencesPanelProps) {
           that will not be played is a setting that does nothing.
         */}
         {preferences.soundEnabled ? <SoundPicker /> : null}
+
+        {/*
+          The ambience is a *background* sound rather than a cue: it runs
+          for as long as the session does, and it is stopped by the engine
+          rather than by this panel — which is unmounted whenever the user
+          is on another tab.
+        */}
+        <AmbiencePicker />
+
+        {/*
+          The two end-of-phase notifications, and they are separate choices:
+          a user may want the toast without the taskbar jumping, or the
+          taskbar flash without a toast covering the screen.
+
+          The attention request is native-only. A browser tab has no taskbar
+          entry to flash, so offering the choice there would be a promise
+          the browser cannot keep.
+        */}
+        <div className="flex flex-col gap-4 border-t pt-4">
+          <div className="flex flex-col gap-0.5">
+            <h3 className="text-sm font-medium">Notifications</h3>
+            <span className="text-muted-foreground text-xs">
+              How the app says a phase has ended.
+            </span>
+          </div>
+
+          <div className="flex items-center justify-between gap-4">
+            <div className="flex flex-col gap-0.5">
+              <Label htmlFor={`${id}-notify`} className="font-normal">
+                Notify when a phase ends
+              </Label>
+              <span className="text-muted-foreground text-xs">
+                A notification when a focus session or a break is over.
+              </span>
+            </div>
+            <Switch
+              id={`${id}-notify`}
+              checked={preferences.notificationsEnabled}
+              onCheckedChange={(checked) => {
+                if (!checked) {
+                  updatePreference('notificationsEnabled', false);
+                  return;
+                }
+
+                // The browser only grants notification permission from a
+                // user gesture, and this switch is one — so the question is
+                // asked at the moment the preference is turned on. The
+                // desktop tier needs no permission and answers at once.
+                //
+                // The switch follows the answer rather than the click: a
+                // toggle that stays on after the browser has refused is a
+                // promise the app cannot keep.
+                void platform.requestNotificationPermission().then((granted) => {
+                  updatePreference('notificationsEnabled', granted);
+
+                  if (!granted) {
+                    toast.error('Notifications are blocked', {
+                      description: 'Allow them for this site in your browser settings.',
+                    });
+                  }
+                });
+              }}
+            />
+          </div>
+
+          {platform.capabilities.supportsAttention ? (
+            <div className="flex items-center justify-between gap-4">
+              <div className="flex flex-col gap-0.5">
+                <Label htmlFor={`${id}-attention`} className="font-normal">
+                  Flash the taskbar
+                </Label>
+                <span className="text-muted-foreground text-xs">
+                  A gentle reminder when the window is in the background. It asks to be
+                  noticed without stealing focus.
+                </span>
+              </div>
+              <Switch
+                id={`${id}-attention`}
+                checked={preferences.attentionEnabled}
+                onCheckedChange={(checked) => updatePreference('attentionEnabled', checked)}
+              />
+            </div>
+          ) : null}
+        </div>
 
         {/*
           The shortcuts are a *reference*, not a control, but they are
@@ -182,20 +269,25 @@ export function PreferencesPanel({ className }: PreferencesPanelProps) {
           />
         </div>
 
+        {/*
+          The five things that act on the app's data live in *one* row.
+          They used to sit in two sections — backup above, the destructive
+          buttons below — which made a row of five look like a scattered
+          three. They belong together: all five answer *what can I do with
+          what I have saved?*, and About sits with them because it is where
+          the saved data lives on disk.
+        */}
         <div className="flex flex-col gap-3 border-t pt-4">
           <div className="flex flex-col gap-0.5">
-            <h3 className="text-sm font-medium">Backup</h3>
+            <h3 className="text-sm font-medium">Backup and data</h3>
             <span className="text-muted-foreground text-xs">
-              Save everything to a file, or restore it from one.
+              Save everything to a file, restore it from one, or clear it away.
             </span>
           </div>
 
-          <BackupControls />
-        </div>
+          <div className="flex flex-wrap items-center gap-2">
+            <BackupControls />
 
-        <div className="flex flex-col gap-2 border-t pt-4">
-          <h3 className="text-sm font-medium">Data</h3>
-          <div className="flex flex-wrap gap-2">
             <Button
               variant="outline"
               size="sm"
@@ -210,6 +302,7 @@ export function PreferencesPanel({ className }: PreferencesPanelProps) {
             >
               Clear task queue
             </Button>
+
             <Button
               variant="outline"
               size="sm"
@@ -224,6 +317,8 @@ export function PreferencesPanel({ className }: PreferencesPanelProps) {
             >
               Clear history
             </Button>
+
+            <AboutDialog label="About" />
           </div>
         </div>
       </CardContent>

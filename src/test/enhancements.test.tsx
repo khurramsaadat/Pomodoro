@@ -55,6 +55,10 @@ function resetStores(): void {
       confirmBeforeClearing: true,
       showCompletedTasks: true,
       alwaysOnTop: false,
+      backgroundSound: 'none',
+      backgroundVolume: 0.4,
+      notificationsEnabled: true,
+      attentionEnabled: true,
     },
   });
 }

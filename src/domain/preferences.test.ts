@@ -41,6 +41,10 @@ describe('normalizePreferences', () => {
       confirmBeforeClearing: false,
       showCompletedTasks: false,
       alwaysOnTop: true,
+      backgroundSound: 'none',
+      backgroundVolume: 0.3,
+      notificationsEnabled: true,
+      attentionEnabled: true,
     };
 
     expect(normalizePreferences(preferences)).toEqual(preferences);

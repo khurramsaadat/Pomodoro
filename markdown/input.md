@@ -442,3 +442,30 @@ the production build green.
 
 
 
+
+---
+
+## 17. Ambience, notifications, and a ring that breathes
+
+> "we need an option to add background Sound such as brown noise, white noise, rain, ocean fireplace etc.
+
+> notifications: (need on and off toggle for the below)
+> notify when a phase ends
+> Flash the taskbar with a gentle reminder to stealing focus
+
+> Breathing Dial:
+> The ring breathes gently while counting down
+
+> Remove up next section
+
+> Keep all tabs export backup, import backup, Clear task queue and Clear history in one row
+
+> add about button next to Clear history: This should show a brief info about the app and shows paths where the files for setting and history etc are saved.
+
+> update all markdown files. It is a RULE.
+> read suggest.md and implement what is needed.
+> Audit the website and improvise it where needed.
+
+> update the app for web and PC and then commit."
+
+Delivered in the current commit.

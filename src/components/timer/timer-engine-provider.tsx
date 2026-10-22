@@ -5,6 +5,7 @@ import {
   TimerEngineContext,
   type TimerEngineState,
 } from '@/components/timer/timer-engine';
+import { useAmbience } from '@/hooks/use-ambience';
 import { useKeyboardShortcuts } from '@/hooks/use-keyboard-shortcuts';
 import { useCompletionSound } from '@/hooks/use-completion-sound';
 import { usePlatform } from '@/hooks/use-platform';
@@ -63,6 +64,11 @@ export function TimerEngineProvider({ children, onPhaseComplete }: TimerEnginePr
   // engine is the one thing that never goes away, and a cue that only
   // worked on one tab would be worse than none.
   useCompletionSound();
+
+  // The background ambience follows the timer, and the engine is the one
+  // thing that never goes away — so the sound survives the user visiting
+  // another tab or opening the mini timer.
+  useAmbience();
 
   const engine = useMemo<TimerEngineState>(
     () => ({ start, pause, toggle, reset, skip, interrupt }),

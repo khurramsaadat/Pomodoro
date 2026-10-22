@@ -14,6 +14,7 @@
 import type { AlarmSignal } from '@/domain/types';
 import type {
   MiniWindowPosition,
+  NotificationRequest,
   PlatformBridge,
   PlatformCapabilities,
   TrayStatus,
@@ -126,6 +127,7 @@ export function createTauriBridge(): PlatformBridge {
     supportsNotifications: true,
     supportsMiniWindow: true,
     supportsAlwaysOnTop: true,
+    supportsAttention: true,
   };
 
   /** The handlers, held so a late subscription still reaches them. */
@@ -157,6 +159,7 @@ export function createTauriBridge(): PlatformBridge {
         supportsNotifications: false,
         supportsMiniWindow: false,
         supportsAlwaysOnTop: false,
+        supportsAttention: false,
       };
       return;
     }
@@ -168,9 +171,10 @@ export function createTauriBridge(): PlatformBridge {
           native: info.native ?? true,
           supportsTray: info.supportsTray ?? false,
           supportsGlobalShortcut: info.supportsGlobalShortcut ?? false,
-          supportsNotifications: info.supportsTray ?? false,
+          supportsNotifications: info.supportsNotifications ?? false,
           supportsMiniWindow: info.supportsMiniWindow ?? false,
           supportsAlwaysOnTop: info.supportsAlwaysOnTop ?? false,
+          supportsAttention: info.supportsAttention ?? false,
         };
       }
     } catch {
@@ -253,6 +257,8 @@ export function createTauriBridge(): PlatformBridge {
         payload: {
           endsAt: request.endsAt,
           phase: request.phase,
+          notify: request.notify,
+          attention: request.attention,
         },
       });
     },
@@ -311,6 +317,36 @@ export function createTauriBridge(): PlatformBridge {
 
     onMiniWindowMoved: (handler: (position: MiniWindowPosition) => void) => {
       movedHandlers.add(handler);
+    },
+
+    showNotification: (_request: NotificationRequest) => {
+      // The desktop tier's completion notification is raised by the host's
+      // own alarm, on its own thread, so that it still lands when the
+      // window is in the background. Raising another one here would show
+      // the user two toasts for the same phase.
+    },
+
+    requestNotificationPermission: (): Promise<boolean> => {
+      // The desktop tier's notifications need no permission: the operating
+      // system asks the user once, when the app is installed.
+      return Promise.resolve(true);
+    },
+
+    storageLocation: async (): Promise<string> => {
+      // The path is resolved by the operating system, so the answer is a
+      // promise. A failure is not fatal: the About dialog says so rather
+      // than breaking.
+      const api = await ready();
+      if (!api) {
+        return 'Unknown';
+      }
+
+      try {
+        const path = await api.invoke('storage_location');
+        return typeof path === 'string' && path.length > 0 ? path : 'Unknown';
+      } catch {
+        return 'Unknown';
+      }
     },
   };
 }

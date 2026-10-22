@@ -14,7 +14,6 @@ import { HistoryList } from '@/components/stats/history-list';
 import { StatsPanel } from '@/components/stats/stats-panel';
 import { TaskQueue } from '@/components/tasks/task-queue';
 import { WorkingOn } from '@/components/tasks/working-on';
-import { SessionPlan } from '@/components/timer/session-plan';
 import { SessionSummary } from '@/components/timer/session-summary';
 import { TimerEngineProvider } from '@/components/timer/timer-engine-provider';
 import { TimerPanel } from '@/components/timer/timer-panel';
@@ -31,8 +30,6 @@ import { useHistoryStore } from '@/store/history-store';
 import { useMiniModeStore } from '@/store/mini-mode-store';
 import { usePreferencesStore } from '@/store/preferences-store';
 import { selectActiveTask, selectNextTask, useTaskStore } from '@/store/task-store';
-
-import { useTimerStore } from '@/store/timer-store';
 
 /** A human-readable message for each phase completion. */
 function completionMessage(phase: TimerPhase): string {
@@ -64,9 +61,6 @@ export default function App() {
   // that takes the preference, because the line is only shown when the
   // move is really going to happen.
   const nextTask = useTaskStore((store) => selectNextTask(store, autoAdvance));
-
-  const timerState = useTimerStore((store) => store.state);
-  const timerConfig = useTimerStore((store) => store.config);
 
   // The tab root owns the selection, and the "working on" strip under the
   // clock is a doorway into the queue. The selection is therefore held
@@ -262,15 +256,6 @@ export default function App() {
                 <TimerSettings />
                 <PreferencesPanel />
               </TabsContent>
-
-              {/*
-                The plan sits *below* the tabs rather than inside one, because
-                it is true whichever tab is open: it is the session the
-                current configuration describes, and the user wants to know
-                when the next break is due at the same time as they are
-                looking at the task queue.
-              */}
-              <SessionPlan state={timerState} config={timerConfig} />
             </Dashboard>
           )}
 

@@ -48,7 +48,7 @@ describe('the platform bridge', () => {
     const bridge = await loadPlatform(false);
 
     expect(() => {
-      bridge.scheduleAlarm({ endsAt: 1_000, phase: 'work' });
+      bridge.scheduleAlarm({ endsAt: 1_000, phase: 'work', notify: true, attention: true });
       bridge.clearAlarm();
       bridge.updateTray({ phase: 'work', remaining: '25:00', running: true });
       bridge.setAlwaysOnTop(true);
@@ -74,7 +74,12 @@ describe('the platform bridge', () => {
     // The alarm is a deadline. One that is never sent is a phase that ends
     // in silence, so the request has to survive the bridge's arrival.
     expect(() => {
-      bridge.scheduleAlarm({ endsAt: 1_700_000_000_000, phase: 'work' });
+      bridge.scheduleAlarm({
+        endsAt: 1_700_000_000_000,
+        phase: 'work',
+        notify: true,
+        attention: true,
+      });
     }).not.toThrow();
 
     expect(() => {

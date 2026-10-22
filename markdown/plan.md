@@ -738,6 +738,84 @@ production build all green.
 
 
 
+## Stage 20 - Ambience, two notification switches, and a ring that breathes
+
+**Commit:** the current commit.
+
+Seven requests in one: background sound, on/off notifications, a taskbar
+flash, a breathing ring, the removal of the session plan, one row of data
+controls, and an About button.
+
+**The decision: the ambience is synthesised, and it follows the timer.**
+There are no audio files. The noise is generated into a looping buffer, the
+rain is filtered white noise, the waves are brown noise under a slow
+oscillator, and the fire and the forest add an irregular event on top of a
+bed. The sound is started and stopped by the *engine* rather than by the
+settings panel, because the panel is unmounted whenever the user is on
+another tab — an ambience that stopped when the user looked at their queue
+would be an ambience that never played for a whole session.
+
+**The decision: the notification preference travels with the alarm.** The
+desktop alarm fires on its own thread, long after the page could have been
+asked anything, so `notify` and `attention` are captured into the request
+rather than read when it fires. The native tier's toast and its
+`request_user_attention` call are both gated on those flags.
+
+**The decision: the switch follows the permission.** On the web the browser
+has to grant notifications first, and it only asks from a user gesture —
+the switch is that gesture. If permission is refused the switch goes back
+off and says why, because a toggle that stays on after a refusal is a
+promise the app cannot keep.
+
+**The decision: the breath is derived from the phase.** `src/domain/breathing.ts`
+is the rhythm — an inhale, an exhale, and a swell that rises and falls —
+and the timer panel feeds it the phase's elapsed time (the banked time plus
+the segment being served), so the breath starts with the session. The ring
+scales by a transform rather than by geometry, and the hook reads the
+reduced-motion preference, so a user who has asked for less motion gets a
+still ring.
+
+**The decision: the five data controls are one row.** Export, import, the
+two clear actions and About all act on what the user has saved, so they are
+a single wrapping row; About sits beside Clear history because it is where
+the saved data lives on disk.
+
+**The decision: the location crosses the seam.** The About dialog asks
+`platform.storageLocation()` rather than guessing, so the desktop answers
+with its resolved app-data directory and the browser answers with the
+site's storage. Neither the dialog nor anything above the seam knows which
+one it is on.
+
+**What only the build and the compiler found.**
+
+- `storage_location` was written, its capability was granted in the ACL and
+  in `build.rs`, and it was **missing from the `invoke_handler` list** — so
+  the dialog would have shown "Unknown" on the desktop for ever. Rust's
+  `dead_code` warning was the only thing that noticed a command the host
+  could not call.
+- `AmbienceSession.release` was required by the interface and never built,
+  and the generation counter that stops a late audio resume from starting
+  the wrong sound was declared and unused. Both are now real: the fire
+  tracks its pending crack timeouts and clears them on stop, and every
+  start is checked against the newest request before it plays.
+- `request_user_attention(None)` was written as "the gentlest request".
+  The parameter is the request to *make*, so `None` is a cancellation: the
+  flash would never have happened, and nothing would have failed. The kind
+  has to be named — `Informational` is the gentle one — and that is the
+  sort of mistake that reads as intent in review.
+- Two files from an abandoned first pass — a Manage card and the session
+  plan — were wired to nothing. They are gone rather than left as dead
+  components: an import that no one makes is not the same thing as a
+  feature.
+
+**The verification.** 417 tests across 32 files and 21 Rust tests, with the
+typecheck, the lint and the production build green. The new settings were
+driven in the built web app: the ambience picker lists all six sounds plus
+None and remembers the choice, the notification switch is present, and the
+five data controls — including About — sit in one row.
+
+---
+
 | Stage | Tests | Typecheck | Lint | Build | Browser |
 |-------|-------|-----------|------|-------|---------|
 | 1 | green | green | green | green | shell renders |
@@ -759,9 +837,10 @@ production build all green.
 | 17 | 385 / 28 files + 15 Rust | green | green | green | the cue is scheduled after the context resumes, the alarm plays it too, the queue advances on the catch-up as well as live, and the strip names the next task |
 | 18 | 388 / 28 files + 21 Rust | green | green | green | the brand is the app's own mark in the header, the manifest and the favicon; the bar offers three workspaces; the settings panel carries the session settings and the shortcuts; choosing a sound plays it |
 | 19 | 388 / 28 files + 21 Rust | green | green | green | the project compiles under TypeScript 5.9.3 and under 7.0.2, with no deprecated compiler option left behind |
+| 20 | 417 / 32 files + 21 Rust | green | green | green | the picker lists six sounds plus None, the choice is remembered, the notification switch is present, the five data controls share one row, and the session plan is gone |
 
 
-**Current state:** 388 tests across 28 files and 21 Rust tests, typecheck,
+**Current state:** 417 tests across 32 files and 21 Rust tests, typecheck,
 lint, the production build and the native release build all clean.
 
 ---

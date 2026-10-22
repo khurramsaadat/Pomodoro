@@ -35,6 +35,16 @@ export function usePlatform(): void {
   const state = useTimerStore((store) => store.state);
   const toggle = useTimerStore((store) => store.toggle);
 
+  // The preferences are read here rather than further down, because the
+  // alarm effect below needs them: the notification and the attention
+  // request travel with the alarm, so they have to be known before it is
+  // scheduled.
+  const alwaysOnTop = usePreferencesStore((store) => store.preferences.alwaysOnTop);
+  const notificationsEnabled = usePreferencesStore(
+    (store) => store.preferences.notificationsEnabled,
+  );
+  const attentionEnabled = usePreferencesStore((store) => store.preferences.attentionEnabled);
+
   // The state is read through a ref so the interval that ticks the tray
   // does not have to be torn down and rebuilt on every state change.
   const stateRef = useRef(state);
@@ -84,14 +94,31 @@ export function usePlatform(): void {
   }, [updateTray]);
 
   // Schedule the native alarm whenever the running deadline changes.
+  //
+  // The notification and attention preferences travel with the request
+  // rather than being read by the host when the alarm fires. The alarm
+  // runs on the host's own thread, and by the time it fires the page may
+  // not be able to answer the question — the preference has to be captured
+  // while the page can still be asked.
   useEffect(() => {
     if (state.status !== 'running' || state.endsAt === null) {
       platform.clearAlarm();
       return;
     }
 
-    platform.scheduleAlarm({ endsAt: state.endsAt, phase: state.phase });
-  }, [state.status, state.endsAt, state.phase]);
+    platform.scheduleAlarm({
+      endsAt: state.endsAt,
+      phase: state.phase,
+      notify: notificationsEnabled,
+      attention: attentionEnabled,
+    });
+  }, [
+    state.status,
+    state.endsAt,
+    state.phase,
+    notificationsEnabled,
+    attentionEnabled,
+  ]);
 
   // The tray menu and the global shortcut drive the timer from outside the
   // window, so they need a way in.
@@ -107,8 +134,6 @@ export function usePlatform(): void {
   // it changes. The initial value is sent too, because a window that is
   // only pinned after the user toggles the switch is a window that starts
   // in the wrong place.
-  const alwaysOnTop = usePreferencesStore((store) => store.preferences.alwaysOnTop);
-
   useEffect(() => {
     if (!platform.capabilities.supportsAlwaysOnTop) {
       return;

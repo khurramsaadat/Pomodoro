@@ -104,7 +104,15 @@ describe('the platform hook', () => {
 
     render(<TestComponent />);
 
-    expect(mocks.scheduleAlarm).toHaveBeenCalledWith({ endsAt, phase: 'work' });
+    // The notification and attention preferences travel with the request,
+    // because the alarm runs on the host's own thread and may fire long
+    // after the page could have been asked.
+    expect(mocks.scheduleAlarm).toHaveBeenCalledWith({
+      endsAt,
+      phase: 'work',
+      notify: true,
+      attention: true,
+    });
   });
 
   it('ticks the tray so its countdown does not freeze', () => {

@@ -1,12 +1,14 @@
 import { useEffect, useRef } from 'react';
 
 import { playCompletionCue } from '@/lib/audio';
+import { notifyCompletion } from '@/lib/notify';
 import type { TimerPhase } from '@/domain/types';
 import { platform } from '@/platform';
 import { usePreferencesStore } from '@/store/preferences-store';
 
 /**
- * Plays the completion cue, and keeps the desktop tier's alarm in step.
+ * Plays the completion cue, raises the notification, and keeps the desktop
+ * tier's alarm in step.
  *
  * **The cue is played from two places, and only one of them is the timer.**
  *
@@ -26,6 +28,9 @@ import { usePreferencesStore } from '@/store/preferences-store';
 export function useCompletionSound(): void {
   const soundEnabled = usePreferencesStore((store) => store.preferences.soundEnabled);
   const completionSound = usePreferencesStore((store) => store.preferences.completionSound);
+  const notificationsEnabled = usePreferencesStore(
+    (store) => store.preferences.notificationsEnabled,
+  );
 
   // The handler is held in a ref so that the subscription is registered
   // once, rather than being torn down and rebuilt every time the
@@ -37,13 +42,18 @@ export function useCompletionSound(): void {
       // The chime is a preference, not a fact about the timer: a user who
       // has turned the sound off should not hear it, even though the phase
       // still completes.
-      if (!soundEnabled) {
-        return;
+      if (soundEnabled) {
+        playCompletionCue({ phase, endsAt, sound: completionSound });
       }
 
-      playCompletionCue({ phase, endsAt, sound: completionSound });
+      // The notification is a preference in the same way. On the desktop
+      // tier the host's own alarm raises it — this call is what covers the
+      // browser tier, where there is no host to do it.
+      if (notificationsEnabled) {
+        notifyCompletion({ phase, endsAt });
+      }
     };
-  }, [soundEnabled, completionSound]);
+  }, [soundEnabled, completionSound, notificationsEnabled]);
 
   // The host's alarm. It is the desktop tier's second opinion about the
   // same deadline, and it is the one that fires when the webview is not

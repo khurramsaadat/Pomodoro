@@ -124,6 +124,19 @@ than no timer at all.
 | FR-41 | The queue is the first workspace offered, and the app opens on it | Must — **met** |
 | FR-42 | The completion cue is heard once per deadline, whether the page's tick or the host's alarm notices it | Must — **met** |
 
+### 4.5 Sound, attention, and the settings that manage the app
+
+| ID | Requirement | Priority |
+|----|-------------|----------|
+| FR-56 | Background ambience — brown noise, white noise, rain, ocean, fireplace, forest — can be chosen from the settings | Must — **met** |
+| FR-57 | The ambience plays only while a session runs, and has its own volume | Must — **met** |
+| FR-58 | A notification at the end of a phase can be switched off, and the switch follows the permission it asks for | Must — **met** |
+| FR-59 | The taskbar can flash at the end of a phase without stealing focus, and that is a separate switch | Must — **met** |
+| FR-60 | The countdown ring breathes gently while the timer runs, and holds still under `prefers-reduced-motion` | Should — **met** |
+| FR-61 | Export backup, Import backup, Clear task queue, Clear history and About sit in one row | Must — **met** |
+| FR-62 | About states the version, the author, and where this host keeps the app's data | Must — **met** |
+| FR-63 | The session plan is not shown; the clock and the workspace carry the app | Must — **met** |
+
 ## 5. Non-functional requirements
 
 | ID | Requirement | How it is met |
@@ -192,6 +205,50 @@ src-tauri/    Rust backend: commands, tray, alarm, window events
   meaning on a phone.
 
 ## 9. Release notes
+
+**A background sound, two notification switches, and a settings row that fits**
+
+- **Background ambience.** Brown noise, white noise, rain, ocean, fireplace
+  and forest are synthesised at runtime — no audio files — and chosen from
+  the settings with a volume of their own. The sound follows the *timer*,
+  not the tab: it starts when a session starts and stops when it stops,
+  because the engine is the one thing that is never unmounted.
+- **Notifications are a preference, not a fact.** "Notify when a phase
+  ends" and "Flash the taskbar" are separate switches, because a user may
+  want the toast without the taskbar jumping, or the flash without a toast
+  covering the screen. The flash asks the window to be noticed and never
+  steals focus.
+- **The switch follows the permission.** On the web the browser has to
+  grant notifications first, and the switch is only left on if it does —
+  a toggle that stays on after the browser has refused is a promise the
+  app cannot keep. The desktop tier needs no permission and answers at
+  once.
+- **The ring breathes.** The countdown swells and settles on an eight-second
+  rhythm drawn from the phase's own elapsed time, so the breath starts with
+  the session. It is a transform on the SVG, so it composites rather than
+  repaints, and it holds still when the user has asked the system for less
+  motion.
+- **The session plan is gone.** The "Up next" card below the tabs has been
+  removed at the user's request.
+- **One row of data controls.** Export backup, Import backup, Clear task
+  queue, Clear history and About are a single row at the bottom of the
+  settings, instead of a backup section above a destructive one.
+- **About says where the data lives.** The dialog states the version, the
+  author and the folder this host keeps the app's data in: the resolved
+  app-data directory on the desktop, the site's browser storage on the
+  web. The answer crosses the platform seam rather than being guessed.
+- **The host command was never registered.** `storage_location` existed,
+  its capability was granted, and the handler list had forgotten it — so
+  the desktop's About would have answered "Unknown" forever. Rust's
+  dead-code warning is the only thing that said so.
+- **The ambience could start the wrong sound.** A suspended audio context
+  resumes asynchronously, and a resume that lands after the user has
+  already chosen something else would have started the *first* sound. Each
+  request now takes a generation number, and a start that is no longer the
+  newest is dropped.
+- **A stopped fire cannot crack again.** The second crack of a settling log
+  is a timeout rather than a scheduled node, so it is tracked and cleared
+  when the ambience stops.
 
 **The build no longer depends on a removed compiler option**
 

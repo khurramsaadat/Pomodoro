@@ -7,6 +7,13 @@
  * never silently rewrites the user's session lengths.
  */
 
+import {
+  clampAmbienceVolume,
+  DEFAULT_AMBIENCE,
+  DEFAULT_AMBIENCE_VOLUME,
+  normalizeAmbienceId,
+  type AmbienceId,
+} from './ambience';
 import { normalizeSoundId, type SoundId } from './sounds';
 
 /** The smallest daily goal, in focus sessions. */
@@ -38,6 +45,30 @@ export interface Preferences {
    * while you are not.
    */
   readonly alwaysOnTop: boolean;
+  /**
+   * The background sound played while a session runs.
+   *
+   * `none` is the default: a sound that starts without being asked for is
+   * a surprise, and a surprise in a focus timer is a distraction.
+   */
+  readonly backgroundSound: AmbienceId;
+  /** How loud the background sound is, from 0 to 1. */
+  readonly backgroundVolume: number;
+  /**
+   * Whether a notification is raised when a phase ends.
+   *
+   * The desktop tier's notification is raised by the host, so it survives a
+   * window that is in the background; the browser's is raised by the page.
+   */
+  readonly notificationsEnabled: boolean;
+  /**
+   * Whether the window asks for the user's attention when a phase ends.
+   *
+   * This is the taskbar flash: the window is not brought forward, because a
+   * timer that steals focus is a timer that interrupts the very work it was
+   * set up to protect. The window is only *asked* to be noticed.
+   */
+  readonly attentionEnabled: boolean;
 }
 
 /** The preferences a first-time user gets. */
@@ -49,6 +80,10 @@ export const DEFAULT_PREFERENCES: Preferences = {
   confirmBeforeClearing: true,
   showCompletedTasks: true,
   alwaysOnTop: false,
+  backgroundSound: DEFAULT_AMBIENCE,
+  backgroundVolume: DEFAULT_AMBIENCE_VOLUME,
+  notificationsEnabled: true,
+  attentionEnabled: true,
 };
 
 /** Clamps a daily goal into the supported range. */
@@ -99,5 +134,20 @@ export function normalizePreferences(value: unknown): Preferences {
         : DEFAULT_PREFERENCES.showCompletedTasks,
     alwaysOnTop:
       typeof record.alwaysOnTop === 'boolean' ? record.alwaysOnTop : DEFAULT_PREFERENCES.alwaysOnTop,
+    // An ambience that no longer exists falls back to silence rather than
+    // to a sound the user never chose.
+    backgroundSound: normalizeAmbienceId(record.backgroundSound),
+    backgroundVolume:
+      typeof record.backgroundVolume === 'number'
+        ? clampAmbienceVolume(record.backgroundVolume)
+        : DEFAULT_PREFERENCES.backgroundVolume,
+    notificationsEnabled:
+      typeof record.notificationsEnabled === 'boolean'
+        ? record.notificationsEnabled
+        : DEFAULT_PREFERENCES.notificationsEnabled,
+    attentionEnabled:
+      typeof record.attentionEnabled === 'boolean'
+        ? record.attentionEnabled
+        : DEFAULT_PREFERENCES.attentionEnabled,
   };
 }

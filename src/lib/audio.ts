@@ -141,6 +141,18 @@ function getContext(): AudioContext | null {
 }
 
 /**
+ * The shared AudioContext, for the modules that need to build their own
+ * sound on it.
+ *
+ * There is one context on purpose. A browser limits how many AudioContexts
+ * a page may hold open, and two contexts would mean two independent clocks
+ * for the cue and the ambience to be scheduled against.
+ */
+export function getAudioContext(): AudioContext | null {
+  return getContext();
+}
+
+/**
  * How far ahead of the context's clock a cue is scheduled.
  *
  * The margin exists because a context that is resuming does not advance its

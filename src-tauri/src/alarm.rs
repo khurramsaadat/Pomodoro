@@ -15,7 +15,7 @@ use std::thread;
 use std::time::Duration;
 
 use serde::Serialize;
-use tauri::{AppHandle, Emitter};
+use tauri::{AppHandle, Emitter, Manager, UserAttentionType};
 use tauri_plugin_notification::NotificationExt;
 
 /// The event emitted when the alarm fires, so the frontend can bring the
@@ -49,6 +49,8 @@ enum Request {
   Set {
     ends_at: i64,
     phase: String,
+    notify: bool,
+    attention: bool,
   },
   /// Cancel any scheduled alarm.
   Clear,
@@ -58,6 +60,8 @@ enum Request {
 struct Pending {
   ends_at: i64,
   phase: String,
+  notify: bool,
+  attention: bool,
 }
 
 /// The handle the rest of the app uses to talk to the alarm thread.
@@ -80,8 +84,13 @@ impl Alarm {
   }
 
   /// Schedules an alarm for a deadline, replacing any previous one.
-  pub fn set(&self, ends_at: i64, phase: String) {
-    let _ = self.sender.send(Request::Set { ends_at, phase });
+  pub fn set(&self, ends_at: i64, phase: String, notify: bool, attention: bool) {
+    let _ = self.sender.send(Request::Set {
+      ends_at,
+      phase,
+      notify,
+      attention,
+    });
   }
 
   /// Cancels any scheduled alarm.
@@ -111,11 +120,27 @@ fn run(app: AppHandle, receiver: Receiver<Request>) {
         if remaining <= 0 {
           // The deadline has already passed. Fire and wait for the next
           // request rather than sleeping for a negative duration.
-          fire(&app, &current.phase, current.ends_at);
+          fire(
+            &app,
+            &current.phase,
+            current.ends_at,
+            current.notify,
+            current.attention,
+          );
           pending = None;
           match receiver.recv() {
-            Ok(Request::Set { ends_at, phase }) => {
-              pending = Some(Pending { ends_at, phase });
+            Ok(Request::Set {
+              ends_at,
+              phase,
+              notify,
+              attention,
+            }) => {
+              pending = Some(Pending {
+                ends_at,
+                phase,
+                notify,
+                attention,
+              });
             }
             Ok(Request::Clear) => {}
             Err(_) => return,
@@ -126,8 +151,18 @@ fn run(app: AppHandle, receiver: Receiver<Request>) {
       }
       None => {
         match receiver.recv() {
-          Ok(Request::Set { ends_at, phase }) => {
-            pending = Some(Pending { ends_at, phase });
+          Ok(Request::Set {
+            ends_at,
+            phase,
+            notify,
+            attention,
+          }) => {
+            pending = Some(Pending {
+              ends_at,
+              phase,
+              notify,
+              attention,
+            });
             continue;
           }
           Ok(Request::Clear) => {}
@@ -138,8 +173,18 @@ fn run(app: AppHandle, receiver: Receiver<Request>) {
     };
 
     match receiver.recv_timeout(wait) {
-      Ok(Request::Set { ends_at, phase }) => {
-        pending = Some(Pending { ends_at, phase });
+      Ok(Request::Set {
+        ends_at,
+        phase,
+        notify,
+        attention,
+      }) => {
+        pending = Some(Pending {
+          ends_at,
+          phase,
+          notify,
+          attention,
+        });
       }
       Ok(Request::Clear) => {
         pending = None;
@@ -147,7 +192,13 @@ fn run(app: AppHandle, receiver: Receiver<Request>) {
       Err(RecvTimeoutError::Timeout) => {
         // The wait elapsed, so the deadline is due.
         if let Some(current) = pending.take() {
-          fire(&app, &current.phase, current.ends_at);
+          fire(
+            &app,
+            &current.phase,
+            current.ends_at,
+            current.notify,
+            current.attention,
+          );
         }
       }
       Err(RecvTimeoutError::Disconnected) => return,
@@ -159,20 +210,44 @@ fn run(app: AppHandle, receiver: Receiver<Request>) {
 ///
 /// The notification text is built here rather than being sent from the
 /// frontend, so the notification is right even if the webview has gone away.
-fn fire(app: &AppHandle, phase: &str, ends_at: i64) {
+///
+/// The two flags are the user's preferences, carried with the alarm rather
+/// than read at the moment it fires: this thread cannot ask the page
+/// anything, because the page may be asleep.
+fn fire(app: &AppHandle, phase: &str, ends_at: i64, notify: bool, attention: bool) {
   let (title, body) = describe(phase);
 
-  if let Err(error) = app
-    .notification()
-    .builder()
-    .title(title)
-    .body(body)
-    .sound(NOTIFICATION_SOUND)
-    .show()
-  {
-    log::warn!("the notification could not be shown: {error}");
-  } else {
-    log::info!("the notification for {phase} was shown");
+  // The notification is a preference, not a fact about the timer. A user
+  // who has turned it off should not see a toast, even though the phase
+  // still completes.
+  if notify {
+    if let Err(error) = app
+      .notification()
+      .builder()
+      .title(title)
+      .body(body)
+      .sound(NOTIFICATION_SOUND)
+      .show()
+    {
+      log::warn!("the notification could not be shown: {error}");
+    } else {
+      log::info!("the notification for {phase} was shown");
+    }
+  }
+
+  // The attention request is the taskbar flash. It asks the window to be
+  // noticed without bringing it forward, because a timer that steals focus
+  // interrupts the very work it was set up to protect.
+  if attention {
+    if let Some(window) = app.get_webview_window("main") {
+      // `None` is not "the gentlest request", it is a *cancellation*: the
+      // parameter is the request to make, and the only way to ask for
+      // attention is to name a kind of it. Informational is the gentle one
+      // — the taskbar button flashes and the window stays where it is.
+      if let Err(error) = window.request_user_attention(Some(UserAttentionType::Informational)) {
+        log::warn!("the window could not ask for attention: {error}");
+      }
+    }
   }
 
   // The frontend is told as well, so its own chime and toast still run when

@@ -16,6 +16,7 @@
     "allow-set-tray-state",
     "allow-set-always-on-top",
     "allow-set-mini-window",
-    "allow-work-area"
+    "allow-work-area",
+    "allow-storage-location"
   ]
 }

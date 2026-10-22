@@ -17,9 +17,24 @@ export interface CountdownRingProps {
   readonly color?: string;
   /** Accessible description of what the ring shows. */
   readonly label?: string;
+  /**
+   * How far the breath has swelled, from 0 to 1.
+   *
+   * The ring grows with the inhale and settles with the exhale. The swell is
+   * a fraction of the ring's own size, and it is deliberately small: a ring
+   * that breathed visibly would be a ring the user watched instead of a
+   * ring they glanced at.
+   */
+  readonly breath?: number;
 }
 
 const VIEW_BOX = 100;
+
+/**
+ * How much larger the ring is at the top of the inhale, as a fraction of
+ * its own size.
+ */
+const BREATH_SWELL = 0.035;
 
 /**
  * A circular progress ring drawn with SVG.
@@ -37,11 +52,14 @@ export function CountdownRing({
   children,
   color = 'var(--color-phase-work)',
   label,
+  breath = 0,
 }: CountdownRingProps) {
   const clamped = Math.min(1, Math.max(0, progress));
   const radius = (VIEW_BOX - strokeWidth) / 2;
   const circumference = 2 * Math.PI * radius;
   const offset = circumference * (1 - clamped);
+
+  const swell = Math.min(1, Math.max(0, breath));
 
   return (
     <div
@@ -50,9 +68,17 @@ export function CountdownRing({
     >
       <svg
         viewBox={`0 0 ${VIEW_BOX} ${VIEW_BOX}`}
-        className={cn('size-full -rotate-90', className)}
+        className={cn('size-full', className)}
         role="img"
         aria-label={label ?? 'Timer progress'}
+        // The swell is a transform rather than a change of geometry, so the
+        // browser can composite it rather than repaint the arc every frame.
+        //
+        // The rotation is part of the same transform rather than left to the
+        // `-rotate-90` class, because an inline style replaces the class's
+        // transform outright — and a ring that is not rotated draws its arc
+        // from the top instead of from the side.
+        style={{ transform: `rotate(-90deg) scale(${1 + swell * BREATH_SWELL})` }}
       >
         <circle
           cx={VIEW_BOX / 2}

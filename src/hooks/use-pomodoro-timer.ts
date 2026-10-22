@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 
 import { playCompletionCue } from '@/lib/audio';
+import { notifyCompletion } from '@/lib/notify';
 import type { TimerPhase } from '@/domain/types';
 import { usePreferencesStore } from '@/store/preferences-store';
 import { useTimerStore } from '@/store/timer-store';
@@ -56,6 +57,9 @@ export function usePomodoroTimer(
   const storeComplete = useTimerStore((store) => store.complete);
   const soundEnabled = usePreferencesStore((store) => store.preferences.soundEnabled);
   const completionSound = usePreferencesStore((store) => store.preferences.completionSound);
+  const notificationsEnabled = usePreferencesStore(
+    (store) => store.preferences.notificationsEnabled,
+  );
 
   const { onPhaseComplete } = options;
 
@@ -114,13 +118,21 @@ export function usePomodoroTimer(
       });
     }
 
+    // The notification is raised here as well, because this is the only
+    // clock the browser tier has. It is de-duplicated by the deadline, so
+    // the desktop tier's host alarm raising the same deadline does not
+    // produce a second notification.
+    if (notificationsEnabled) {
+      notifyCompletion({ phase: completedPhase, endsAt });
+    }
+
     onPhaseCompleteRef.current?.(completedPhase);
 
     // Release the guard on the next tick so the following phase can complete.
     window.setTimeout(() => {
       completingRef.current = false;
     }, 0);
-  }, [storeComplete, soundEnabled, completionSound]);
+  }, [storeComplete, soundEnabled, completionSound, notificationsEnabled]);
 
   // Keep the derived timestamp fresh while the timer runs.
   useEffect(() => {
