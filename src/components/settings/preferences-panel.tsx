@@ -1,6 +1,6 @@
-import { useId } from 'react';
+import { ChevronDown, Settings } from 'lucide-react';
+import { useId, useState } from 'react';
 import { toast } from 'sonner';
-import { Keyboard, Settings } from 'lucide-react';
 
 import { AboutDialog } from '@/components/layout/about-dialog';
 import { ShortcutList } from '@/components/layout/shortcut-list';
@@ -12,7 +12,15 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
-import { clampDailyGoal, MAX_DAILY_GOAL, MIN_DAILY_GOAL } from '@/domain/preferences';
+import {
+  clampDailyGoal,
+  clampDailyGoalMinutes,
+  MAX_DAILY_GOAL,
+  MAX_DAILY_GOAL_MINUTES,
+  MIN_DAILY_GOAL,
+  MIN_DAILY_GOAL_MINUTES,
+} from '@/domain/preferences';
+import { cn } from '@/lib/utils';
 import { platform } from '@/platform';
 import { useHistoryStore } from '@/store/history-store';
 import { usePreferencesStore } from '@/store/preferences-store';
@@ -23,6 +31,8 @@ export interface PreferencesPanelProps {
   readonly className?: string;
 }
 
+
+
 /**
  * The user preferences.
  *
@@ -30,6 +40,20 @@ export interface PreferencesPanelProps {
  * long a session runs; the session lengths live with the timer itself.
  */
 export function PreferencesPanel({ className }: PreferencesPanelProps) {
+  // The two destructive buttons arm before they fire: the first click marks
+  // the button, the second does the work. The row is the confirmation — a
+  // modal that repeats the question the button just asked is a step with
+  // nothing left to decide, and the browser's own dialog is one the native
+  // tier cannot style or centre.
+  const [confirmingClearTasks, setConfirmingClearTasks] = useState(false);
+  const [confirmingClearHistory, setConfirmingClearHistory] = useState(false);
+
+  // The shortcut list is a reference, so it starts open: a reference nobody
+  // has to unfold is one nobody misses. The chevron is the only word about
+  // it — a button that also says "Expand" or "Collapse" is saying what the
+  // arrow already says.
+  const [shortcutsOpen, setShortcutsOpen] = useState(true);
+
   const preferences = usePreferencesStore((store) => store.preferences);
   const updatePreference = usePreferencesStore((store) => store.updatePreference);
 
@@ -38,8 +62,32 @@ export function PreferencesPanel({ className }: PreferencesPanelProps) {
 
   const id = useId();
 
+  const handleClearTasks = (): void => {
+    if (!preferences.confirmBeforeClearing || confirmingClearTasks) {
+      clearTasks();
+      setConfirmingClearTasks(false);
+      setConfirmingClearHistory(false);
+      return;
+    }
+
+    setConfirmingClearHistory(false);
+    setConfirmingClearTasks(true);
+  };
+
+  const handleClearHistory = (): void => {
+    if (!preferences.confirmBeforeClearing || confirmingClearHistory) {
+      clearHistory();
+      setConfirmingClearTasks(false);
+      setConfirmingClearHistory(false);
+      return;
+    }
+
+    setConfirmingClearTasks(false);
+    setConfirmingClearHistory(true);
+  };
+
   return (
-    <Card className={className}>
+    <Card className={cn('py-6', className)}>
       <CardHeader>
         <CardTitle className="flex items-center gap-2 text-base">
           <Settings className="size-4" />
@@ -48,27 +96,76 @@ export function PreferencesPanel({ className }: PreferencesPanelProps) {
       </CardHeader>
 
       <CardContent className="flex flex-col gap-6">
-        <div className="flex items-center justify-between gap-4">
-          <div className="flex flex-col gap-0.5">
-            <Label htmlFor={`${id}-goal`}>Daily focus goal</Label>
-            <span className="text-muted-foreground text-xs">
-              How many focus sessions you aim for each day.
-            </span>
+        <div className="flex flex-col gap-3">
+          <div className="flex items-center justify-between gap-4">
+            <div className="flex flex-col gap-0.5">
+              <Label htmlFor={`${id}-goal`}>Daily focus goal</Label>
+              <span className="text-muted-foreground text-xs">
+                {preferences.dailyGoalMode === 'minutes'
+                  ? 'How many focus minutes you aim for each day.'
+                  : 'How many focus sessions you aim for each day.'}
+              </span>
+            </div>
+
+            {preferences.dailyGoalMode === 'minutes' ? (
+              <Input
+                id={`${id}-goal`}
+                type="number"
+                min={MIN_DAILY_GOAL_MINUTES}
+                max={MAX_DAILY_GOAL_MINUTES}
+                step={15}
+                value={preferences.dailyGoalMinutes}
+                onChange={(event) => {
+                  const value = Number(event.target.value);
+                  if (Number.isFinite(value)) {
+                    updatePreference('dailyGoalMinutes', clampDailyGoalMinutes(value));
+                  }
+                }}
+                className="w-20"
+              />
+            ) : (
+              <Input
+                id={`${id}-goal`}
+                type="number"
+                min={MIN_DAILY_GOAL}
+                max={MAX_DAILY_GOAL}
+                value={preferences.dailyGoal}
+                onChange={(event) => {
+                  const value = Number(event.target.value);
+                  if (Number.isFinite(value)) {
+                    updatePreference('dailyGoal', clampDailyGoal(value));
+                  }
+                }}
+                className="w-20"
+              />
+            )}
           </div>
-          <Input
-            id={`${id}-goal`}
-            type="number"
-            min={MIN_DAILY_GOAL}
-            max={MAX_DAILY_GOAL}
-            value={preferences.dailyGoal}
-            onChange={(event) => {
-              const value = Number(event.target.value);
-              if (Number.isFinite(value)) {
-                updatePreference('dailyGoal', clampDailyGoal(value));
-              }
-            }}
-            className="w-20"
-          />
+
+          {/*
+            A goal of eight sessions treats eight sprints and eight long
+            sessions as the same day, and they are not. The measured focus
+            time is the honest unit, so the user chooses which one the goal
+            counts.
+          */}
+          <div
+            className="flex items-center gap-1.5"
+            role="radiogroup"
+            aria-label="Daily goal counts"
+          >
+            {(['sessions', 'minutes'] as const).map((mode) => (
+              <Button
+                key={mode}
+                type="button"
+                size="sm"
+                variant={preferences.dailyGoalMode === mode ? 'default' : 'outline'}
+                aria-pressed={preferences.dailyGoalMode === mode}
+                onClick={() => updatePreference('dailyGoalMode', mode)}
+                className="h-7 text-xs capitalize"
+              >
+                {mode}
+              </Button>
+            ))}
+          </div>
         </div>
 
         <div className="flex items-center justify-between gap-4">
@@ -100,6 +197,42 @@ export function PreferencesPanel({ className }: PreferencesPanelProps) {
           is on another tab.
         */}
         <AmbiencePicker />
+
+        {/*
+          The ambience is *scoped*: a user who chose rain to work under did
+          not necessarily choose it for the break, which is when the room
+          should come back.
+        */}
+        {preferences.backgroundSound !== 'none' ? (
+          <div className="flex items-center justify-between gap-4">
+            <div className="flex flex-col gap-0.5">
+              <span className="text-sm font-medium">Play ambience during</span>
+              <span className="text-muted-foreground text-xs">
+                Focus only, breaks only, or both.
+              </span>
+            </div>
+
+            <div
+              className="flex items-center gap-1.5"
+              role="radiogroup"
+              aria-label="Play ambience during"
+            >
+              {(['focus', 'breaks', 'both'] as const).map((scope) => (
+                <Button
+                  key={scope}
+                  type="button"
+                  size="sm"
+                  variant={preferences.ambienceScope === scope ? 'default' : 'outline'}
+                  aria-pressed={preferences.ambienceScope === scope}
+                  onClick={() => updatePreference('ambienceScope', scope)}
+                  className="h-7 text-xs capitalize"
+                >
+                  {scope}
+                </Button>
+              ))}
+            </div>
+          </div>
+        ) : null}
 
         {/*
           The two end-of-phase notifications, and they are separate choices:
@@ -185,17 +318,57 @@ export function PreferencesPanel({ className }: PreferencesPanelProps) {
           most people never find.
         */}
         <div className="flex flex-col gap-2 border-t pt-4">
-          <div className="flex flex-col gap-0.5">
-            <h3 className="flex items-center gap-2 text-sm font-medium">
-              <Keyboard className="size-3.5" aria-hidden="true" />
-              Keyboard shortcuts
-            </h3>
-            <span className="text-muted-foreground text-xs">
-              The shortcuts are ignored while you are typing in a field.
-            </span>
-          </div>
+          <button
+            type="button"
+            className="flex w-full items-center justify-between gap-4 text-left text-sm font-medium"
+            aria-expanded={shortcutsOpen}
+            aria-controls={`${id}-shortcuts`}
+            onClick={() => setShortcutsOpen((open) => !open)}
+          >
+            Keyboard shortcuts
+            {/*
+              One chevron that turns over, rather than two that swap places:
+              a swap is a cut, and the turn is what tells the eye the thing
+              below it is about to move.
+            */}
+            <ChevronDown
+              className={cn(
+                'text-muted-foreground size-4 shrink-0 transition-transform duration-200 ease-out',
+                shortcutsOpen && 'rotate-180',
+              )}
+              aria-hidden="true"
+            />
+          </button>
 
-          <ShortcutList />
+          {/*
+            The list slides rather than appearing.
+
+            The height is the *grid row*, not a measured pixel height: `0fr`
+            and `1fr` are interpolated by the browser, so the panel may hold
+            anything — including the global shortcut that exists only on the
+            desktop tier — without a measurement that goes stale the moment
+            the list changes.
+
+            The content stays mounted while closed, which is what makes the
+            slide possible; it is hidden from assistive technology instead,
+            so a closed section is not read out.
+          */}
+          <div
+            id={`${id}-shortcuts`}
+            aria-hidden={!shortcutsOpen}
+            className={cn(
+              'grid transition-[grid-template-rows,opacity] duration-200 ease-out',
+              shortcutsOpen ? 'grid-rows-[1fr] opacity-100' : 'grid-rows-[0fr] opacity-0',
+            )}
+          >
+            <div className="flex min-h-0 flex-col gap-2 overflow-hidden">
+              <span className="text-muted-foreground text-xs">
+                The shortcuts are ignored while you are typing in a field.
+              </span>
+
+              <ShortcutList />
+            </div>
+          </div>
         </div>
 
         {/*
@@ -204,20 +377,38 @@ export function PreferencesPanel({ className }: PreferencesPanelProps) {
           browser cannot keep.
         */}
         {platform.capabilities.supportsAlwaysOnTop ? (
-          <div className="flex items-center justify-between gap-4">
-            <div className="flex flex-col gap-0.5">
-              <Label htmlFor={`${id}-always-on-top`} className="font-normal">
-                Keep the window on top
-              </Label>
-              <span className="text-muted-foreground text-xs">
-                Stay above the other windows, so the timer is never hidden.
-              </span>
+          <div className="flex flex-col gap-4">
+            <div className="flex items-center justify-between gap-4">
+              <div className="flex flex-col gap-0.5">
+                <Label htmlFor={`${id}-always-on-top`} className="font-normal">
+                  Keep the window on top
+                </Label>
+                <span className="text-muted-foreground text-xs">
+                  Stay above the other windows, so the timer is never hidden.
+                </span>
+              </div>
+              <Switch
+                id={`${id}-always-on-top`}
+                checked={preferences.alwaysOnTop}
+                onCheckedChange={(checked) => updatePreference('alwaysOnTop', checked)}
+              />
             </div>
-            <Switch
-              id={`${id}-always-on-top`}
-              checked={preferences.alwaysOnTop}
-              onCheckedChange={(checked) => updatePreference('alwaysOnTop', checked)}
-            />
+
+            <div className="flex items-center justify-between gap-4">
+              <div className="flex flex-col gap-0.5">
+                <Label htmlFor={`${id}-follow-phase`} className="font-normal">
+                  Pin only while focusing
+                </Label>
+                <span className="text-muted-foreground text-xs">
+                  Step back during a break, when you are looking at something else.
+                </span>
+              </div>
+              <Switch
+                id={`${id}-follow-phase`}
+                checked={preferences.alwaysOnTopFollowsPhase}
+                onCheckedChange={(checked) => updatePreference('alwaysOnTopFollowsPhase', checked)}
+              />
+            </div>
           </div>
         ) : null}
 
@@ -289,33 +480,21 @@ export function PreferencesPanel({ className }: PreferencesPanelProps) {
             <BackupControls />
 
             <Button
-              variant="outline"
+              variant={confirmingClearTasks ? 'destructive' : 'outline'}
               size="sm"
-              onClick={() => {
-                if (
-                  !preferences.confirmBeforeClearing ||
-                  window.confirm('Remove every task from the queue?')
-                ) {
-                  clearTasks();
-                }
-              }}
+              aria-label="Clear task queue"
+              onClick={handleClearTasks}
             >
-              Clear task queue
+              {confirmingClearTasks ? 'Click again to clear' : 'Clear task queue'}
             </Button>
 
             <Button
-              variant="outline"
+              variant={confirmingClearHistory ? 'destructive' : 'outline'}
               size="sm"
-              onClick={() => {
-                if (
-                  !preferences.confirmBeforeClearing ||
-                  window.confirm('Remove the session history? This cannot be undone.')
-                ) {
-                  clearHistory();
-                }
-              }}
+              aria-label="Clear history"
+              onClick={handleClearHistory}
             >
-              Clear history
+              {confirmingClearHistory ? 'Click again to clear' : 'Clear history'}
             </Button>
 
             <AboutDialog label="About" />

@@ -318,6 +318,65 @@ export interface DailyProgress {
   readonly ratio: number;
 }
 
+/** Today's progress against a goal that may count sessions or minutes. */
+export interface DailyGoalProgress {
+  readonly sessions: number;
+  readonly focusMs: number;
+  /** The goal, in the unit the mode names. */
+  readonly goal: number;
+  readonly met: boolean;
+  readonly ratio: number;
+  readonly mode: 'sessions' | 'minutes';
+}
+
+/**
+ * Measures today's progress against the daily goal, in the unit the user
+ * chose.
+ *
+ * A goal of eight sessions treats a day of eight sprints and a day of eight
+ * long sessions as the same day, which they are not. The measured focus time
+ * is already banked, so the minute goal is a real measurement rather than an
+ * estimate: it is the time the phases actually served.
+ */
+export function dailyGoalProgress(
+  history: readonly SessionEntry[],
+  options: {
+    readonly mode: 'sessions' | 'minutes';
+    readonly sessionsGoal: number;
+    readonly minutesGoal: number;
+  },
+  now: number,
+): DailyGoalProgress {
+  const dayKey = localDayKey(now);
+  const sessions = sessionsOnDay(history, dayKey).length;
+  const focusMs = focusMsOnDay(history, dayKey);
+
+  if (options.mode === 'minutes') {
+    const goal = options.minutesGoal > 0 ? options.minutesGoal : 1;
+    const minutes = focusMs / 60_000;
+
+    return {
+      sessions,
+      focusMs,
+      goal,
+      met: minutes >= goal,
+      ratio: Math.min(1, minutes / goal),
+      mode: 'minutes',
+    };
+  }
+
+  const goal = options.sessionsGoal > 0 ? options.sessionsGoal : 1;
+
+  return {
+    sessions,
+    focusMs,
+    goal,
+    met: sessions >= goal,
+    ratio: Math.min(1, sessions / goal),
+    mode: 'sessions',
+  };
+}
+
 /** Measures today's progress against the daily goal. */
 export function dailyProgress(
   history: readonly SessionEntry[],

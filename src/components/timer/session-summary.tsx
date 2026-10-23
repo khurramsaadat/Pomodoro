@@ -3,6 +3,7 @@ import { CheckCircle2, CircleSlash, Flame, RotateCcw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { useTimerStore } from '@/store/timer-store';
+import { cn } from '@/lib/utils';
 
 export interface SessionSummaryProps {
   /** Additional classes for the container. */
@@ -51,7 +52,7 @@ export function SessionSummary({ className }: SessionSummaryProps) {
   ] as const;
 
   return (
-    <Card className={className}>
+    <Card className={cn('py-6', className)}>
       <CardContent className="flex items-center gap-3 px-4 py-3">
         {stats.map((stat) => {
           const Icon = stat.icon;

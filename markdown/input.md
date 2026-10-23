@@ -494,3 +494,22 @@ Delivered in the working tree, shown on `http://localhost:3100/`.
 > "how about we remove the working on from the right pane and just mention it in the clock it self. below the play button."
 
 Delivered in the working tree, shown on `http://localhost:3100/`.
+
+---
+
+## 21. A bigger clock, a glyph per phase, and a play button in the queue
+
+> "make the clock a bit bigger
+> focus, short break and long break all should also have icons for example short break can have an icon a cup with steam. see attached for reference.
+> play button in the task queue to trigger clock play with sound."
+
+Delivered in the working tree, shown on `http://localhost:3100/`.
+
+---
+
+## 22. Hour marks on the dial
+
+> "clock needs to be a bit bigger and dial to also have small tick marks like a clock hours.
+> thickness of the dial to be a little thinner. it should be breathing slightly when active."
+
+Delivered in the working tree, shown on `http://localhost:3100/`.

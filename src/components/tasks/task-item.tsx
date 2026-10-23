@@ -21,6 +21,8 @@ export interface TaskItemProps {
   readonly active: boolean;
   /** Whether the task is shown in the queue at all. */
   readonly onSelect: () => void;
+  /** Makes this task active and starts the clock on it. */
+  readonly onPlay: () => void;
   /** Marks the task as done or reopens it. */
   readonly onToggleDone: () => void;
   /** Removes the task from the queue. */
@@ -44,6 +46,7 @@ export function TaskItem({
   task,
   active,
   onSelect,
+  onPlay,
   onToggleDone,
   onRemove,
   onEdit,
@@ -216,15 +219,27 @@ export function TaskItem({
         {task.done ? 'done' : `${remaining} left`}
       </span>
 
-      {active ? (
-        <span
-          className="text-primary flex size-7 shrink-0 items-center justify-center"
-          aria-label="In progress"
-          title="In progress"
+      {/*
+        Play *starts* the session on this task: it makes the task active and
+        starts the clock in one press, so a session can begin from the queue
+        rather than from a trip back to the clock. The filled icon is the
+        task that is already running.
+      */}
+      {task.done ? null : (
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={onPlay}
+          aria-label={`Start focusing on ${task.title}`}
+          title="Start focusing"
+          className={cn(
+            'size-7 shrink-0',
+            active ? 'text-primary' : 'text-muted-foreground',
+          )}
         >
-          <Play className="size-3.5 fill-current" />
-        </span>
-      ) : null}
+          <Play className={cn('size-3.5', active && 'fill-current')} />
+        </Button>
+      )}
 
       <Button
         variant="ghost"

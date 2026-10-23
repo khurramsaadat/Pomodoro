@@ -40,6 +40,9 @@ export function usePlatform(): void {
   // request travel with the alarm, so they have to be known before it is
   // scheduled.
   const alwaysOnTop = usePreferencesStore((store) => store.preferences.alwaysOnTop);
+  const alwaysOnTopFollowsPhase = usePreferencesStore(
+    (store) => store.preferences.alwaysOnTopFollowsPhase,
+  );
   const notificationsEnabled = usePreferencesStore(
     (store) => store.preferences.notificationsEnabled,
   );
@@ -134,12 +137,18 @@ export function usePlatform(): void {
   // it changes. The initial value is sent too, because a window that is
   // only pinned after the user toggles the switch is a window that starts
   // in the wrong place.
+  // The pin can also follow the phase: above everything through a focus
+  // session, stepping back during a break, when the user is looking at
+  // something else. The preference is still the source of truth — following
+  // the phase narrows what it means, it does not replace it.
   useEffect(() => {
     if (!platform.capabilities.supportsAlwaysOnTop) {
       return;
     }
-    platform.setAlwaysOnTop(alwaysOnTop);
-  }, [alwaysOnTop]);
+
+    const pinned = alwaysOnTop && (!alwaysOnTopFollowsPhase || state.phase === 'work');
+    platform.setAlwaysOnTop(pinned);
+  }, [alwaysOnTop, alwaysOnTopFollowsPhase, state.phase]);
 }
 
 /**

@@ -22,8 +22,16 @@ import { useTimerStore } from '@/store/timer-store';
  */
 export function useAmbience(): void {
   const status = useTimerStore((store) => store.state.status);
+  const phase = useTimerStore((store) => store.state.phase);
   const backgroundSound = usePreferencesStore((store) => store.preferences.backgroundSound);
   const backgroundVolume = usePreferencesStore((store) => store.preferences.backgroundVolume);
+  const scope = usePreferencesStore((store) => store.preferences.ambienceScope);
+
+  // The scope is what makes the ambience a *working* sound rather than a
+  // background for the whole app: a user who chose rain to work under did
+  // not necessarily choose it for the break.
+  const inScope =
+    scope === 'both' || (scope === 'focus' ? phase === 'work' : phase !== 'work');
 
   // The sound and the volume are read through a ref so that changing the
   // volume does not restart the sound. Only a *change of sound* restarts it.
@@ -34,7 +42,7 @@ export function useAmbience(): void {
   }, [backgroundVolume]);
 
   useEffect(() => {
-    if (status !== 'running' || backgroundSound === 'none') {
+    if (status !== 'running' || backgroundSound === 'none' || !inScope) {
       stopAmbience();
       return;
     }
@@ -44,5 +52,5 @@ export function useAmbience(): void {
     return () => {
       stopAmbience();
     };
-  }, [status, backgroundSound]);
+  }, [status, backgroundSound, inScope]);
 }

@@ -1,10 +1,12 @@
 import { useId } from 'react';
 
+import { PhaseIcon } from '@/components/timer/phase-icon';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { configFromPreset, MAX_LONG_BREAK_INTERVAL, TIMER_PRESETS } from '@/domain/presets';
+import { phaseColor } from '@/lib/phase';
 import { minutesToMs } from '@/lib/time';
 import { useTimerStore } from '@/store/timer-store';
 
@@ -27,7 +29,7 @@ export function TimerSettings() {
   };
 
   return (
-    <Card>
+    <Card className="py-6">
       <CardHeader>
         <CardTitle className="text-base">Session settings</CardTitle>
       </CardHeader>
@@ -62,7 +64,15 @@ export function TimerSettings() {
 
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
           <div className="flex flex-col gap-1.5">
-            <Label htmlFor={`${id}-work`}>Focus (min)</Label>
+            {/*
+              The glyph sits *beside* the words, not above them: `Label` is a
+              plain block, and Tailwind's preflight makes an SVG a block of its
+              own, so the row has to be asked for explicitly.
+            */}
+            <Label htmlFor={`${id}-work`} className="flex items-center gap-2">
+              <PhaseIcon phase="work" className="size-4" style={{ color: phaseColor('work') }} />
+              Focus (min)
+            </Label>
             <input
               id={`${id}-work`}
               type="number"
@@ -80,7 +90,14 @@ export function TimerSettings() {
           </div>
 
           <div className="flex flex-col gap-1.5">
-            <Label htmlFor={`${id}-short`}>Short break (min)</Label>
+            <Label htmlFor={`${id}-short`} className="flex items-center gap-2">
+              <PhaseIcon
+                phase="shortBreak"
+                className="size-4"
+                style={{ color: phaseColor('shortBreak') }}
+              />
+              Short break (min)
+            </Label>
             <input
               id={`${id}-short`}
               type="number"
@@ -98,7 +115,14 @@ export function TimerSettings() {
           </div>
 
           <div className="flex flex-col gap-1.5">
-            <Label htmlFor={`${id}-long`}>Long break (min)</Label>
+            <Label htmlFor={`${id}-long`} className="flex items-center gap-2">
+              <PhaseIcon
+                phase="longBreak"
+                className="size-4"
+                style={{ color: phaseColor('longBreak') }}
+              />
+              Long break (min)
+            </Label>
             <input
               id={`${id}-long`}
               type="number"

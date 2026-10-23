@@ -35,6 +35,8 @@ describe('normalizePreferences', () => {
   it('keeps a fully valid set of preferences', () => {
     const preferences = {
       dailyGoal: 10,
+      dailyGoalMode: 'sessions',
+      dailyGoalMinutes: 120,
       autoAdvanceTask: false,
       soundEnabled: false,
       completionSound: 'bell',
@@ -43,6 +45,8 @@ describe('normalizePreferences', () => {
       alwaysOnTop: true,
       backgroundSound: 'none',
       backgroundVolume: 0.3,
+      ambienceScope: 'both',
+      alwaysOnTopFollowsPhase: false,
       notificationsEnabled: true,
       attentionEnabled: true,
     };

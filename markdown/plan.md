@@ -905,6 +905,48 @@ says "No active task" when there is none.
 
 ---
 
+## Stage 23 - A bigger clock, a glyph per phase, and a play button in the queue
+
+**Commit:** the working tree (shown on the dev server at the user's request).
+
+Three requests, and each one is about the same thing: the phases should be
+recognisable before they are read, and starting one should not require a
+trip back to the clock.
+
+**The clock.** The ring went from 240 to 320 pixels and the digits from
+4xl/5xl to 5xl/6xl. The countdown is the thing the app is named after, and
+it was sharing the column with a card that has since left it; the extra
+height is now free to spend on the clock.
+
+**The dial.** The ring now carries sixty hour and minute marks — twelve
+long ones at the hours, four short ones between each pair — drawn inside
+the track so the arc passes over them. The marks are what make the circle
+read as a clock rather than as a progress bar that happens to be round. The
+stroke thinned from 8 to 6 viewBox units, and the breath grew from 3.5 to 5
+per cent so the swell is perceptible rather than theoretical.
+
+**The glyphs.** A `PhaseIcon` component draws a focus mark, a cup with steam
+and an armchair from one place, and both the session-length labels and the
+countdown badge render it. The first attempt kept an icon record in
+`lib/phase.ts` and chose a component during render; the lint rule for
+components created during render is right to reject that — a component that
+is a different function on every pass remounts on every pass. The switch
+inside `PhaseIcon` is the version that survives a re-render.
+
+**The play button.** A task row now starts a session: `startFocusOn` makes
+the task active, calls the engine's `start` — the same call the clock's own
+button makes, so the two cannot disagree about whether the timer is running
+— and plays the user's cue at a lower volume than a completion. The cue
+respects `soundEnabled`, because a user who switched the sound off switched
+it off for this too.
+
+**What was checked.** Typecheck, lint and all 414 tests are green. In the
+browser the digits measure 60 pixels, the three labels carry
+their glyphs, and pressing play on the inactive task made it active and took
+the timer from paused to running without a reload.
+
+---
+
 | Stage | Tests | Typecheck | Lint | Build | Browser |
 |-------|-------|-----------|------|-------|---------|
 | 1 | green | green | green | green | shell renders |
@@ -929,6 +971,7 @@ says "No active task" when there is none.
 | 20 | 417 / 32 files + 21 Rust | green | green | green | the picker lists six sounds plus None, the five data controls share one row, the session plan is gone; in the built desktop app both switches persist, About resolves the data folder, and a minimised window's deadline flashes with no notification when notifications are off |
 | 21 | 418 / 32 files + 21 Rust | green | green | green | in the built desktop app the footer measures y 720–757 in an 821-pixel window, the nav begins at 757, and the scroll container is taller than its viewport — the content scrolls under a footer that never moves |
 | 22 | 414 / 32 files + 21 Rust | green | green | green | the task line sits under the timer controls inside the clock, the right pane carries only the queue and the goal, and the line says "No active task" when the queue has none |
+| 23 | 414 / 32 files + 21 Rust | green | green | green | the dial renders 60 marks (12 of them major) at 320 pixels with a 6-unit stroke and a breath that moves the scale between 1.02 and 1.05; the three session labels carry their glyphs, and a task's play button makes it active and starts the clock |
 
 
 **Current state:** 414 tests across 32 files and 21 Rust tests, typecheck,

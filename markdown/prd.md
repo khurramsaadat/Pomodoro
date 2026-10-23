@@ -115,6 +115,9 @@ than no timer at all.
 | FR-35 | The completion sound is chosen from a catalogue, and choosing one plays it | Must — **met** |
 | FR-53 | The session settings live in the settings workspace, not one of their own | Must — **met** |
 | FR-54 | The keyboard shortcuts are listed in the settings panel as well as the dialog | Must — **met** |
+| FR-56 | The countdown is the largest element of the clock column | Should — **met** |
+| FR-57 | Each phase carries a glyph as well as a name, in the settings and in the phase badge | Should — **met** |
+| FR-58 | A session can be started from an open task in the queue, answered with the chosen cue | Should — **met** |
 | FR-55 | The app's own mark is the favicon, the header brand, and the desktop icon | Must — **met** |
 | FR-36 | The completed tasks are a section of their own, not a tail of the queue | Must — **met** |
 | FR-37 | The session log comes before the statistics derived from it | Must — **met** |
@@ -206,6 +209,25 @@ src-tauri/    Rust backend: commands, tray, alarm, window events
   meaning on a phone.
 
 ## 9. Release notes
+
+**A bigger clock, a glyph per phase, and a play button in the queue**
+
+- **The clock grew.** The ring is 320 pixels rather than 240 and the digits
+  are a step larger, so the countdown is the first thing the eye lands on in
+  the column it owns.
+- **The dial reads as a clock.** Sixty hour and minute marks ring the track —
+  twelve long at the hours, four short between each pair — so the circle is
+  a timepiece rather than a gauge, and it breathes with the session while
+  the timer runs. The stroke is thinner than it was, so the marks and the
+  arc do not compete.
+- **Every phase has a glyph.** Focus, short break and long break are told
+  apart by shape as well as by word: a focus mark, a cup with steam, and an
+  armchair. The glyph is drawn beside the three session-length fields and in
+  the countdown's phase badge, from one component, so the two cannot drift.
+- **A session can begin from the queue.** Each open task carries a play
+  button: it makes that task active, starts the clock, and answers with the
+  chosen cue at a lower volume while the sound is on. Starting from the queue
+  and starting from the clock are the same engine call, not two.
 
 **Working on is a line under the clock**
 

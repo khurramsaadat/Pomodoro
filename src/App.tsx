@@ -18,8 +18,9 @@ import { TimerEngineProvider } from '@/components/timer/timer-engine-provider';
 import { TimerPanel } from '@/components/timer/timer-panel';
 import { TimerSettings } from '@/components/timer/timer-settings';
 import { Tabs, TabsContent } from '@/components/ui/tabs';
-import { dailyProgress } from '@/domain/history';
+import { dailyGoalProgress } from '@/domain/history';
 import type { TimerPhase } from '@/domain/types';
+import { notificationText } from '@/lib/notify';
 import { useMiniMode } from '@/hooks/use-mini-mode';
 import { useMiniModePersistence } from '@/hooks/use-mini-mode-persistence';
 import { useTimerPersistence } from '@/hooks/use-timer-persistence';
@@ -28,13 +29,6 @@ import { platform } from '@/platform';
 import { useHistoryStore } from '@/store/history-store';
 import { useMiniModeStore } from '@/store/mini-mode-store';
 import { usePreferencesStore } from '@/store/preferences-store';
-
-/** A human-readable message for each phase completion. */
-function completionMessage(phase: TimerPhase): string {
-  return phase === 'work'
-    ? 'Focus session complete — take a break.'
-    : 'Break over — back to work.';
-}
 
 /** How often the daily goal re-reads the clock, in milliseconds. */
 const CLOCK_INTERVAL_MS = 60_000;
@@ -52,6 +46,8 @@ export default function App() {
 
   const entries = useHistoryStore((store) => store.entries);
   const dailyGoal = usePreferencesStore((store) => store.preferences.dailyGoal);
+  const dailyGoalMode = usePreferencesStore((store) => store.preferences.dailyGoalMode);
+  const dailyGoalMinutes = usePreferencesStore((store) => store.preferences.dailyGoalMinutes);
 
   // The tab root owns the selection, and the "working on" strip under the
   // clock is a doorway into the queue. The selection is therefore held
@@ -85,12 +81,18 @@ export default function App() {
     };
   }, []);
 
-  // The goal is measured against today's sessions. It is derived rather
-  // than kept in state, so it rolls over on its own when the day does.
-  const progress = dailyProgress(entries, dailyGoal, now);
+  // The goal is measured against today's sessions or today's measured focus
+  // minutes, whichever the user chose. It is derived rather than kept in
+  // state, so it rolls over on its own when the day does.
+  const progress = dailyGoalProgress(
+    entries,
+    { mode: dailyGoalMode, sessionsGoal: dailyGoal, minutesGoal: dailyGoalMinutes },
+    now,
+  );
 
   const handlePhaseComplete = (phase: TimerPhase): void => {
-    toast.success(completionMessage(phase), {
+    const text = notificationText(phase);
+    toast.success(text.title, {
       description:
         phase === 'work' ? 'Nice work. Stand up and stretch.' : 'Ready for the next session?',
     });
@@ -186,7 +188,9 @@ export default function App() {
                 */}
                 <DailyGoal
                   sessions={progress.sessions}
+                  focusMs={progress.focusMs}
                   goal={progress.goal}
+                  mode={progress.mode}
                   met={progress.met}
                 />
               </TabsContent>

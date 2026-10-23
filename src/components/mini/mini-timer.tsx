@@ -3,6 +3,7 @@ import { GripVertical, Pause, Play, X } from 'lucide-react';
 
 import { useRemaining, useTimerEngine } from '@/components/timer/timer-engine';
 import { Button } from '@/components/ui/button';
+import { PhaseIcon } from '@/components/timer/phase-icon';
 import { cycleProgress, durationForPhase, phaseLabel } from '@/domain/timer';
 import {
   clampToViewport,
@@ -331,6 +332,11 @@ export function MiniTimer({ variant = 'floating' }: MiniTimerProps = {}) {
           title="Drag to move"
         >
           <GripVertical className="size-3.5" />
+          {/*
+            The widget wears the phase's glyph as well as its word: at this
+            size the cup or the chair is read before the label is.
+          */}
+          <PhaseIcon phase={state.phase} className="size-3" />
           {phaseLabel(state.phase)}
         </button>
 

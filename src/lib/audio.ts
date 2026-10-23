@@ -337,6 +337,93 @@ export async function unlockAudio(): Promise<void> {
 const CUE_VOLUME = 0.6;
 
 /**
+ * The volume the *start* cue is played at.
+ *
+ * Quieter than a completion on purpose: starting a session is a decision
+ * the user has just made, so the sound is an acknowledgement rather than an
+ * announcement.
+ */
+const START_CUE_VOLUME = 0.4;
+
+/**
+ * The cue that says a session has begun, one per sound.
+ *
+ * It is a *separate* motif from the completion cue, built from the same
+ * instrument: two short notes rising a fifth, where the completion is a
+ * longer, wider shape. Playing the completion cue to mean "started" said
+ * the wrong thing twice — the same sound for the beginning and the end.
+ */
+const START_CUES: Record<SoundId, Cue> = {
+  chime: {
+    layers: [
+      { wave: 'sine', frequency: 659.25, offset: 0, duration: 0.18, gain: 0.28 },
+      { wave: 'sine', frequency: 987.77, offset: 0.1, duration: 0.24, gain: 0.22 },
+    ],
+    noise: false,
+    noiseDuration: 0,
+  },
+  bell: {
+    layers: [
+      { wave: 'sine', frequency: 392, offset: 0, duration: 0.3, gain: 0.26 },
+      { wave: 'sine', frequency: 587.33, offset: 0.12, duration: 0.34, gain: 0.2 },
+    ],
+    noise: false,
+    noiseDuration: 0,
+  },
+  pulse: {
+    layers: [
+      { wave: 'square', frequency: 330, offset: 0, duration: 0.12, gain: 0.14 },
+      { wave: 'square', frequency: 495, offset: 0.08, duration: 0.14, gain: 0.12 },
+    ],
+    noise: false,
+    noiseDuration: 0,
+  },
+  digital: {
+    layers: [
+      { wave: 'triangle', frequency: 523.25, offset: 0, duration: 0.1, gain: 0.24 },
+      { wave: 'triangle', frequency: 783.99, offset: 0.08, duration: 0.12, gain: 0.2 },
+    ],
+    noise: false,
+    noiseDuration: 0,
+  },
+};
+
+/**
+ * Plays the cue that says a session has begun.
+ *
+ * The same precaution as a completion applies: a suspended context is
+ * resumed *before* anything is scheduled, or the whole envelope would be
+ * laid out in a window that has already passed.
+ */
+export function playStartCue(sound: SoundId): void {
+  try {
+    const context = getContext();
+    if (!context) {
+      return;
+    }
+
+    const id = (SOUND_IDS as readonly string[]).includes(sound) ? sound : 'chime';
+    const cue = START_CUES[id];
+
+    if (context.state === 'suspended') {
+      void context
+        .resume()
+        .then(() => {
+          scheduleCue(context, cue, START_CUE_VOLUME);
+        })
+        .catch(() => {
+          // No clock to schedule against; the session still starts.
+        });
+      return;
+    }
+
+    scheduleCue(context, cue, START_CUE_VOLUME);
+  } catch {
+    // Audio is a nicety; it must never interrupt the timer.
+  }
+}
+
+/**
  * The deadlines whose cue has already been played.
  *
  * Two independent clocks watch the same deadline: the page's own tick, and

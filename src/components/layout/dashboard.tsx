@@ -51,7 +51,7 @@ export function Dashboard({ clock, children, className }: DashboardProps) {
 
       <div
         data-testid="dashboard-workspace"
-        className="flex min-w-0 flex-col gap-4"
+        className="flex min-w-0 flex-col gap-3"
       >
         {children}
       </div>

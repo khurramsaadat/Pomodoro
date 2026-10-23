@@ -22,6 +22,8 @@ function resetStores(): void {
   usePreferencesStore.setState({
     preferences: {
       dailyGoal: 8,
+      dailyGoalMode: 'sessions',
+      dailyGoalMinutes: 120,
       autoAdvanceTask: true,
       soundEnabled: true,
       completionSound: 'chime',
@@ -30,6 +32,8 @@ function resetStores(): void {
       alwaysOnTop: false,
       backgroundSound: 'none',
       backgroundVolume: 0.4,
+      ambienceScope: 'both',
+      alwaysOnTopFollowsPhase: false,
       notificationsEnabled: true,
       attentionEnabled: true,
     },

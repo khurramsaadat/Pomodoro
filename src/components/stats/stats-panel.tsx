@@ -15,6 +15,7 @@ import {
 import { formatDuration } from '@/lib/time';
 import { useHistoryStore } from '@/store/history-store';
 import { usePreferencesStore } from '@/store/preferences-store';
+import { cn } from '@/lib/utils';
 
 export interface StatsPanelProps {
   /** Additional classes for the container. */
@@ -93,7 +94,7 @@ export function StatsPanel({ className }: StatsPanelProps) {
   ] as const;
 
   return (
-    <Card className={className}>
+    <Card className={cn('py-6', className)}>
       <CardHeader>
         <CardTitle className="flex items-center gap-2 text-base">
           <BarChart3 className="size-4" />

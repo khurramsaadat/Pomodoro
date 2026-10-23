@@ -1,4 +1,10 @@
 import { useEffect } from 'react';
+import { toast } from 'sonner';
+
+/** Whether a key belongs to the timer, rather than to the field. */
+function isTimerKey(key: string): boolean {
+  return [' ', 'k', 'K', 'j', 'J', 'l', 'L', 'ArrowLeft', 'ArrowRight'].includes(key);
+}
 
 /** The actions the shortcuts drive. */
 export interface KeyboardShortcutActions {
@@ -32,6 +38,16 @@ export function useKeyboardShortcuts({ toggle, skip, reset }: KeyboardShortcutAc
           target.tagName === 'TEXTAREA' ||
           target.tagName === 'SELECT')
       ) {
+        // The key is swallowed silently otherwise, which reads as a broken
+        // shortcut rather than as a deliberate exception. One short note
+        // says which it was; the fixed id keeps a held key from stacking
+        // a pile of them.
+        if (isTimerKey(event.key)) {
+          toast.info('Shortcuts are paused while you type', {
+            id: 'shortcut-paused',
+            duration: 1400,
+          });
+        }
         return;
       }
 

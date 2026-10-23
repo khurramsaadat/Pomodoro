@@ -1,5 +1,6 @@
 import { CycleIndicator } from '@/components/timer/cycle-indicator';
 import { CountdownRing } from '@/components/timer/countdown-ring';
+import { PhaseIcon } from '@/components/timer/phase-icon';
 import { TimerControls } from '@/components/timer/timer-controls';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
@@ -60,15 +61,20 @@ export function TimerPanel({ className }: TimerPanelProps) {
       : `${phaseLabel(state.phase)} progress`;
 
   return (
-    <Card className={cn('w-full', className)}>
+    <Card className={cn('w-full py-6', className)}>
       <CardContent className="flex flex-col items-center gap-4 px-5 py-5 sm:px-6">
         <div className="flex flex-wrap items-center justify-center gap-2">
           <Badge
             variant="secondary"
-            className="px-2.5 py-1 text-xs font-medium"
+            className="gap-1.5 px-2.5 py-1 text-xs font-medium"
             style={{ color }}
             data-testid="timer-phase"
           >
+            {/*
+              The badge carries the phase's glyph as well as its name, so the
+              three phases are told apart by shape before the word is read.
+            */}
+            <PhaseIcon phase={state.phase} />
             {phaseLabel(state.phase)}
           </Badge>
           <span className="text-muted-foreground text-xs">{statusLabel(state.status)}</span>
@@ -76,13 +82,13 @@ export function TimerPanel({ className }: TimerPanelProps) {
 
         <CountdownRing
           progress={progress}
-          size={240}
+          size={320}
           color={color}
           breath={swell}
           label={ringLabel}
         >
           <div
-            className="tabular-nums text-4xl leading-none font-semibold tracking-tight sm:text-5xl"
+            className="tabular-nums text-5xl leading-none font-semibold tracking-tight sm:text-6xl"
             aria-live="off"
             data-testid="timer-countdown"
           >

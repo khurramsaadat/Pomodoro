@@ -68,6 +68,11 @@ re-propose them.
 | 55 | Where the app keeps its data | **Built** - the About dialog, answered by the host rather than guessed |
 | 56 | The footer the desktop window never showed | **Fixed** - it is chrome now, a strip above the navigation bar, outside the scroll container |
 | 57 | "Working on" above the daily goal | **Superseded** - the card was replaced by a one-line mention under the timer controls |
+| 58 | The destructive buttons asked with the browser's own dialog | **Built** - they arm in place and clear on the second click |
+| 59 | The shortcut list was a wall of rows in the settings | **Built** - a section that opens by default and folds with a chevron |
+| 60 | The clock was small for the thing the app is named after | **Built** - a 320-pixel dial with hour marks, a thinner stroke and larger digits |
+| 61 | The three phases were words and nothing else | **Built** - a glyph each, in the settings and in the phase badge |
+| 62 | A session could only be started from the clock | **Built** - a play button on every open task starts it |
 
 ---
 
@@ -126,6 +131,26 @@ number does not jump when the app is upgraded.
 ---
 
 ## Recommended next
+
+### 54. The start cue should be a sound of its own
+
+Starting a session now plays the user's completion cue quietly, which is
+good enough and slightly wrong: the same sound means *started* and
+*finished*. A one-note motif from the same instrument would say which of the
+two happened without a second setting to explain.
+
+### 55. Starting from a task should say what it will do to a break
+
+Play on a task starts the clock wherever the cycle is — so pressing it
+during a break starts the *break*, not a focus session on that task. That
+is coherent and surprising. The button could name the phase it will start,
+or a press during a break could skip to the focus first.
+
+### 56. The mini timer should wear the phase's glyph
+
+The widget shows the phase's colour and its label. The glyph now exists and
+is the fastest of the three to read at widget size — one line in the mini
+timer would make it as legible as the dashboard.
 
 ### 19. Export the history as CSV
 

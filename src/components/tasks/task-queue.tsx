@@ -2,12 +2,15 @@ import { useState } from 'react';
 import { CheckCheck, ListTodo, Plus } from 'lucide-react';
 
 import { TaskItem } from '@/components/tasks/task-item';
+import { useTimerEngine } from '@/components/timer/timer-engine';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { isValidTaskTitle, MAX_TASK_ESTIMATE, MIN_TASK_ESTIMATE, splitTasks } from '@/domain/tasks';
+import { playStartCue } from '@/lib/audio';
 import { selectOrderedTasks, useTaskStore } from '@/store/task-store';
 import { usePreferencesStore } from '@/store/preferences-store';
+import { cn } from '@/lib/utils';
 
 export interface TaskQueueProps {
   /** Additional classes for the container. */
@@ -38,6 +41,13 @@ export function TaskQueue({ className }: TaskQueueProps) {
   const setActiveTask = useTaskStore((store) => store.setActiveTask);
 
   const showCompleted = usePreferencesStore((store) => store.preferences.showCompletedTasks);
+  const soundEnabled = usePreferencesStore((store) => store.preferences.soundEnabled);
+  const completionSound = usePreferencesStore((store) => store.preferences.completionSound);
+
+  // The clock lives above the tabs, so the queue can start it. Starting from
+  // the queue and starting from the clock are the same action, which is what
+  // keeps the two from disagreeing about whether the timer is running.
+  const { start } = useTimerEngine();
 
   const [title, setTitle] = useState('');
   const [estimate, setEstimate] = useState(1);
@@ -57,12 +67,24 @@ export function TaskQueue({ className }: TaskQueueProps) {
     setEstimate(MIN_TASK_ESTIMATE);
   };
 
+  const startFocusOn = (taskId: string): void => {
+    setActiveTask(taskId);
+    start();
+
+    // The cue follows the same preference as a completion: a user who has
+    // switched the sound off has switched it off for this too.
+    if (soundEnabled) {
+      playStartCue(completionSound);
+    }
+  };
+
   const renderTask = (task: (typeof ordered)[number]): React.ReactNode => (
     <TaskItem
       key={task.id}
       task={task}
       active={task.id === activeTaskId}
       onSelect={() => setActiveTask(task.id === activeTaskId ? null : task.id)}
+      onPlay={() => startFocusOn(task.id)}
       onToggleDone={() => {
         if (task.done) {
           reopenTask(task.id);
@@ -76,7 +98,7 @@ export function TaskQueue({ className }: TaskQueueProps) {
   );
 
   return (
-    <Card className={className}>
+    <Card className={cn('py-6', className)}>
       <CardHeader>
         <CardTitle className="flex items-center gap-2 text-base">
           <ListTodo className="size-4" />

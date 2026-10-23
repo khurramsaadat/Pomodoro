@@ -2,6 +2,7 @@ import { BarChart3, ListTodo, Settings } from 'lucide-react';
 
 import { TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { cn } from '@/lib/utils';
+import { useTaskStore } from '@/store/task-store';
 
 /**
  * The navigation bar: the three workspaces, pinned to the bottom of the
@@ -23,6 +24,10 @@ import { cn } from '@/lib/utils';
  * in the DOM, not merely painted.
  */
 export function AppNav() {
+  // How many tasks are still open. It is a primitive, so the bar re-renders
+  // when the number changes rather than on every store write.
+  const openTasks = useTaskStore((store) => store.tasks.filter((task) => !task.done).length);
+
   return (
     <TabsList
       className={cn(
@@ -39,7 +44,24 @@ export function AppNav() {
         value="tasks"
         className="text-muted-foreground data-[state=active]:text-primary data-[state=active]:bg-accent flex-col gap-1 rounded-lg px-2 py-1.5 text-xs"
       >
-        <ListTodo />
+        <span className="relative">
+          <ListTodo />
+
+          {/*
+            The count is a corner badge on the icon. It is hidden from
+            assistive technology, because the tab's name is the destination
+            and not "Tasks 4" — the queue itself is one tap away and says
+            what the number means.
+          */}
+          {openTasks > 0 ? (
+            <span
+              aria-hidden="true"
+              className="bg-primary text-primary-foreground absolute -top-1.5 -right-2 min-w-4 rounded-full px-1 text-[10px] leading-4 font-semibold tabular-nums"
+            >
+              {openTasks > 9 ? '9+' : openTasks}
+            </span>
+          ) : null}
+        </span>
         <span className="hidden sm:inline">Tasks</span>
         <span className="sr-only sm:hidden">Tasks</span>
       </TabsTrigger>

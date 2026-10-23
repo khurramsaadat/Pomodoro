@@ -22,9 +22,33 @@ export const MIN_DAILY_GOAL = 1;
 /** The largest daily goal, in focus sessions. */
 export const MAX_DAILY_GOAL = 20;
 
+/** The unit the daily goal is counted in. */
+export type DailyGoalMode = 'sessions' | 'minutes';
+
+/** The smallest daily goal, in focus minutes. */
+export const MIN_DAILY_GOAL_MINUTES = 15;
+
+/** The largest daily goal, in focus minutes. */
+export const MAX_DAILY_GOAL_MINUTES = 720;
+
+/** The default daily goal, in focus minutes: two hours. */
+export const DEFAULT_DAILY_GOAL_MINUTES = 120;
+
+/**
+ * Which phases the background sound plays through.
+ *
+ * A user who chose rain to work under did not necessarily choose rain for
+ * the break, which is when the room should come back.
+ */
+export type AmbienceScope = 'focus' | 'breaks' | 'both';
+
 export interface Preferences {
   /** How many focus sessions the user aims to complete per day. */
   readonly dailyGoal: number;
+  /** Whether the daily goal counts sessions or measured focus minutes. */
+  readonly dailyGoalMode: DailyGoalMode;
+  /** How many focus minutes the user aims for per day. */
+  readonly dailyGoalMinutes: number;
   /** Whether the queue moves on by itself once a task's estimate is met. */
   readonly autoAdvanceTask: boolean;
   /** Whether the completion chime is played. */
@@ -54,6 +78,16 @@ export interface Preferences {
   readonly backgroundSound: AmbienceId;
   /** How loud the background sound is, from 0 to 1. */
   readonly backgroundVolume: number;
+  /** Which phases the background sound plays through. */
+  readonly ambienceScope: AmbienceScope;
+  /**
+   * Whether the pin follows the phase.
+   *
+   * When the window is pinned and this is on, it stays above the others
+   * through a focus session and steps back during a break — the stretch
+   * when the user is looking at something else.
+   */
+  readonly alwaysOnTopFollowsPhase: boolean;
   /**
    * Whether a notification is raised when a phase ends.
    *
@@ -74,6 +108,8 @@ export interface Preferences {
 /** The preferences a first-time user gets. */
 export const DEFAULT_PREFERENCES: Preferences = {
   dailyGoal: 8,
+  dailyGoalMode: 'sessions',
+  dailyGoalMinutes: DEFAULT_DAILY_GOAL_MINUTES,
   autoAdvanceTask: true,
   soundEnabled: true,
   completionSound: 'chime',
@@ -82,9 +118,19 @@ export const DEFAULT_PREFERENCES: Preferences = {
   alwaysOnTop: false,
   backgroundSound: DEFAULT_AMBIENCE,
   backgroundVolume: DEFAULT_AMBIENCE_VOLUME,
+  ambienceScope: 'both',
+  alwaysOnTopFollowsPhase: false,
   notificationsEnabled: true,
   attentionEnabled: true,
 };
+
+/** Clamps a daily goal in minutes into the supported range. */
+export function clampDailyGoalMinutes(minutes: number): number {
+  if (!Number.isFinite(minutes)) {
+    return DEFAULT_DAILY_GOAL_MINUTES;
+  }
+  return Math.min(MAX_DAILY_GOAL_MINUTES, Math.max(MIN_DAILY_GOAL_MINUTES, Math.round(minutes)));
+}
 
 /** Clamps a daily goal into the supported range. */
 export function clampDailyGoal(goal: number): number {
@@ -113,6 +159,11 @@ export function normalizePreferences(value: unknown): Preferences {
       typeof record.dailyGoal === 'number' && Number.isFinite(record.dailyGoal)
         ? clampDailyGoal(record.dailyGoal)
         : DEFAULT_PREFERENCES.dailyGoal,
+    dailyGoalMode: record.dailyGoalMode === 'minutes' ? 'minutes' : 'sessions',
+    dailyGoalMinutes:
+      typeof record.dailyGoalMinutes === 'number' && Number.isFinite(record.dailyGoalMinutes)
+        ? clampDailyGoalMinutes(record.dailyGoalMinutes)
+        : DEFAULT_PREFERENCES.dailyGoalMinutes,
     autoAdvanceTask:
       typeof record.autoAdvanceTask === 'boolean'
         ? record.autoAdvanceTask
@@ -141,6 +192,14 @@ export function normalizePreferences(value: unknown): Preferences {
       typeof record.backgroundVolume === 'number'
         ? clampAmbienceVolume(record.backgroundVolume)
         : DEFAULT_PREFERENCES.backgroundVolume,
+    ambienceScope:
+      record.ambienceScope === 'focus' || record.ambienceScope === 'breaks'
+        ? record.ambienceScope
+        : 'both',
+    alwaysOnTopFollowsPhase:
+      typeof record.alwaysOnTopFollowsPhase === 'boolean'
+        ? record.alwaysOnTopFollowsPhase
+        : DEFAULT_PREFERENCES.alwaysOnTopFollowsPhase,
     notificationsEnabled:
       typeof record.notificationsEnabled === 'boolean'
         ? record.notificationsEnabled

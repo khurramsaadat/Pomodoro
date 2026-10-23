@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { type SessionEntry } from '@/domain/history';
 import { formatDuration } from '@/lib/time';
+import { cn } from '@/lib/utils';
 
 export interface HistoryListProps {
   /** The recorded sessions, most recent first. */
@@ -32,7 +33,7 @@ export function HistoryList({ entries, className }: HistoryListProps) {
 
   if (entries.length === 0) {
     return (
-      <Card className={className}>
+      <Card className={cn('py-6', className)}>
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-base">
             <History className="size-4" />
@@ -52,7 +53,7 @@ export function HistoryList({ entries, className }: HistoryListProps) {
   const hidden = entries.length - visible.length;
 
   return (
-    <Card className={className}>
+    <Card className={cn('py-6', className)}>
       <CardHeader>
         <CardTitle className="flex items-center gap-2 text-base">
           <History className="size-4" />
