@@ -1010,6 +1010,7 @@ against this commit.
 | 25 | 414 / 32 files + 21 Rust | green | green | green | the built bundle and `index.html` contain zero em dashes, and the tray tooltip and empty-state copy read as plain sentences |
 | 26 | 414 / 32 files + 21 Rust | green | green | green | every ambience icon computes to its own hue in both themes (Forest selected: emerald on primary, Brown idle: amber), verified by computed style in the running app |
 | 27 | 417 / 33 files + 21 Rust | green | green | green | buttons report `transition: all` with the press class (14 of them), both queue rows animate `enter` at 0.2s, the done check animates `enter`, and the task-done toast was captured in the live DOM with its title |
+| 28 | 417 / 33 files + 21 Rust | green | green | green | the summary's icons compute to 18px in green, orange and amber with a blue reset, and both keyboard glyphs compute to primary blue (16px in the sections, 18px in the dialog title) |
 
 
 **Stage 26, the ambience icons take a colour each.** The row of background
@@ -1048,6 +1049,18 @@ seen: the toast that names the task, the announcement when the goal is
 crossed, and the silence when the app opens on a goal already met. The
 animation and press claims were verified in the running app by reading
 computed styles rather than by eye.
+
+**Stage 28, colour and size in the summary, a glyph for the shortcuts.**
+The session summary's three icons were 14-pixel grey marks next to bold
+numbers: present, but not carrying any information the number did not
+already carry. They are 18 pixels now and each has the colour of what it
+names. The colours were chosen to *reuse* the palette rather than add to
+it: `success` and `warning` are theme tokens, so both themes come for
+free, and the flame is the same orange as the fireplace in the ambience
+picker, so the app's fire looks like one fire. The keyboard shortcuts
+section, which had a chevron and no mark, now wears a keyboard in the same
+blue as the dialog's title and the header trigger: three places, one
+mark, one colour.
 
 **Current state:** 417 tests across 33 files and 21 Rust tests, typecheck,
 lint and the production build all clean. The native release build is

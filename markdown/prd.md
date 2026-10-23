@@ -146,6 +146,7 @@ than no timer at all.
 | FR-64 | The footer is visible without scrolling, at every window size | Must — **met** |
 | FR-65 | Each ambience's icon in the picker is drawn in a colour of its own | Should — **met** |
 | FR-66 | Pressing a control, finishing a task, and crossing the daily goal each give immediate feedback | Should — **met** |
+| FR-67 | The session summary's stat icons are coloured, sized to read at a glance, and the shortcuts section carries a keyboard glyph | Should — **met** |
 
 ## 5. Non-functional requirements
 
@@ -215,6 +216,19 @@ src-tauri/    Rust backend: commands, tray, alarm, window events
   meaning on a phone.
 
 ## 9. Release notes
+
+**The summary's icons are coloured and larger, and the shortcuts have a glyph**
+
+- The three stat icons in the session summary were 14 pixels of muted
+  grey. They are 18 pixels now and each carries the colour of its meaning:
+  green for sessions completed, orange for focus minutes (the same fire
+  the ambience picker uses), amber for interruptions, and the reset arrow
+  in the app's own blue.
+- The colours come from the theme's `success` and `warning` tokens where a
+  token exists, so they follow light and dark without a second declaration.
+- The keyboard shortcuts now wear a keyboard: one in the settings section
+  header, one in the dialog's title, and the header's trigger glyph is
+  blue too, so the same mark is the same colour wherever it appears.
 
 **The little interactions**
 

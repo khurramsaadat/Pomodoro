@@ -26,13 +26,16 @@ export function ShortcutsDialog() {
     <Dialog>
       <DialogTrigger asChild>
         <Button variant="ghost" size="icon" aria-label="Keyboard shortcuts" title="Keyboard shortcuts">
-          <Keyboard className="size-4" />
+          <Keyboard className="text-primary size-4" />
         </Button>
       </DialogTrigger>
 
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Keyboard shortcuts</DialogTitle>
+          <DialogTitle className="flex items-center gap-2">
+            <Keyboard className="text-primary size-[18px] shrink-0" aria-hidden="true" />
+            Keyboard shortcuts
+          </DialogTitle>
           <DialogDescription>
             The shortcuts are ignored while you are typing in a field.
           </DialogDescription>

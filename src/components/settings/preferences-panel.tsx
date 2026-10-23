@@ -1,4 +1,4 @@
-import { ChevronDown, Settings } from 'lucide-react';
+import { ChevronDown, Keyboard, Settings } from 'lucide-react';
 import { useId, useState } from 'react';
 import { toast } from 'sonner';
 
@@ -325,7 +325,10 @@ export function PreferencesPanel({ className }: PreferencesPanelProps) {
             aria-controls={`${id}-shortcuts`}
             onClick={() => setShortcutsOpen((open) => !open)}
           >
-            Keyboard shortcuts
+            <span className="flex items-center gap-2">
+              <Keyboard className="text-primary size-4 shrink-0" aria-hidden="true" />
+              Keyboard shortcuts
+            </span>
             {/*
               One chevron that turns over, rather than two that swap places:
               a swap is a cut, and the turn is what tells the eye the thing

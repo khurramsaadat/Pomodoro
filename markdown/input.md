@@ -555,3 +555,14 @@ Scope agreed with the user: press feedback on every button, queue items
 that enter rather than appear, the done check that pops, a daily goal
 badge that pops when it is reached, and two quiet toasts (a finished task,
 and the goal crossed mid-session).
+
+---
+
+## 27. Coloured, larger summary icons and a keyboard glyph
+
+> "icons to be colored and a bit bigger. in the keyboard shortcuts, add a
+> colored icon of keyboard as well."
+
+The session summary card was pasted with the request: its three stat icons
+were 14 pixels of muted grey, and the shortcuts section had no glyph of its
+own.
