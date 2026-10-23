@@ -1008,7 +1008,21 @@ against this commit.
 | 23 | 414 / 32 files + 21 Rust | green | green | green | the dial renders 60 marks (12 of them major) at 320 pixels with a 6-unit stroke and a breath that moves the scale between 1.02 and 1.05; the three session labels carry their glyphs, and a task's play button makes it active and starts the clock |
 | 24 | 414 / 32 files + 21 Rust | green | green | green | the bar shows the open-task count, the ambience scope has three states, the goal reads in minutes, and the native release build produced the exe plus the MSI and NSIS installers |
 | 25 | 414 / 32 files + 21 Rust | green | green | green | the built bundle and `index.html` contain zero em dashes, and the tray tooltip and empty-state copy read as plain sentences |
+| 26 | 414 / 32 files + 21 Rust | green | green | green | every ambience icon computes to its own hue in both themes (Forest selected: emerald on primary, Brown idle: amber), verified by computed style in the running app |
 
+
+**Stage 26, the ambience icons take a colour each.** The row of background
+sounds was seven black glyphs. Each now carries the hue of the thing it
+stands for: amber for brown noise, slate for white, sky for rain, blue for
+ocean, orange for fire, green for forest, and muted for `None`, which has no
+colour of its own. The two-tone part of the problem is the selected chip:
+it is a solid primary blue, so the icon needs the *lighter* tone there, or
+the hue vanishes into the very chip it sits on. Each icon therefore has an
+`idle` and a `selected` class, and every class has a `dark:` counterpart.
+Verified by reading the computed `color` off each icon in the running app,
+not by eye alone: idle values land at oklch hues 70 (amber), 252 (slate),
+232 (sky), 254 (blue), 55 (orange) and 164 (emerald), and the selected
+Forest reads emerald-300 on the primary chip.
 
 **Current state:** 414 tests across 32 files and 21 Rust tests, typecheck,
 lint and the production build all clean. The native release build is

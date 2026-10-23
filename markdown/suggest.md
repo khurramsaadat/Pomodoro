@@ -82,6 +82,7 @@ re-propose them.
 | 69 | A swallowed shortcut failed silently | **Built** - a short note says why |
 | 70 | `Card` doubled every card's padding | **Fixed** - the primitive is unpadded; each card declares its own |
 | 71 | Em dashes in the app's copy | **Fixed** - the strings read as sentences, and the built bundle contains none |
+| 72 | The ambience icons were all black | **Built** - each sound carries its own hue, idle and selected, in both themes |
 
 ---
 

@@ -531,3 +531,15 @@ Eight of the twenty-three are delivered in the working tree; the rest are still 
 ## 24. No em dashes
 
 > "do not use em dashes in the whole app."
+
+---
+
+## 25. Coloured icons, records, push, and a new installer
+
+> "update all markdown file and the push commit the app. also update the
+> exe or msi build"
+
+> "use colored icons"
+
+The coloured icons are the background ambience picker: each sound's glyph
+now carries its own hue.

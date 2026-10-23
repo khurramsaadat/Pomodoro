@@ -33,6 +33,28 @@ function ambienceIcon(id: AmbienceId): typeof Wind {
 }
 
 /**
+ * The hue each ambience's icon is drawn in, idle and selected.
+ *
+ * The row is read by shape and colour before it is read by label: rain is
+ * blue, fire is orange, a wood is green. "None" is the exception, because
+ * silence has no colour of its own and should not pretend to.
+ *
+ * The selected chip is a solid primary blue, so its tone has to be the
+ * lighter one: the hue is the point of the icon, and a hue that disappears
+ * into the chip it sits on is not a hue. Each class is written out in full
+ * so the scanner can see it.
+ */
+const AMBIENCE_ICON_COLOR: Record<AmbienceId, { idle: string; selected: string }> = {
+  none: { idle: 'text-muted-foreground', selected: 'text-primary-foreground' },
+  brown: { idle: 'text-amber-700 dark:text-amber-500', selected: 'text-amber-300' },
+  white: { idle: 'text-slate-600 dark:text-slate-300', selected: 'text-slate-200' },
+  rain: { idle: 'text-sky-600 dark:text-sky-400', selected: 'text-sky-300' },
+  waves: { idle: 'text-blue-600 dark:text-blue-400', selected: 'text-blue-300' },
+  fire: { idle: 'text-orange-600 dark:text-orange-400', selected: 'text-orange-300' },
+  forest: { idle: 'text-emerald-700 dark:text-emerald-500', selected: 'text-emerald-300' },
+};
+
+/**
  * The background ambience picker.
  *
  * The ambience is a *background* sound: it plays while a session runs, and
@@ -65,6 +87,7 @@ export function AmbiencePicker({ className }: AmbiencePickerProps) {
         {AMBIENCE_OPTIONS.map((option) => {
           const selected = option.id === backgroundSound;
           const Icon = ambienceIcon(option.id);
+          const color = AMBIENCE_ICON_COLOR[option.id];
 
           return (
             <button
@@ -81,7 +104,10 @@ export function AmbiencePicker({ className }: AmbiencePickerProps) {
                   : 'border-border hover:bg-accent',
               )}
             >
-              <Icon className="size-3.5" aria-hidden="true" />
+              <Icon
+                className={cn('size-3.5', selected ? color.selected : color.idle)}
+                aria-hidden="true"
+              />
               {option.label}
             </button>
           );

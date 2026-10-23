@@ -144,6 +144,7 @@ than no timer at all.
 | FR-62 | About states the version, the author, and where this host keeps the app's data | Must — **met** |
 | FR-63 | The session plan is not shown; the clock and the workspace carry the app | Must — **met** |
 | FR-64 | The footer is visible without scrolling, at every window size | Must — **met** |
+| FR-65 | Each ambience's icon in the picker is drawn in a colour of its own | Should — **met** |
 
 ## 5. Non-functional requirements
 
@@ -213,6 +214,21 @@ src-tauri/    Rust backend: commands, tray, alarm, window events
   meaning on a phone.
 
 ## 9. Release notes
+
+**The ambience icons carry their own colour**
+
+- Each sound in the background ambience picker is drawn in a hue of its
+  own: brown noise amber, white noise slate, rain sky blue, ocean blue,
+  fireplace orange, forest green. The row is read by shape and colour
+  before it is read by label.
+- The selected chip is a solid primary blue, so its tone is the lighter
+  one of the pair: a hue that disappears into the chip it sits on is not a
+  hue. The chosen sound keeps its colour instead of turning white.
+- `None` stays muted. Silence has no colour of its own and should not
+  pretend to.
+- The colours are declared in full in the component so Tailwind's scanner
+  can see every class, and each has a `dark:` counterpart so the row reads
+  the same in both themes.
 
 **The app speaks without em dashes**
 
