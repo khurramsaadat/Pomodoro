@@ -118,19 +118,19 @@ describe('Theme switching', () => {
 
     const toggle = screen.getByRole('button', { name: /theme/i });
 
-    // The default selection is `system`; the first click moves to `light`.
+    // The default selection is `dark`; the first click moves to `system`.
+    await user.click(toggle);
+    expect(window.localStorage.getItem(THEME_STORAGE_KEY)).toBe('system');
+
+    // The second click moves to `light` and removes the dark class.
     await user.click(toggle);
     expect(window.localStorage.getItem(THEME_STORAGE_KEY)).toBe('light');
     expect(document.documentElement.classList.contains('dark')).toBe(false);
 
-    // The second click moves to `dark` and applies the dark class.
+    // The third click returns to `dark`.
     await user.click(toggle);
     expect(window.localStorage.getItem(THEME_STORAGE_KEY)).toBe('dark');
     expect(document.documentElement.classList.contains('dark')).toBe(true);
-
-    // The third click returns to `system`.
-    await user.click(toggle);
-    expect(window.localStorage.getItem(THEME_STORAGE_KEY)).toBe('system');
   });
 
   it('restores the persisted theme on mount', () => {

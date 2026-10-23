@@ -15,12 +15,13 @@
           var stored = localStorage.getItem('pomodoro-theme');
           var isDark =
             stored === 'dark' ||
-            ((stored === 'system' || stored === null) &&
-              window.matchMedia('(prefers-color-scheme: dark)').matches);
+            (stored === 'system' &&
+              window.matchMedia('(prefers-color-scheme: dark)').matches) ||
+            stored === null;
           document.documentElement.classList.toggle('dark', isDark);
           document.documentElement.style.colorScheme = isDark ? 'dark' : 'light';
         } catch (e) {
-          /* storage unavailable, so fall back to the light theme */
+          /* storage unavailable, so fall back to the dark theme */
         }
       })();
     </script>

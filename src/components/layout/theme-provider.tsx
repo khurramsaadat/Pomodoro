@@ -29,7 +29,7 @@ export interface ThemeProviderProps {
  * theme before React mounts.
  */
 export function ThemeProvider({ children, defaultTheme }: ThemeProviderProps) {
-  const [theme, setThemeState] = useState<Theme>(() => defaultTheme ?? readStoredTheme() ?? 'system');
+  const [theme, setThemeState] = useState<Theme>(() => defaultTheme ?? readStoredTheme() ?? 'dark');
   const [systemResolved, setSystemResolved] = useState<ResolvedTheme>(() => systemTheme());
 
   // Track OS-level changes so `system` stays live without a reload.

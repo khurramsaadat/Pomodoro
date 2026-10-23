@@ -38,8 +38,8 @@ export const APP_IDENTIFIER = 'com.khurram.pomodoro';
  */
 export const APP_REPOSITORY_URL = 'https://github.com/khurramsaadat/Pomodoro';
 
-/** Where the installers live. */
-export const APP_RELEASES_URL = `${APP_REPOSITORY_URL}/releases`;
+/** Where the installers live - always the latest release. */
+export const APP_RELEASES_URL = `${APP_REPOSITORY_URL}/releases/latest`;
 
 /**
  * The address the update check reads to learn the latest published version.
