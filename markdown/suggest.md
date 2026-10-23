@@ -73,6 +73,14 @@ re-propose them.
 | 60 | The clock was small for the thing the app is named after | **Built** - a 320-pixel dial with hour marks, a thinner stroke and larger digits |
 | 61 | The three phases were words and nothing else | **Built** - a glyph each, in the settings and in the phase badge |
 | 62 | A session could only be started from the clock | **Built** - a play button on every open task starts it |
+| 63 | The start cue was the completion cue | **Built** - a two-note start motif per sound |
+| 64 | The widget had no phase glyph | **Built** - it wears the same `PhaseIcon` as the dashboard |
+| 65 | The goal could only count sessions | **Built** - sessions or measured focus minutes |
+| 66 | The ambience played through breaks too | **Built** - scoped to focus, breaks, or both |
+| 67 | The pin was all-or-nothing | **Built** - it can follow the phase |
+| 68 | The bar carried no information | **Built** - a count of open tasks |
+| 69 | A swallowed shortcut failed silently | **Built** - a short note says why |
+| 70 | `Card` doubled every card's padding | **Fixed** - the primitive is unpadded; each card declares its own |
 
 ---
 
@@ -131,6 +139,9 @@ number does not jump when the app is upgraded.
 ---
 
 ## Recommended next
+
+> Shipped since this list was written: **22, 32, 38, 40, 49, 51, 54, 56** —
+> see the Shipped table. The rest below are still open.
 
 ### 54. The start cue should be a sound of its own
 

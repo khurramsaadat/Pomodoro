@@ -947,6 +947,40 @@ the timer from paused to running without a reload.
 
 ---
 
+## Stage 24 - Eight of the suggestions
+
+**Commit:** `a4adaa5`, and the working tree for the records.
+
+The suggestion list was worked through against the source first, then eight
+of the twenty-three were built. They were chosen because each one is small
+enough to finish properly in a single pass, and because they share one
+shape: a preference the app already knew and never asked about.
+
+**The sound.** `playStartCue` used to play the *completion* cue quietly,
+which said "started" and "finished" with the same sound. Each catalogue
+entry now has a short two-note start motif of its own, built from the same
+instrument, and it goes through the same suspended-context precaution.
+
+**The preferences.** The daily goal can count measured focus minutes rather
+than sessions (`dailyGoalMode`, `dailyGoalMinutes`), the ambience is scoped
+to focus, breaks or both (`ambienceScope`), and the pin can follow the phase
+(`alwaysOnTopFollowsPhase`, applied in `usePlatform`). All three are new
+fields with defaults, so a payload written by the previous build still
+reads: `normalizePreferences` falls each one back independently.
+
+**The small ones.** The mini timer wears the phase glyph; the bar carries a
+count of open tasks; a shortcut swallowed by a text field says so instead of
+failing silently. And `Card` lost its own vertical padding — every card had
+been doubling it with `py-3`/`py-4` of its own — so each card now declares
+what it wants and the primitive does not pretend to know.
+
+**What was checked.** Typecheck, lint and all 414 tests green; the browser
+shows the badge, the third scope button, the minutes mode and the widget
+glyph; and `npm run tauri build` produced the exe and both installers
+against this commit.
+
+---
+
 | Stage | Tests | Typecheck | Lint | Build | Browser |
 |-------|-------|-----------|------|-------|---------|
 | 1 | green | green | green | green | shell renders |
@@ -972,6 +1006,7 @@ the timer from paused to running without a reload.
 | 21 | 418 / 32 files + 21 Rust | green | green | green | in the built desktop app the footer measures y 720–757 in an 821-pixel window, the nav begins at 757, and the scroll container is taller than its viewport — the content scrolls under a footer that never moves |
 | 22 | 414 / 32 files + 21 Rust | green | green | green | the task line sits under the timer controls inside the clock, the right pane carries only the queue and the goal, and the line says "No active task" when the queue has none |
 | 23 | 414 / 32 files + 21 Rust | green | green | green | the dial renders 60 marks (12 of them major) at 320 pixels with a 6-unit stroke and a breath that moves the scale between 1.02 and 1.05; the three session labels carry their glyphs, and a task's play button makes it active and starts the clock |
+| 24 | 414 / 32 files + 21 Rust | green | green | green | the bar shows the open-task count, the ambience scope has three states, the goal reads in minutes, and the native release build produced the exe plus the MSI and NSIS installers |
 
 
 **Current state:** 414 tests across 32 files and 21 Rust tests, typecheck,

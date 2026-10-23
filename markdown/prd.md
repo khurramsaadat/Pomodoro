@@ -118,6 +118,10 @@ than no timer at all.
 | FR-56 | The countdown is the largest element of the clock column | Should — **met** |
 | FR-57 | Each phase carries a glyph as well as a name, in the settings and in the phase badge | Should — **met** |
 | FR-58 | A session can be started from an open task in the queue, answered with the chosen cue | Should — **met** |
+| FR-59 | Starting a session plays a cue of its own, not the completion cue | Should — **met** |
+| FR-60 | The daily goal counts measured focus minutes or sessions, at the user's choice | Should — **met** |
+| FR-61 | The background sound is scoped to focus, breaks, or both | Should — **met** |
+| FR-62 | The always-on-top pin can follow the phase | Should — **met** |
 | FR-55 | The app's own mark is the favicon, the header brand, and the desktop icon | Must — **met** |
 | FR-36 | The completed tasks are a section of their own, not a tail of the queue | Must — **met** |
 | FR-37 | The session log comes before the statistics derived from it | Must — **met** |
@@ -209,6 +213,24 @@ src-tauri/    Rust backend: commands, tray, alarm, window events
   meaning on a phone.
 
 ## 9. Release notes
+
+**Eight of the suggestions, and the preferences they needed**
+
+- **The start has its own sound.** Two short notes rising a fifth, built
+  from the same instrument as the completion cue, so *started* and
+  *finished* are no longer the same sound.
+- **The widget wears the phase glyph**, and the daily goal can count
+  **measured focus minutes** instead of sessions — the banked time was
+  already there, so eight sprints and eight long sessions are finally
+  different days.
+- **The ambience is scoped**: focus only, breaks only, or both.
+- **The pin can follow the phase**: pinned through a focus session, stepped
+  back during a break, when the user is looking at something else.
+- **The bar carries a count** of open tasks, and a shortcut that is
+  swallowed by a text field now says so instead of failing silently.
+- **`Card` no longer pads itself.** Every card used to double the primitive's
+  vertical padding with its own; the primitive is now unpadded and each card
+  declares what it wants.
 
 **A bigger clock, a glyph per phase, and a play button in the queue**
 

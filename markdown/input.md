@@ -513,3 +513,15 @@ Delivered in the working tree, shown on `http://localhost:3100/`.
 > thickness of the dial to be a little thinner. it should be breathing slightly when active."
 
 Delivered in the working tree, shown on `http://localhost:3100/`.
+
+---
+
+## 23. The suggestion list, worked through
+
+> "please do the following improvements as per suggestion.md and check if these are already done or not. if not please go ahead and implement these.
+>
+> The start cue should be a sound of its own / The mini timer should wear the phase glyph / Attribute a session to a task after it ran / A calendar-aligned week view / A goal measured in time, not sessions / Resume the phase closed mid-session / Let the OS pause the timer on sleep / A notification the user can act on / A richer tray tooltip / The mini window should remember its display / The web mini timer via Document PiP / Measure the layout routinely, not once / Card's padding is doubled by every card / Always-on-top follows the phase / A badge on the navigation bar / The window should remember its size / "One more session" on the working-on line / Auto-advance by schedule rather than estimate / The maximized state should survive a restart / A hint when a shortcut is ignored / Ambience scoped to focus / breaks / both / The About dialog should open the data folder / The taskbar flash should stop when the window is looked at"
+>
+> "when done - please push and commit to by repo and updated the PC rust build as well."
+
+Eight of the twenty-three are delivered in the working tree; the rest are still open and named in `suggest.md`.
