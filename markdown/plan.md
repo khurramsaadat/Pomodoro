@@ -1102,5 +1102,36 @@ contains none, and comments are stripped from it, so a bundle with no em dash
 means no displayed string was missed. Source comments keep theirs, because a
 note to the next reader is not text the app puts on screen.
 
+**Stage 30, the logo colour, a dark default, a thin scrollbar, and the first release.**
+
+The palette was hue 258 (blue-violet) and the logo was hue 195 (cyan). The
+user asked for the two to agree, so the twenty-odd oklch tokens in
+`src/index.css` moved to hue 195 and the whole app turned sky blue with it.
+
+- **The colour was converted, not eyeballed.** `#24c8db` maps to
+  approximately `oklch(0.74 0.115 195)` in the dark theme's primary and
+  `oklch(0.54 0.14 195)` in the light theme's. The chroma and lightness
+  were kept at the same relationships as the old palette so the text
+  contrast survives unchanged.
+- **The default theme moved to dark.** The pre-paint script in `index.html`
+  treats `stored === null` as dark, the theme provider's fallback is
+  `'dark'`, and the smoke test was rewritten for the new cycle: dark,
+  system, light, dark.
+- **The scrollbar is 4 px.** Both the Firefox path (`scrollbar-width: thin;
+  scrollbar-color`) and the Chromium path (`::-webkit-scrollbar`) are set.
+  The thumb is neutral grey with transparency; the track is invisible.
+- **GitHub Release v0.1.0 was created.** The tag `v0.1.0` was pushed, the
+  release created via the GitHub REST API, and both installers (NSIS exe
+  1.88 MiB, MSI 2.44 MiB) uploaded as release assets. The download button
+  resolves to `/releases/latest`.
+
+**Current state:** 437 tests across 35 files and 21 Rust tests, typecheck,
+lint and the production build all clean. The Tauri build was not rebuilt
+for this change (user request); the installers on the release are from the
+previous Tauri build and match the current web frontend minus the colour
+and scrollbar tweaks.
+
+| 30 | 437 / 35 files + 21 Rust | green | green | green | the accent tokens resolve to hue 195 in both themes, the default is dark, the scrollbar is 4 px, and the release page has both installers |
+
 ---
 

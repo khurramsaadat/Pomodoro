@@ -150,6 +150,10 @@ than no timer at all.
 | FR-68 | The website offers the desktop installer, in the header and in the About dialog | Must — **met** |
 | FR-69 | A release newer than the running version is announced with a dismissible strip that links to its download | Should — **met** |
 | FR-70 | The update check survives a network that is offline, rate-limited, or refuses it, and never breaks the app | Must — **met** |
+| FR-71 | The accent colour matches the logo's sky blue (`#24c8db`) across every token | Must — **met** |
+| FR-72 | The default theme is dark; first-time visitors see the dark palette | Must — **met** |
+| FR-73 | The scrollbar is thin (4 px), transparent-track, neutral-thumb, Windows 11 style | Must — **met** |
+| FR-74 | A published GitHub Release carries both installers and the download button resolves to it | Must — **met** |
 
 ## 5. Non-functional requirements
 
@@ -249,6 +253,25 @@ src-tauri/    Rust backend: commands, tray, alarm, window events
   stored, and the request is conditional (`If-None-Match`), so a start-up
   that is refused a fresh answer still announces the release it knows
   about, and an answer of "not modified" costs no body and no rate limit.
+
+**The accent is the logo's own blue, the theme defaults to dark, and the scrollbar is thin**
+
+- **The palette matches the mark.** The design tokens that were oklch hue
+  258 (blue-violet) are now hue 195 (cyan), which is the `#24c8db` in the
+  logo. Every button, toggle, ring, focus ring and phase colour follows the
+  same tokens, so the change is one set of numbers and the whole app moves
+  with it.
+- **Dark by default.** A first-time visitor sees the dark theme. The
+  pre-paint script in `index.html`, the theme provider's fallback, and the
+  smoke test all agree on the new cycle: dark, system, light.
+- **A thin, quiet scrollbar.** 4 px, transparent track, neutral thumb with
+  rounded ends, lighter in the dark theme. Both `scrollbar-width: thin` and
+  the `-webkit-scrollbar` pseudo-elements are set, so the rule covers
+  Firefox and Chromium.
+- **GitHub Release v0.1.0 is published.** The NSIS exe (1.88 MiB) and the
+  MSI (2.44 MiB) are attached to the `v0.1.0` tag. The download button in
+  the header resolves to `/releases/latest`, which GitHub redirects to the
+  newest tag, so the link never goes stale.
 
 **The summary's icons are coloured and larger, and the shortcuts have a glyph**
 

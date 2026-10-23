@@ -149,18 +149,20 @@ number does not jump when the app is upgraded.
 > Shipped since this list was written: **22, 32, 38, 40, 49, 51, 54, 56** —
 > see the Shipped table. The rest below are still open.
 
-### 73. A release is a two-minute ritual the app now depends on
+### 73. The release ritual should be automated
 
-The download link and the update notice both point at the releases page,
-and that page has no releases on it. The two features are therefore
-plumbed and idle: a visitor gets a page with no installers in it, and no
-user will ever be told about a new version, because there is no new
-version to point at. The ritual that closes the gap is: bump the version
-in `app-info.ts`, `package.json` and `tauri.conf.json` (a test keeps the
-three in step), run `npm run tauri build`, then tag and publish a release
-with the MSI and the NSIS installer attached. A GitHub Actions workflow
-that does the build and the publishing on a tag would remove the machine
-from the ritual entirely.
+The first release (v0.1.0) is published with both installers attached.
+The ritual that produced it was manual: build, tag, create the release via
+the API, upload two assets. A GitHub Actions workflow that triggers on a
+version tag would remove the machine from the process entirely and ensure
+the installers are built on a clean runner rather than a developer's
+workstation.
+
+### 77. The repository is now public
+
+The repo was private when the release was first created, which would have
+blocked both the download button and the unauthenticated update check.
+It has since been made public, so both work for any visitor. **Shipped.**
 
 ### 71. Keep the copy free of em dashes without a manual sweep
 

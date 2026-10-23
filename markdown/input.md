@@ -579,3 +579,30 @@ Agreed with the user before building: the installer comes from the
 project's GitHub Releases; the notice is a version check with a
 dismissible strip rather than an auto-installer; the download appears in
 the header of the website and in the About dialog.
+
+---
+
+## 29. Match the logo colour, dark default, thin scrollbar, and the first release
+
+> "I want to change the blue color used in the app. It has to be the same
+> blue which is used in the logo, which is kinda like a sky blue color. For
+> all the buttons and toggles and clock which are blue color, should be same
+> as the blue in the logo color."
+
+> "the scrollbar in windows 11 is very thin we also want similar scroll as
+> now it is too thick and ugly."
+
+> "default is dark theme now."
+
+> "GitHub release is required, and on the website, when a user click the
+> download button for the desktop exe file he should be able to download the
+> latest file. Make sure that user get the latest file which is uploaded to
+> GitHub."
+
+> "push all code to my repo and hold the rust tauri for now."
+
+The logo's sky blue (`#24c8db`) replaced the blue-violet across every
+design token. The default theme moved from system to dark. The scrollbar
+is now a 4 px Windows 11-style track. GitHub Release v0.1.0 was created
+with both installers attached, and the download button points to the
+latest release.
