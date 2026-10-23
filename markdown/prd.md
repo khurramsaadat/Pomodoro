@@ -145,6 +145,7 @@ than no timer at all.
 | FR-63 | The session plan is not shown; the clock and the workspace carry the app | Must — **met** |
 | FR-64 | The footer is visible without scrolling, at every window size | Must — **met** |
 | FR-65 | Each ambience's icon in the picker is drawn in a colour of its own | Should — **met** |
+| FR-66 | Pressing a control, finishing a task, and crossing the daily goal each give immediate feedback | Should — **met** |
 
 ## 5. Non-functional requirements
 
@@ -214,6 +215,29 @@ src-tauri/    Rust backend: commands, tray, alarm, window events
   meaning on a phone.
 
 ## 9. Release notes
+
+**The little interactions**
+
+- **Every button presses in.** The `Button` primitive, which draws almost
+  every control in the app, scales to 97% while held and returns on
+  release. It is one class on one primitive, so the whole interface answers
+  the hand at once rather than each control being taught separately. The
+  ambience chips, which are raw buttons, carry it too.
+- **Queue items enter rather than appear.** A task that is added rises
+  four pixels into place over 200 ms. Only the *new* item animates: the
+  rows are keyed, so re-renders do not replay the entrance.
+- **The done check pops.** Ticking a task swaps the circle for the check
+  with a scale-in, so the moment of finishing is visible rather than
+  implied by a colour change.
+- **The goal badge pops when it is reached**, and two moments say so out
+  loud: a toast naming the task that was finished, and one announcing the
+  daily goal the moment it is crossed.
+- **A goal that was already met stays quiet.** The announcement is guarded
+  by the *previous* value held in a ref, so opening the app on a day that
+  already met the goal states a fact and does not celebrate it again.
+- **All of it holds still under `prefers-reduced-motion`.** The press uses
+  `motion-safe:`, and the entrance animations are durations the global
+  reduced-motion rule already collapses to nothing.
 
 **The ambience icons carry their own colour**
 

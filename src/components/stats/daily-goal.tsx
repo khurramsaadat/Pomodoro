@@ -55,7 +55,7 @@ export function DailyGoal({ sessions, focusMs, goal, mode, met, className }: Dai
           </div>
 
           {met ? (
-            <Badge variant="secondary" className="shrink-0 text-[10px]">
+            <Badge variant="secondary" className="shrink-0 animate-in duration-200 text-[10px] zoom-in-0">
               Goal reached
             </Badge>
           ) : (

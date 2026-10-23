@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { CheckCheck, ListTodo, Plus } from 'lucide-react';
+import { toast } from 'sonner';
 
 import { TaskItem } from '@/components/tasks/task-item';
 import { useTimerEngine } from '@/components/timer/timer-engine';
@@ -90,6 +91,10 @@ export function TaskQueue({ className }: TaskQueueProps) {
           reopenTask(task.id);
         } else {
           completeTask(task.id);
+          // A task that is finished deserves to be said out loud, once. It
+          // names the task rather than congratulating in the abstract, so
+          // the toast doubles as a record of *which* one it was.
+          toast('Task done', { description: task.title });
         }
       }}
       onRemove={() => removeTask(task.id)}

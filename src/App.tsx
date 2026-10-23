@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Toaster, toast } from 'sonner';
 
 import { AlwaysOnTopToggle } from '@/components/layout/always-on-top-toggle';
@@ -89,6 +89,25 @@ export default function App() {
     { mode: dailyGoalMode, sessionsGoal: dailyGoal, minutesGoal: dailyGoalMinutes },
     now,
   );
+
+  // The goal is announced the moment it is *reached*, never on opening the
+  // app on a day that has already met it. The previous value lives in a ref
+  // rather than in state, so a goal that is merely still met is a fact and
+  // stays quiet, while a goal crossed mid-session is an achievement and says
+  // so. The day rolling over resets the old value, so tomorrow can earn its
+  // own announcement.
+  const goalWasMet = useRef(progress.met);
+  useEffect(() => {
+    if (progress.met && !goalWasMet.current) {
+      toast.success('Daily goal reached', {
+        description:
+          dailyGoalMode === 'minutes'
+            ? `${progress.goal} minutes of focus today.`
+            : `${progress.goal} focus session${progress.goal === 1 ? '' : 's'} today.`,
+      });
+    }
+    goalWasMet.current = progress.met;
+  }, [progress.met, progress.goal, dailyGoalMode]);
 
   const handlePhaseComplete = (phase: TimerPhase): void => {
     const text = notificationText(phase);

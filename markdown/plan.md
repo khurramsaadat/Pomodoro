@@ -1009,6 +1009,7 @@ against this commit.
 | 24 | 414 / 32 files + 21 Rust | green | green | green | the bar shows the open-task count, the ambience scope has three states, the goal reads in minutes, and the native release build produced the exe plus the MSI and NSIS installers |
 | 25 | 414 / 32 files + 21 Rust | green | green | green | the built bundle and `index.html` contain zero em dashes, and the tray tooltip and empty-state copy read as plain sentences |
 | 26 | 414 / 32 files + 21 Rust | green | green | green | every ambience icon computes to its own hue in both themes (Forest selected: emerald on primary, Brown idle: amber), verified by computed style in the running app |
+| 27 | 417 / 33 files + 21 Rust | green | green | green | buttons report `transition: all` with the press class (14 of them), both queue rows animate `enter` at 0.2s, the done check animates `enter`, and the task-done toast was captured in the live DOM with its title |
 
 
 **Stage 26, the ambience icons take a colour each.** The row of background
@@ -1024,7 +1025,31 @@ not by eye alone: idle values land at oklch hues 70 (amber), 252 (slate),
 232 (sky), 254 (blue), 55 (orange) and 164 (emerald), and the selected
 Forest reads emerald-300 on the primary chip.
 
-**Current state:** 414 tests across 32 files and 21 Rust tests, typecheck,
+**Stage 27, the little interactions.** The app answered the hand but did
+not acknowledge it, and the two moments worth marking passed in silence.
+Four changes, chosen because each one is felt rather than read:
+
+- `Button` gained one class, `motion-safe:active:scale-[0.97]`, and because
+  nearly every control in the app *is* a `Button`, one line bought press
+  feedback everywhere instead of thirty. The ambience chips are the one
+  row of raw buttons, so they carry the class themselves.
+- Queue rows animate their entrance (`fade-in` plus a four-pixel rise,
+  200 ms) and the done check scales in when the circle becomes the tick.
+  Rows are keyed, so only a genuinely new or newly-ticked element
+  animates; a re-render does not replay it.
+- The daily goal's "Goal reached" badge scales in when it appears.
+- Two toasts: one naming the task that was just finished, and one for the
+  goal being crossed. The second is guarded by a ref holding the *previous*
+  met value, so it fires on the transition and never on load, and it
+  re-arms when the day rolls over.
+
+Three tests were added for the parts that could regress without being
+seen: the toast that names the task, the announcement when the goal is
+crossed, and the silence when the app opens on a goal already met. The
+animation and press claims were verified in the running app by reading
+computed styles rather than by eye.
+
+**Current state:** 417 tests across 33 files and 21 Rust tests, typecheck,
 lint and the production build all clean. The native release build is
 unchanged by this stage, because the layout is the same code on both tiers.
 

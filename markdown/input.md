@@ -543,3 +543,15 @@ Eight of the twenty-three are delivered in the working tree; the rest are still 
 
 The coloured icons are the background ambience picker: each sound's glyph
 now carries its own hue.
+
+---
+
+## 26. The little interactions
+
+> "i like the little interactions so please include it in the app so user
+> feel happy when using this app"
+
+Scope agreed with the user: press feedback on every button, queue items
+that enter rather than appear, the done check that pops, a daily goal
+badge that pops when it is reached, and two quiet toasts (a finished task,
+and the goal crossed mid-session).

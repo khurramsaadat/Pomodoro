@@ -98,7 +98,7 @@ export function AmbiencePicker({ className }: AmbiencePickerProps) {
               title={option.description}
               onClick={() => updatePreference('backgroundSound', option.id)}
               className={cn(
-                'inline-flex items-center gap-1.5 rounded-md border px-2.5 py-1 text-xs font-medium transition-colors',
+                'inline-flex items-center gap-1.5 rounded-md border px-2.5 py-1 text-xs font-medium transition-colors motion-safe:active:scale-[0.97]',
                 selected
                   ? 'bg-primary text-primary-foreground border-primary'
                   : 'border-border hover:bg-accent',

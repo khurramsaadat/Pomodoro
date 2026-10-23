@@ -81,7 +81,7 @@ export function TaskItem({
   if (editing) {
     return (
       <li
-        className="border-primary bg-primary/5 flex flex-col gap-2 rounded-lg border px-3 py-2.5"
+        className="border-primary bg-primary/5 flex animate-in flex-col gap-2 rounded-lg border px-3 py-2.5 fade-in-0 slide-in-from-bottom-1 duration-200"
         data-testid="task-item"
         data-editing="true"
       >
@@ -158,7 +158,7 @@ export function TaskItem({
   return (
     <li
       className={cn(
-        'flex items-center gap-3 rounded-lg border px-3 py-2.5 transition-colors',
+        'flex animate-in items-center gap-3 rounded-lg border px-3 py-2.5 transition-colors fade-in-0 slide-in-from-bottom-1 duration-200',
         active ? 'border-primary bg-primary/5' : 'border-border',
         task.done && 'opacity-60',
       )}
@@ -174,9 +174,9 @@ export function TaskItem({
         className="size-7 shrink-0"
       >
         {task.done ? (
-          <Check className="text-success size-4" />
+          <Check className="text-success size-4 animate-in duration-150 zoom-in-0" />
         ) : (
-          <Circle className="text-muted-foreground size-4" />
+          <Circle className="text-muted-foreground size-4 animate-in duration-150 zoom-in-0" />
         )}
       </Button>
 

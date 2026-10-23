@@ -83,6 +83,7 @@ re-propose them.
 | 70 | `Card` doubled every card's padding | **Fixed** - the primitive is unpadded; each card declares its own |
 | 71 | Em dashes in the app's copy | **Fixed** - the strings read as sentences, and the built bundle contains none |
 | 72 | The ambience icons were all black | **Built** - each sound carries its own hue, idle and selected, in both themes |
+| 73 | The app gave no sign that a button had been pressed | **Built** - press feedback everywhere, entering queue rows, a popping check, and two quiet toasts |
 
 ---
 
