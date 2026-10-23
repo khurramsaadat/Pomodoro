@@ -20,14 +20,14 @@
   --popover: oklch(1 0 0);
   --popover-foreground: oklch(0.21 0.02 260);
 
-  --primary: oklch(0.55 0.18 258);
-  --primary-foreground: oklch(0.99 0.003 240);
+  --primary: oklch(0.54 0.14 195);
+  --primary-foreground: oklch(0.99 0.003 200);
 
   --secondary: oklch(0.96 0.005 250);
   --secondary-foreground: oklch(0.28 0.02 260);
 
   --muted: oklch(0.96 0.005 250);
-  --muted-foreground: oklch(0.52 0.02 258);
+  --muted-foreground: oklch(0.52 0.02 200);
 
   --accent: oklch(0.95 0.02 250);
   --accent-foreground: oklch(0.28 0.02 260);
@@ -43,10 +43,10 @@
 
   --border: oklch(0.91 0.008 255);
   --input: oklch(0.91 0.008 255);
-  --ring: oklch(0.55 0.18 258);
+  --ring: oklch(0.54 0.14 195);
 
   /* Phase-specific accents used by the timer ring and cycle indicators. */
-  --phase-work: oklch(0.58 0.19 258);
+  --phase-work: oklch(0.56 0.15 195);
   --phase-short: oklch(0.65 0.15 155);
   --phase-long: oklch(0.66 0.14 215);
 }
@@ -61,14 +61,14 @@
   --popover: oklch(0.21 0.025 264);
   --popover-foreground: oklch(0.95 0.005 250);
 
-  --primary: oklch(0.68 0.16 258);
-  --primary-foreground: oklch(0.16 0.02 264);
+  --primary: oklch(0.74 0.115 195);
+  --primary-foreground: oklch(0.16 0.02 200);
 
   --secondary: oklch(0.27 0.025 264);
   --secondary-foreground: oklch(0.95 0.005 250);
 
   --muted: oklch(0.27 0.025 264);
-  --muted-foreground: oklch(0.68 0.02 258);
+  --muted-foreground: oklch(0.68 0.02 200);
 
   --accent: oklch(0.31 0.03 264);
   --accent-foreground: oklch(0.95 0.005 250);
@@ -84,9 +84,9 @@
 
   --border: oklch(0.3 0.025 264);
   --input: oklch(0.32 0.025 264);
-  --ring: oklch(0.68 0.16 258);
+  --ring: oklch(0.74 0.115 195);
 
-  --phase-work: oklch(0.7 0.16 258);
+  --phase-work: oklch(0.76 0.115 195);
   --phase-short: oklch(0.74 0.15 158);
   --phase-long: oklch(0.73 0.13 218);
 }
