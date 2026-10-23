@@ -156,7 +156,7 @@ export function TaskQueue({ className }: TaskQueueProps) {
         {open.length === 0 ? (
           <p className="text-muted-foreground rounded-lg border border-dashed py-8 text-center text-sm">
             {ordered.length === 0
-              ? 'No tasks yet — add one above to start tracking.'
+              ? 'No tasks yet. Add one above to start tracking.'
               : 'Everything is done. Enjoy the break.'}
           </p>
         ) : (

@@ -42,7 +42,7 @@ export function HistoryList({ entries, className }: HistoryListProps) {
         </CardHeader>
         <CardContent>
           <p className="text-muted-foreground rounded-lg border border-dashed py-6 text-center text-sm">
-            No sessions yet — the log fills up as you work.
+            No sessions yet. The log fills up as you work.
           </p>
         </CardContent>
       </Card>

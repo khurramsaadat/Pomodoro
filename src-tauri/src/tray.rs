@@ -68,7 +68,7 @@ pub fn install<R: Runtime>(app: &AppHandle<R>) -> tauri::Result<()> {
 
   TrayIconBuilder::with_id(TRAY_ID)
     .icon(app.default_window_icon().cloned().unwrap())
-    .tooltip("Pomodoro — 25:00")
+    .tooltip("Pomodoro: 25:00")
     .menu(&menu)
     // A left click shows the menu rather than doing something surprising, so
     // a mis-click cannot start or stop the timer by accident.
@@ -105,7 +105,7 @@ pub fn install<R: Runtime>(app: &AppHandle<R>) -> tauri::Result<()> {
 /// Applies a new state to the tray icon.
 pub fn apply<R: Runtime>(tray: &tauri::tray::TrayIcon<R>, state: &TrayState) {
   let status = if state.running { "running" } else { "paused" };
-  let tooltip = format!("Pomodoro — {} ({status})", state.remaining);
+  let tooltip = format!("Pomodoro: {} ({status})", state.remaining);
 
   if let Err(error) = tray.set_tooltip(Some(&tooltip)) {
     log::warn!("the tray tooltip could not be set: {error}");

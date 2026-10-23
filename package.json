@@ -3,7 +3,7 @@
   "private": true,
   "version": "0.1.0",
   "type": "module",
-  "description": "Production-grade Pomodoro timer — native desktop via Tauri v2 and standalone web app.",
+  "description": "Production-grade Pomodoro timer: native desktop via Tauri v2 and standalone web app.",
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",

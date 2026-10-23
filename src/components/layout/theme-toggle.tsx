@@ -31,7 +31,7 @@ export function ThemeToggle() {
       variant="ghost"
       size="icon"
       aria-label={`${LABELS[theme]}. Switch to ${LABELS[next].toLowerCase()}.`}
-      title={`${LABELS[theme]} — click for ${LABELS[next].toLowerCase()}`}
+      title={`${LABELS[theme]}. Click for ${LABELS[next].toLowerCase()}.`}
       onClick={() => {
         setTheme(next);
       }}

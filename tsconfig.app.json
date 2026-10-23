@@ -16,7 +16,7 @@
     "noEmit": true,
     "jsx": "react-jsx",
 
-    /* Strictness — zero implicit any, no unchecked index access */
+    /* Strictness: zero implicit any, no unchecked index access */
     "strict": true,
     "noImplicitAny": true,
     "noImplicitOverride": true,

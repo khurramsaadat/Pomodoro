@@ -81,6 +81,7 @@ re-propose them.
 | 68 | The bar carried no information | **Built** - a count of open tasks |
 | 69 | A swallowed shortcut failed silently | **Built** - a short note says why |
 | 70 | `Card` doubled every card's padding | **Fixed** - the primitive is unpadded; each card declares its own |
+| 71 | Em dashes in the app's copy | **Fixed** - the strings read as sentences, and the built bundle contains none |
 
 ---
 
@@ -142,6 +143,14 @@ number does not jump when the app is upgraded.
 
 > Shipped since this list was written: **22, 32, 38, 40, 49, 51, 54, 56** —
 > see the Shipped table. The rest below are still open.
+
+### 71. Keep the copy free of em dashes without a manual sweep
+
+The rule is now written down, and the only thing enforcing it is a scan run
+by hand. A test that walks the source strings and the built bundle and
+fails on U+2014 would make the rule a property of the build rather than a
+habit of the author. It is the same scan already used to verify this
+change, so the cost is the test, not the logic.
 
 ### 54. The start cue should be a sound of its own
 

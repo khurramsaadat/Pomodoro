@@ -1007,11 +1007,22 @@ against this commit.
 | 22 | 414 / 32 files + 21 Rust | green | green | green | the task line sits under the timer controls inside the clock, the right pane carries only the queue and the goal, and the line says "No active task" when the queue has none |
 | 23 | 414 / 32 files + 21 Rust | green | green | green | the dial renders 60 marks (12 of them major) at 320 pixels with a 6-unit stroke and a breath that moves the scale between 1.02 and 1.05; the three session labels carry their glyphs, and a task's play button makes it active and starts the clock |
 | 24 | 414 / 32 files + 21 Rust | green | green | green | the bar shows the open-task count, the ambience scope has three states, the goal reads in minutes, and the native release build produced the exe plus the MSI and NSIS installers |
+| 25 | 414 / 32 files + 21 Rust | green | green | green | the built bundle and `index.html` contain zero em dashes, and the tray tooltip and empty-state copy read as plain sentences |
 
 
 **Current state:** 414 tests across 32 files and 21 Rust tests, typecheck,
 lint and the production build all clean. The native release build is
-unchanged by this stage — the layout is the same code on both tiers.
+unchanged by this stage, because the layout is the same code on both tiers.
+
+**Stage 25, no em dashes.** The sweep was mechanical, so the check had to be
+too: every text file in the tree was scanned for U+2014 and classified as a
+string, a comment, or a comment continuation. Only the strings were rewritten
+(the empty queue, the empty history, the theme toggle's tooltip, the ring's
+accessible label, the window title, the tray tooltip, the package
+description). The final proof is the artefact rather than the source: `dist`
+contains none, and comments are stripped from it, so a bundle with no em dash
+means no displayed string was missed. Source comments keep theirs, because a
+note to the next reader is not text the app puts on screen.
 
 ---
 

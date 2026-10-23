@@ -525,3 +525,9 @@ Delivered in the working tree, shown on `http://localhost:3100/`.
 > "when done - please push and commit to by repo and updated the PC rust build as well."
 
 Eight of the twenty-three are delivered in the working tree; the rest are still open and named in `suggest.md`.
+
+---
+
+## 24. No em dashes
+
+> "do not use em dashes in the whole app."

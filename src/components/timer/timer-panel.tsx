@@ -57,7 +57,7 @@ export function TimerPanel({ className }: TimerPanelProps) {
   // not breathing, so saying so would be a description of nothing.
   const ringLabel =
     state.status === 'running'
-      ? `${phaseLabel(state.phase)} progress — ${breathLabel(breath).toLowerCase()}`
+      ? `${phaseLabel(state.phase)} progress, ${breathLabel(breath).toLowerCase()}`
       : `${phaseLabel(state.phase)} progress`;
 
   return (

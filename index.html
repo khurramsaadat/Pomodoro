@@ -20,7 +20,7 @@
           document.documentElement.classList.toggle('dark', isDark);
           document.documentElement.style.colorScheme = isDark ? 'dark' : 'light';
         } catch (e) {
-          /* storage unavailable — fall back to the light theme */
+          /* storage unavailable, so fall back to the light theme */
         }
       })();
     </script>

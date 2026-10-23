@@ -214,6 +214,21 @@ src-tauri/    Rust backend: commands, tray, alarm, window events
 
 ## 9. Release notes
 
+**The app speaks without em dashes**
+
+- Every string the user can see or hear is now free of the em dash: the
+  empty queue, the empty history, the theme toggle's tooltip, the ring's
+  accessible label, the window title in `index.html`, the tray tooltip, and
+  the package description.
+- The two-clause sentence the dash was carrying is written as two sentences
+  or a comma. Where the dash was a contrast rather than an aside (the empty
+  queue's "No tasks yet" line), it is now a full stop, because the second
+  half is an instruction.
+- The production bundle is the proof: the build output contains zero
+  em dashes, so nothing can arrive on screen from a string that was missed.
+- Comments in the source still use them; they are notes for whoever reads
+  the code, not text the app displays.
+
 **Eight of the suggestions, and the preferences they needed**
 
 - **The start has its own sound.** Two short notes rising a fifth, built
