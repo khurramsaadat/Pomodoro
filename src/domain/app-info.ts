@@ -28,3 +28,26 @@ export const APP_COPYRIGHT = `© 2006 ${APP_NAME} by ${APP_AUTHOR}`;
 
 /** The identifier the desktop app registers itself under. */
 export const APP_IDENTIFIER = 'com.khurram.pomodoro';
+
+/**
+ * Where the app is published.
+ *
+ * The releases page is the app's shop window: the desktop installers are
+ * attached to it, and the update check asks the same host whether a newer
+ * version exists. One place to look is one place to keep up to date.
+ */
+export const APP_REPOSITORY_URL = 'https://github.com/khurramsaadat/Pomodoro';
+
+/** Where the installers live. */
+export const APP_RELEASES_URL = `${APP_REPOSITORY_URL}/releases`;
+
+/**
+ * The address the update check reads to learn the latest published version.
+ *
+ * This is the API rather than the releases page, because the page is an
+ * HTML document and the app needs a fact: which version is newest, and
+ * where its release lives. GitHub answers it without a key, and it allows
+ * any origin to read it, so both tiers can ask.
+ */
+export const APP_LATEST_RELEASE_API =
+  'https://api.github.com/repos/khurramsaadat/Pomodoro/releases/latest';

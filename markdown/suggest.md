@@ -85,6 +85,8 @@ re-propose them.
 | 72 | The ambience icons were all black | **Built** - each sound carries its own hue, idle and selected, in both themes |
 | 73 | The app gave no sign that a button had been pressed | **Built** - press feedback everywhere, entering queue rows, a popping check, and two quiet toasts |
 | 74 | The summary's icons were small, grey and unexplained | **Built** - 18 pixels, coloured by meaning, with a keyboard glyph on the shortcuts section |
+| 75 | The website had no way to get the desktop app | **Built** - a download in the header and in the About, both pointing at the releases page |
+| 76 | Nothing told a user their copy was out of date | **Built** - a version check against the latest release, with a dismissible strip, survived by design |
 
 ---
 
@@ -146,6 +148,19 @@ number does not jump when the app is upgraded.
 
 > Shipped since this list was written: **22, 32, 38, 40, 49, 51, 54, 56** —
 > see the Shipped table. The rest below are still open.
+
+### 73. A release is a two-minute ritual the app now depends on
+
+The download link and the update notice both point at the releases page,
+and that page has no releases on it. The two features are therefore
+plumbed and idle: a visitor gets a page with no installers in it, and no
+user will ever be told about a new version, because there is no new
+version to point at. The ritual that closes the gap is: bump the version
+in `app-info.ts`, `package.json` and `tauri.conf.json` (a test keeps the
+three in step), run `npm run tauri build`, then tag and publish a release
+with the MSI and the NSIS installer attached. A GitHub Actions workflow
+that does the build and the publishing on a tag would remove the machine
+from the ritual entirely.
 
 ### 71. Keep the copy free of em dashes without a manual sweep
 

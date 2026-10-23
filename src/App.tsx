@@ -5,7 +5,9 @@ import { AlwaysOnTopToggle } from '@/components/layout/always-on-top-toggle';
 import { AppNav } from '@/components/layout/app-nav';
 import { AppShell } from '@/components/layout/app-shell';
 import { Dashboard } from '@/components/layout/dashboard';
+import { DownloadAppButton } from '@/components/layout/download-app-button';
 import { ShortcutsDialog } from '@/components/layout/shortcuts-dialog';
+import { UpdateBanner } from '@/components/layout/update-banner';
 import { MiniModeToggle } from '@/components/mini/mini-mode-toggle';
 import { MiniTimer } from '@/components/mini/mini-timer';
 import { PreferencesPanel } from '@/components/settings/preferences-panel';
@@ -24,6 +26,7 @@ import { notificationText } from '@/lib/notify';
 import { useMiniMode } from '@/hooks/use-mini-mode';
 import { useMiniModePersistence } from '@/hooks/use-mini-mode-persistence';
 import { useTimerPersistence } from '@/hooks/use-timer-persistence';
+import { useUpdateCheck } from '@/hooks/use-update-check';
 import { useWorkspacePersistence } from '@/hooks/use-workspace-persistence';
 import { platform } from '@/platform';
 import { useHistoryStore } from '@/store/history-store';
@@ -134,6 +137,11 @@ export default function App() {
   // Restores and persists the mini timer's visibility and position.
   useMiniModePersistence();
 
+  // Watches for a newer release. The answer is a strip above the workspace,
+  // not a toast: an announcement that vanishes after a few seconds is one a
+  // user reading a countdown will never see.
+  const { update, dismiss: dismissUpdate } = useUpdateCheck();
+
   // Tells the host whether it should present a mini window.
   useMiniMode();
 
@@ -165,6 +173,14 @@ export default function App() {
             <ShortcutsDialog />
             <AlwaysOnTopToggle />
             <MiniModeToggle />
+
+            {/*
+              The download belongs to the *website*: a desktop app offering
+              to download itself is advertising something the user already
+              has. The platform answers which tier this is, so the app above
+              the seam never has to ask.
+            */}
+            {platform.capabilities.native ? null : <DownloadAppButton />}
           </>
         }
       >
@@ -176,6 +192,17 @@ export default function App() {
         */}
         <TimerEngineProvider onPhaseComplete={handlePhaseComplete}>
           <h1 className="sr-only">Pomodoro timer</h1>
+
+          {/*
+            The strip is chrome in the sense that it is about the app rather
+            than about a workspace, so it sits above the dashboard and is
+            read whichever tab is open. It is hidden in mini mode for the
+            same reason the rest of the chrome is: a widget has no room for
+            an announcement.
+          */}
+          {update === null || overlayMini ? null : (
+            <UpdateBanner update={update} onDismiss={dismissUpdate} />
+          )}
 
           {overlayMini ? null : (
             <Dashboard

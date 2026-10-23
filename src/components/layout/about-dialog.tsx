@@ -10,7 +10,14 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog';
-import { APP_AUTHOR, APP_COPYRIGHT, APP_NAME, APP_TAGLINE, APP_VERSION } from '@/domain/app-info';
+import {
+  APP_AUTHOR,
+  APP_COPYRIGHT,
+  APP_NAME,
+  APP_RELEASES_URL,
+  APP_TAGLINE,
+  APP_VERSION,
+} from '@/domain/app-info';
 import { platform } from '@/platform';
 
 export interface AboutDialogProps {
@@ -106,6 +113,24 @@ export function AboutDialog({ className, label }: AboutDialogProps) {
           <dt className="text-muted-foreground">Data</dt>
           <dd className="break-all">
             {storage ?? 'Looking…'}
+          </dd>
+
+          <dt className="text-muted-foreground">Download</dt>
+          <dd>
+            {/*
+              The releases page is the app's shop window: the installers
+              live there, and so does every version that has come before.
+              It opens in a new tab, because the timer keeps counting and
+              this dialog is not a place to lose the app to.
+            */}
+            <a
+              href={APP_RELEASES_URL}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-primary underline-offset-4 hover:underline"
+            >
+              The latest desktop installer
+            </a>
           </dd>
         </dl>
 

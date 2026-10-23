@@ -1011,6 +1011,7 @@ against this commit.
 | 26 | 414 / 32 files + 21 Rust | green | green | green | every ambience icon computes to its own hue in both themes (Forest selected: emerald on primary, Brown idle: amber), verified by computed style in the running app |
 | 27 | 417 / 33 files + 21 Rust | green | green | green | buttons report `transition: all` with the press class (14 of them), both queue rows animate `enter` at 0.2s, the done check animates `enter`, and the task-done toast was captured in the live DOM with its title |
 | 28 | 417 / 33 files + 21 Rust | green | green | green | the summary's icons compute to 18px in green, orange and amber with a blue reset, and both keyboard glyphs compute to primary blue (16px in the sections, 18px in the dialog title) |
+| 29 | 437 / 35 files + 21 Rust | green | green | green | the header download resolves to the releases page, the About dialog names the same page, the strip was rendered in the live app from a rate-limited answer (GitHub returned 403) with "Version 9.9.9 is available. You are running 0.1.0.", and dismissing it kept it dismissed across a reload |
 
 
 **Stage 26, the ambience icons take a colour each.** The row of background
@@ -1062,7 +1063,32 @@ section, which had a chevron and no mark, now wears a keyboard in the same
 blue as the dialog's title and the header trigger: three places, one
 mark, one colour.
 
-**Current state:** 417 tests across 33 files and 21 Rust tests, typecheck,
+**Stage 29, the download, and the notice that a newer version exists.**
+
+Two questions the visitor and the user actually ask: *can I have this as
+an app?*, and *is mine out of date?* Both are answered from one fact, the
+latest published release, so both live beside the release itself:
+
+- `APP_RELEASES_URL` and `APP_LATEST_RELEASE_API` are declared once, in
+  `app-info.ts`, next to the version they are compared against.
+- `domain/updates.ts` is the whole decision in pure code: parse a tag,
+  compare two versions numerically (`1.10.0` is newer than `1.9.9`, which
+  a string comparison gets wrong), repair an untrusted payload, and say
+  whether there is anything to announce. Eighteen tests cover it.
+- `lib/releases.ts` is the only part that touches the network, and it is
+  built for refusal: an eight-second timeout, a conditional request, and
+  the last release it could read kept in storage as the fallback. That
+  fallback earned its keep during the build, because GitHub was rate
+  limiting this machine's shared address when the feature was verified,
+  and the app announced the release it remembered instead of staying
+  silent.
+- The notice is a strip because a toast is the wrong shape for a fact the
+  user may need hours later, and it is dismissed *by version* so that
+  dismissing one release does not silence the next.
+- The header download is drawn only on the website, through the platform
+  seam: the app asks the bridge what tier it is on rather than knowing.
+
+**Current state:** 437 tests across 35 files and 21 Rust tests, typecheck,
 lint and the production build all clean. The native release build is
 unchanged by this stage, because the layout is the same code on both tiers.
 

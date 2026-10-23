@@ -147,6 +147,9 @@ than no timer at all.
 | FR-65 | Each ambience's icon in the picker is drawn in a colour of its own | Should — **met** |
 | FR-66 | Pressing a control, finishing a task, and crossing the daily goal each give immediate feedback | Should — **met** |
 | FR-67 | The session summary's stat icons are coloured, sized to read at a glance, and the shortcuts section carries a keyboard glyph | Should — **met** |
+| FR-68 | The website offers the desktop installer, in the header and in the About dialog | Must — **met** |
+| FR-69 | A release newer than the running version is announced with a dismissible strip that links to its download | Should — **met** |
+| FR-70 | The update check survives a network that is offline, rate-limited, or refuses it, and never breaks the app | Must — **met** |
 
 ## 5. Non-functional requirements
 
@@ -216,6 +219,36 @@ src-tauri/    Rust backend: commands, tray, alarm, window events
   meaning on a phone.
 
 ## 9. Release notes
+
+**The website offers the app, and the app says when it is out of date**
+
+- **The website has a download.** A download icon in the header opens the
+  project's releases page, and the About dialog names the same page in
+  words. It is a link rather than a file the site serves, because the
+  installers are build artefacts of the desktop tier and the releases page
+  is where they belong: one place for every version that has existed.
+- **It is the website's affordance, not the desktop's.** The header button
+  is drawn only when the platform says the app is *not* native. A desktop
+  app offering to download itself would be advertising something the user
+  already has; the question "is there an app?" is one only a visitor to the
+  website can be asking.
+- **A newer release is announced.** The app asks GitHub for the latest
+  published release when it opens and then every six hours, compares it to
+  the version it was built from, and shows a strip above the workspace: the
+  version, the version in hand, a Download button, and a way to dismiss it.
+- **The notice is a strip rather than a toast.** A toast disappears on its
+  own, which is right for "the phase ended" and wrong for the one fact a
+  user may need later in the session. The strip stays until it is
+  dismissed, and it is dismissed **by version**: dismissing 0.2.0 does not
+  silence 0.3.0.
+- **Silence is the failure mode.** Offline, rate-limited, a payload that
+  cannot be read, and "no release has ever been published" all resolve to
+  "nothing to announce", and the app that asked the question keeps working
+  exactly as before.
+- **The answer is remembered.** The last release the app could read is
+  stored, and the request is conditional (`If-None-Match`), so a start-up
+  that is refused a fresh answer still announces the release it knows
+  about, and an answer of "not modified" costs no body and no rate limit.
 
 **The summary's icons are coloured and larger, and the shortcuts have a glyph**
 

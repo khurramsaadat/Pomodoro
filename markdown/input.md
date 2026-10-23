@@ -566,3 +566,16 @@ and the goal crossed mid-session).
 The session summary card was pasted with the request: its three stat icons
 were 14 pixels of muted grey, and the shortcuts section had no glyph of its
 own.
+
+---
+
+## 28. A download on the website, and a notice when a new version exists
+
+> "on the website, please include to Download the app. use best practice
+> for this. and as we update the app, users should get a notification to
+> update the app."
+
+Agreed with the user before building: the installer comes from the
+project's GitHub Releases; the notice is a version check with a
+dismissible strip rather than an auto-installer; the download appears in
+the header of the website and in the About dialog.
